@@ -1,45 +1,13 @@
-import { useState } from "react";
-import { Send, Sparkles, FileText } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Send, Sparkles, FileText, Loader2, Trash2, AlertCircle, Bot, User, Lightbulb } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { ScrollArea } from "./ui/scroll-area";
-import { motion } from "motion/react";
-
-interface Message {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  timestamp: string;
-  sourceReference?: string;
-}
-
-const mockMessages: Message[] = [
-  {
-    id: "1",
-    role: "assistant",
-    content: "Olá! Estou aqui para ajudar você com suas fontes carregadas. Posso responder perguntas, criar resumos ou gerar conteúdo de estudo. Como posso ajudar?",
-    timestamp: "10:30",
-  },
-  {
-    id: "2",
-    role: "user",
-    content: "Explique o Princípio da Incerteza de forma simples",
-    timestamp: "10:32",
-  },
-  {
-    id: "3",
-    role: "assistant",
-    content: "O Princípio da Incerteza de Heisenberg afirma que é impossível conhecer simultaneamente com precisão absoluta a posição e o momento (velocidade) de uma partícula. Quanto mais precisamente medimos uma dessas propriedades, menos precisamente conhecemos a outra.",
-    timestamp: "10:32",
-    sourceReference: "Notas - Princípio da Incerteza.txt",
-  },
-];
-
-const suggestions = [
-  "Gere um quiz sobre dualidade onda-partícula",
-  "Resuma os conceitos principais",
-  "Explique a equação de Schrödinger",
-];
+import { motion, AnimatePresence } from "motion/react";
+import { useChat, CitedSource } from "../hooks/useChat";
+import { useSources } from "../hooks/useSources";
+import { useDifficulties } from "../hooks/useDifficulties";
+import { toast } from "sonner";
 
 interface ChatPanelProps {
   projectId: string | null;
@@ -47,6 +15,85 @@ interface ChatPanelProps {
 
 export function ChatPanel({ projectId }: ChatPanelProps) {
   const [inputValue, setInputValue] = useState("");
+  const [currentCitedSources, setCurrentCitedSources] = useState<CitedSource[]>([]);
+  const [currentSuggestedTopics, setCurrentSuggestedTopics] = useState<string[]>([]);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const { messages, loading, sending, sendMessage, clearHistory } = useChat(projectId);
+  const { sources } = useSources(projectId);
+  const { difficulties } = useDifficulties(projectId);
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const handleSend = async () => {
+    if (!inputValue.trim() || sending || !projectId) return;
+
+    const messageText = inputValue.trim();
+    setInputValue("");
+
+    try {
+      const response = await sendMessage(messageText);
+
+      if (response) {
+        setCurrentCitedSources(response.cited_sources);
+        setCurrentSuggestedTopics(response.suggested_topics);
+
+        if (response.has_difficulties_context) {
+          toast.success("Resposta personalizada com base nas suas dificuldades!");
+        }
+      }
+    } catch (error) {
+      toast.error("Erro ao enviar mensagem. Verifique se há fontes disponíveis.");
+      console.error(error);
+    }
+  };
+
+  const handleClearHistory = async () => {
+    try {
+      await clearHistory();
+      setCurrentCitedSources([]);
+      setCurrentSuggestedTopics([]);
+      toast.success("Histórico limpo");
+    } catch (error) {
+      toast.error("Erro ao limpar histórico");
+    }
+  };
+
+  const handleSuggestion = (suggestion: string) => {
+    setInputValue(suggestion);
+  };
+
+  // Generate smart suggestions based on difficulties
+  const smartSuggestions = difficulties
+    .slice(0, 3)
+    .map((d) => `Explique melhor sobre ${d.topico}`);
+
+  const defaultSuggestions = [
+    "Faça um resumo dos principais conceitos",
+    "Quais são os pontos mais importantes?",
+    "Explique de forma mais simples",
+  ];
+
+  const suggestions = smartSuggestions.length > 0 ? smartSuggestions : defaultSuggestions;
+
+  const readySources = sources.filter((s) => s.status === 'ready');
+
+  if (!projectId) {
+    return (
+      <div className="h-full flex flex-col bg-gray-50/50 rounded-3xl p-4 border border-gray-200">
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <Sparkles className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+            <p className="text-gray-600">Selecione um projeto para começar a conversar</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-full flex flex-col bg-gray-50/50 rounded-3xl p-4 border border-gray-200">
@@ -57,91 +104,205 @@ export function ChatPanel({ projectId }: ChatPanelProps) {
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
               <Sparkles className="w-4 h-4 text-white" />
             </div>
-            <h3 className="text-gray-900">Chat</h3>
+            <h3 className="text-gray-900 font-semibold">Chat com IA</h3>
+          </div>
+          {messages.length > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleClearHistory}
+              className="rounded-lg hover:bg-red-50 text-red-600"
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge className="rounded-lg bg-blue-50 text-blue-700 border-blue-200">
+            <FileText className="w-3 h-3 mr-1" />
+            {readySources.length} fonte{readySources.length !== 1 ? 's' : ''} disponível{readySources.length !== 1 ? 'is' : ''}
+          </Badge>
+          {difficulties.length > 0 && (
+            <Badge className="rounded-lg bg-orange-50 text-orange-700 border-orange-200">
+              <Lightbulb className="w-3 h-3 mr-1" />
+              {difficulties.length} dificuldade{difficulties.length !== 1 ? 's' : ''} rastreada{difficulties.length !== 1 ? 's' : ''}
+            </Badge>
+          )}
+        </div>
+      </div>
+
+      {readySources.length === 0 ? (
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center max-w-sm">
+            <AlertCircle className="w-12 h-12 mx-auto mb-4 text-yellow-500" />
+            <h4 className="text-gray-900 font-semibold mb-2">Nenhuma fonte disponível</h4>
+            <p className="text-sm text-gray-600">
+              Faça upload de fontes (PDFs, textos) no painel "Fontes" para começar a conversar com a IA
+            </p>
           </div>
         </div>
-        <Badge className="rounded-lg bg-blue-50 text-blue-700 border-blue-200">
-          <FileText className="w-3 h-3 mr-1" />
-          3 fontes carregadas
-        </Badge>
-      </div>
-
-      {/* Messages */}
-      <ScrollArea className="flex-1 mb-4">
-        <div className="space-y-4 pr-2">
-          {mockMessages.map((message, index) => (
-            <motion.div
-              key={message.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
-            >
-              <div
-                className={`max-w-[85%] ${
-                  message.role === "user"
-                    ? "glass rounded-2xl rounded-tr-md p-4 bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200"
-                    : "glass-dark rounded-2xl rounded-tl-md p-4 border border-gray-200"
-                }`}
-              >
-                <p className="text-sm text-gray-800 mb-2">{message.content}</p>
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs text-gray-500">{message.timestamp}</span>
-                  {message.sourceReference && (
-                    <Badge
-                      variant="outline"
-                      className="rounded-md text-xs bg-white border-gray-300 text-gray-600"
-                    >
-                      <FileText className="w-3 h-3 mr-1" />
-                      Fonte
-                    </Badge>
-                  )}
+      ) : (
+        <>
+          {/* Messages */}
+          <ScrollArea className="flex-1 mb-4" ref={scrollAreaRef}>
+            <div className="space-y-4 pr-2">
+              {loading && messages.length === 0 ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
                 </div>
+              ) : messages.length === 0 ? (
+                <div className="text-center py-8">
+                  <Bot className="w-12 h-12 mx-auto mb-4 text-purple-400" />
+                  <p className="text-gray-600 mb-2">Olá! Estou aqui para ajudar você.</p>
+                  <p className="text-sm text-gray-500">
+                    Faça perguntas sobre suas fontes e eu responderei com base no conteúdo delas.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <AnimatePresence>
+                    {messages.map((message, index) => (
+                      <div key={message.id}>
+                        {/* User message */}
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.05 }}
+                          className="flex justify-end mb-4"
+                        >
+                          <div className="max-w-[85%] glass rounded-2xl rounded-tr-md p-4 bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200">
+                            <div className="flex items-start gap-2 mb-2">
+                              <User className="w-4 h-4 text-purple-600 mt-0.5" />
+                              <p className="text-sm text-gray-800 flex-1">{message.message}</p>
+                            </div>
+                            <span className="text-xs text-gray-500">
+                              {new Date(message.created_at).toLocaleTimeString('pt-BR', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </span>
+                          </div>
+                        </motion.div>
+
+                        {/* AI response */}
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.05 + 0.1 }}
+                          className="flex justify-start mb-4"
+                        >
+                          <div className="max-w-[85%] glass-dark rounded-2xl rounded-tl-md p-4 border border-gray-200">
+                            <div className="flex items-start gap-2 mb-2">
+                              <Bot className="w-4 h-4 text-purple-600 mt-0.5" />
+                              <div className="flex-1">
+                                <p className="text-sm text-gray-800 whitespace-pre-wrap mb-3">
+                                  {message.response}
+                                </p>
+                                {message.sources_cited && message.sources_cited.length > 0 && (
+                                  <div className="flex flex-wrap gap-2 mb-2">
+                                    {message.sources_cited.map((sourceId, idx) => {
+                                      const source = sources.find((s) => s.id === sourceId);
+                                      return source ? (
+                                        <Badge
+                                          key={idx}
+                                          variant="outline"
+                                          className="rounded-md text-xs bg-blue-50 border-blue-200 text-blue-700"
+                                        >
+                                          <FileText className="w-3 h-3 mr-1" />
+                                          {source.file_name}
+                                        </Badge>
+                                      ) : null;
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            <span className="text-xs text-gray-500">
+                              {new Date(message.created_at).toLocaleTimeString('pt-BR', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </span>
+                          </div>
+                        </motion.div>
+                      </div>
+                    ))}
+                  </AnimatePresence>
+
+                  {sending && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex justify-start"
+                    >
+                      <div className="glass-dark rounded-2xl rounded-tl-md p-4 border border-gray-200">
+                        <div className="flex items-center gap-2">
+                          <Loader2 className="w-4 h-4 animate-spin text-purple-600" />
+                          <p className="text-sm text-gray-600">Pensando...</p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+          </ScrollArea>
+
+          {/* Suggestions */}
+          {messages.length === 0 && suggestions.length > 0 && (
+            <div className="mb-4 space-y-2">
+              <p className="text-xs text-gray-600 flex items-center gap-1">
+                <Lightbulb className="w-3 h-3" />
+                Sugestões{smartSuggestions.length > 0 ? ' baseadas nas suas dificuldades' : ''}:
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {suggestions.map((suggestion, index) => (
+                  <motion.button
+                    key={index}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => handleSuggestion(suggestion)}
+                    className="glass px-3 py-2 rounded-xl text-xs text-gray-700 hover:bg-purple-50/50 transition-all duration-300 border border-gray-200"
+                  >
+                    {suggestion}
+                  </motion.button>
+                ))}
               </div>
-            </motion.div>
-          ))}
-        </div>
-      </ScrollArea>
+            </div>
+          )}
 
-      {/* Suggestions */}
-      <div className="mb-4 space-y-2">
-        <p className="text-xs text-gray-600 mb-2">Sugestões:</p>
-        <div className="flex flex-wrap gap-2">
-          {suggestions.map((suggestion, index) => (
-            <motion.button
-              key={index}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="glass px-3 py-2 rounded-xl text-xs text-gray-700 hover:bg-purple-50/50 transition-all duration-300 border border-gray-200"
+          {/* Input */}
+          <div className="glass-dark rounded-2xl p-3 flex items-center gap-2 border border-gray-200">
+            <input
+              type="text"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              placeholder="Pergunte qualquer coisa sobre suas fontes..."
+              className="flex-1 bg-transparent border-0 outline-none text-sm text-gray-800 placeholder:text-gray-500"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend();
+                }
+              }}
+              disabled={sending}
+            />
+            <Button
+              size="icon"
+              onClick={handleSend}
+              className="h-9 w-9 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+              disabled={!inputValue.trim() || sending}
             >
-              {suggestion}
-            </motion.button>
-          ))}
-        </div>
-      </div>
-
-      {/* Input */}
-      <div className="glass-dark rounded-2xl p-3 flex items-center gap-2 border border-gray-200">
-        <input
-          type="text"
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          placeholder="Pergunte qualquer coisa..."
-          className="flex-1 bg-transparent border-0 outline-none text-sm text-gray-800 placeholder:text-gray-500"
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && inputValue.trim()) {
-              setInputValue("");
-            }
-          }}
-        />
-        <Button
-          size="icon"
-          className="h-9 w-9 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg hover:shadow-xl transition-all duration-300"
-          disabled={!inputValue.trim()}
-        >
-          <Send className="w-4 h-4" />
-        </Button>
-      </div>
+              {sending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Send className="w-4 h-4" />
+              )}
+            </Button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

@@ -13,7 +13,9 @@ functions/
 │   └── index.ts
 ├── generate-flashcards/ # Gera flashcards
 │   └── index.ts
-└── generate-summary/    # Gera resumos
+├── generate-summary/    # Gera resumos
+│   └── index.ts
+└── chat/                # Chat com RAG
     └── index.ts
 ```
 
@@ -159,6 +161,41 @@ Gera resumo estruturado em HTML.
   }
 }
 ```
+
+### 4. `chat` - Chat com RAG
+
+Chat interativo com Retrieval Augmented Generation (RAG) sobre as fontes do projeto.
+
+**Request:**
+```json
+{
+  "message": "Explique o conceito de homeostase",
+  "project_id": "uuid"
+}
+```
+
+**Response:**
+```json
+{
+  "response": "A homeostase é o processo de manutenção...",
+  "cited_sources": [
+    {
+      "id": "uuid",
+      "file_name": "fisiologia.pdf",
+      "file_type": "pdf"
+    }
+  ],
+  "suggested_topics": ["Homeostase", "Sistema Nervoso"],
+  "has_difficulties_context": true
+}
+```
+
+**Características:**
+- Combina conteúdo de todas as fontes do projeto (RAG simplificado)
+- Cita automaticamente fontes mencionadas na resposta
+- Considera dificuldades do aluno para respostas personalizadas
+- Histórico salvo automaticamente no banco de dados
+- Usa Gemini 2.5 Flash para respostas rápidas
 
 ## 🔧 Teste Local
 
