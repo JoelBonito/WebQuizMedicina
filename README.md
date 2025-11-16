@@ -41,7 +41,7 @@ Aplicação web educacional moderna para estudantes de medicina criarem conteúd
 - ✅ Timer para rastrear tempo de resposta
 - ✅ Tela de sumário final com estatísticas
 
-**Fase 4: Sistema de Flashcards com Repetição Espaçada** 🆕
+**Fase 4: Sistema de Flashcards com Repetição Espaçada**
 - ✅ Interface de flashcard com flip animation (3D)
 - ✅ Algoritmo SM-2 para repetição espaçada
 - ✅ Botões de avaliação (Fácil/Médio/Difícil)
@@ -49,9 +49,17 @@ Aplicação web educacional moderna para estudantes de medicina criarem conteúd
 - ✅ Integração com sistema de dificuldades
 - ✅ Tela de sumário com estatísticas de revisão
 
+**Fase 5: Chat com IA e RAG** 🆕
+- ✅ Edge Function para chat com RAG (Retrieval Augmented Generation)
+- ✅ Busca e combinação de conteúdo de todas as fontes do projeto
+- ✅ Citações automáticas de fontes nas respostas
+- ✅ Sugestões inteligentes baseadas em dificuldades do aluno
+- ✅ Histórico de conversas salvo no banco
+- ✅ Interface interativa com auto-scroll
+- ✅ Respostas personalizadas considerando contexto de dificuldades
+
 ### 🚧 Próximas Fases
 
-- 🚧 Chat com IA e RAG
 - 🚧 Dashboard de dificuldades
 - 🚧 Suporte a áudio nativo (sem transcrição)
 
@@ -77,7 +85,8 @@ WebQuizMedicina/
 │   │   ├── useFlashcards.ts # Flashcards + geração com IA
 │   │   ├── useSummaries.ts # Resumos + geração com IA
 │   │   ├── useProgress.ts  # Salvar progresso de quiz/flashcards
-│   │   └── useDifficulties.ts # Sistema NÃO SEI (rastrear dificuldades)
+│   │   ├── useDifficulties.ts # Sistema NÃO SEI (rastrear dificuldades)
+│   │   └── useChat.ts      # Chat com IA e RAG
 │   ├── lib/                # Utilitários
 │   │   ├── supabase.ts     # Cliente Supabase
 │   │   ├── database.types.ts # Types do banco
@@ -89,6 +98,7 @@ WebQuizMedicina/
 │   │   ├── generate-quiz/
 │   │   ├── generate-flashcards/
 │   │   ├── generate-summary/
+│   │   ├── chat/           # Chat com RAG
 │   │   └── README.md       # Docs das Edge Functions
 │   └── migrations/         # Migrations SQL
 │       ├── 001_initial_schema.sql
@@ -211,7 +221,7 @@ A aplicação estará disponível em `http://localhost:3000`
 - ✅ Timer de resposta
 - ✅ Tela de sumário com estatísticas
 
-### ✅ Fase 4: Flashcards (Concluída!) 🎉
+### ✅ Fase 4: Flashcards (Concluída!)
 
 - ✅ Interface com flip animation 3D (Framer Motion)
 - ✅ Sistema de repetição espaçada (SM-2)
@@ -220,12 +230,14 @@ A aplicação estará disponível em `http://localhost:3000`
 - ✅ Integração com dificuldades
 - ✅ Tela de sumário com estatísticas
 
-### Fase 5: Chat com IA
+### ✅ Fase 5: Chat com IA (Concluída!) 🎉
 
-- [ ] RAG sobre fontes do projeto
-- [ ] Edge Function: `chat`
-- [ ] Citação de fontes
-- [ ] Sugestões baseadas em dificuldades
+- ✅ RAG sobre fontes do projeto
+- ✅ Edge Function: `chat`
+- ✅ Citação de fontes
+- ✅ Sugestões baseadas em dificuldades
+- ✅ Histórico de conversas
+- ✅ Respostas personalizadas
 
 ### Fase 6: Dashboard de Dificuldades
 
@@ -245,6 +257,7 @@ A aplicação estará disponível em `http://localhost:3000`
 5. **Estudar de forma interativa**:
    - **Quiz**: Clique em "Iniciar Quiz" → responda as questões ou clique "NÃO SEI" para marcar dificuldades
    - **Flashcards**: Clique em "Iniciar Flashcards" → vire os cards e avalie (Fácil/Médio/Difícil) para repetição espaçada
+   - **Chat**: Converse com a IA sobre suas fontes → receba respostas com citações e sugestões baseadas em suas dificuldades
    - Sistema rastreia automaticamente seus tópicos fracos para revisão personalizada
 
 ## 🤝 Contribuindo
