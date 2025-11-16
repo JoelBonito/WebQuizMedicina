@@ -77,7 +77,7 @@ export const saveProgressSchema = z.object({
   question_id: uuidSchema.optional(),
   flashcard_id: uuidSchema.optional(),
   correct: z.boolean().optional(),
-  time_spent: z.number().int().min(0).max(3600000).optional(), // max 1 hour in ms
+  time_spent: z.number().int().min(0).max(3600000).optional(),
   difficulty_rating: z.enum(['easy', 'medium', 'hard']).optional(),
 }).refine(
   (data) => data.question_id || data.flashcard_id,
@@ -185,9 +185,9 @@ export class ValidationError extends Error {
  */
 export function sanitizeString(input: string): string {
   return input
-    .replace(/[<>]/g, '') // Remove < and >
-    .replace(/javascript:/gi, '') // Remove javascript: protocol
-    .replace(/on\w+\s*=/gi, '') // Remove event handlers
+    .replace(/[<>]/g, '')
+    .replace(/javascript:/gi, '')
+    .replace(/on\w+\s*=/gi, '')
     .trim();
 }
 
@@ -195,8 +195,6 @@ export function sanitizeString(input: string): string {
  * Sanitizes HTML content - removes dangerous tags and attributes
  */
 export function sanitizeHtml(html: string): string {
-  // This is a basic implementation
-  // For production, consider using a proper HTML sanitizer
   return html
     .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
     .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
@@ -209,7 +207,7 @@ export function sanitizeHtml(html: string): string {
  */
 export function sanitizeFileName(fileName: string): string {
   return fileName
-    .replace(/[^a-zA-Z0-9._-]/g, '_') // Replace invalid chars with underscore
-    .replace(/\.{2,}/g, '.') // Prevent directory traversal
-    .slice(0, 255); // Limit length
+    .replace(/[^a-zA-Z0-9._-]/g, '_')
+    .replace(/\.{2,}/g, '.')
+    .slice(0, 255);
 }
