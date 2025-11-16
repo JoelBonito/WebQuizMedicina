@@ -32,7 +32,7 @@ Aplicação web educacional moderna para estudantes de medicina criarem conteúd
 - ✅ Sistema de prompts otimizados para medicina
 - ✅ Suporte a múltiplas fontes por geração
 
-**Fase 3: Sistema de Quiz Interativo** 🆕
+**Fase 3: Sistema de Quiz Interativo**
 - ✅ Interface de quiz fullscreen com 3 estados (questão, feedback, sumário)
 - ✅ Botão "NÃO SEI" para rastrear dificuldades
 - ✅ Sistema de progresso (salva acertos, erros, tempo)
@@ -41,9 +41,16 @@ Aplicação web educacional moderna para estudantes de medicina criarem conteúd
 - ✅ Timer para rastrear tempo de resposta
 - ✅ Tela de sumário final com estatísticas
 
+**Fase 4: Sistema de Flashcards com Repetição Espaçada** 🆕
+- ✅ Interface de flashcard com flip animation (3D)
+- ✅ Algoritmo SM-2 para repetição espaçada
+- ✅ Botões de avaliação (Fácil/Médio/Difícil)
+- ✅ Cálculo automático de próxima revisão
+- ✅ Integração com sistema de dificuldades
+- ✅ Tela de sumário com estatísticas de revisão
+
 ### 🚧 Próximas Fases
 
-- 🚧 Flashcards com repetição espaçada
 - 🚧 Chat com IA e RAG
 - 🚧 Dashboard de dificuldades
 - 🚧 Suporte a áudio nativo (sem transcrição)
@@ -59,6 +66,7 @@ WebQuizMedicina/
 │   │   ├── SourcesPanel.tsx # Upload e gestão de fontes
 │   │   ├── ContentPanel.tsx # Quiz, Flashcards, Resumos
 │   │   ├── QuizSession.tsx # Interface de quiz interativo (fullscreen)
+│   │   ├── FlashcardSession.tsx # Interface de flashcards com repetição espaçada
 │   │   ├── ChatPanel.tsx   # Chat com IA
 │   │   └── ui/             # Componentes shadcn/ui
 │   ├── hooks/              # Custom hooks
@@ -194,7 +202,7 @@ A aplicação estará disponível em `http://localhost:3000`
 - ✅ Edge Function: `generate-summary`
 - ✅ Integração com Gemini 2.5
 
-### ✅ Fase 3: Sistema de Quiz (Concluída!) 🎉
+### ✅ Fase 3: Sistema de Quiz (Concluída!)
 
 - ✅ Interface de quiz interativo fullscreen
 - ✅ Botão "NÃO SEI" (orange-themed)
@@ -203,11 +211,14 @@ A aplicação estará disponível em `http://localhost:3000`
 - ✅ Timer de resposta
 - ✅ Tela de sumário com estatísticas
 
-### Fase 4: Flashcards
+### ✅ Fase 4: Flashcards (Concluída!) 🎉
 
-- [ ] Interface com flip animation
-- [ ] Sistema de repetição espaçada
-- [ ] Integração com dificuldades
+- ✅ Interface com flip animation 3D (Framer Motion)
+- ✅ Sistema de repetição espaçada (SM-2)
+- ✅ Botões de avaliação (Fácil/Médio/Difícil)
+- ✅ Cálculo automático de próxima revisão
+- ✅ Integração com dificuldades
+- ✅ Tela de sumário com estatísticas
 
 ### Fase 5: Chat com IA
 
@@ -228,10 +239,13 @@ A aplicação estará disponível em `http://localhost:3000`
 2. **Criar um projeto** (ex: "Farmacologia Geral")
 3. **Upload de fontes** (PDFs, textos, áudios)
 4. **Gerar conteúdo com IA**:
-   - Clique em "Gerar Quiz" → IA cria 15 perguntas
+   - Clique em "Gerar Quiz" → IA cria 15 perguntas personalizadas
    - Clique em "Gerar Flashcards" → IA cria 20 flashcards
    - Clique em "Gerar Resumo" → IA cria resumo estruturado
-5. **Estudar** com o conteúdo gerado
+5. **Estudar de forma interativa**:
+   - **Quiz**: Clique em "Iniciar Quiz" → responda as questões ou clique "NÃO SEI" para marcar dificuldades
+   - **Flashcards**: Clique em "Iniciar Flashcards" → vire os cards e avalie (Fácil/Médio/Difícil) para repetição espaçada
+   - Sistema rastreia automaticamente seus tópicos fracos para revisão personalizada
 
 ## 🤝 Contribuindo
 

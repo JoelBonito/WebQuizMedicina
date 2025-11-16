@@ -10,6 +10,7 @@ import { useSummaries } from "../hooks/useSummaries";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { QuizSession } from "./QuizSession";
+import { FlashcardSession } from "./FlashcardSession";
 
 interface ContentPanelProps {
   projectId: string | null;
@@ -32,6 +33,7 @@ export function ContentPanel({ projectId }: ContentPanelProps) {
   const [activeTab, setActiveTab] = useState("quiz");
   const [selectedSummary, setSelectedSummary] = useState<any>(null);
   const [quizSessionOpen, setQuizSessionOpen] = useState(false);
+  const [flashcardSessionOpen, setFlashcardSessionOpen] = useState(false);
 
   const { questions, loading: loadingQuiz, generating: generatingQuiz, generateQuiz } = useQuestions(projectId);
   const { flashcards, loading: loadingFlashcards, generating: generatingFlashcards, generateFlashcards } = useFlashcards(projectId);
@@ -241,6 +243,27 @@ export function ContentPanel({ projectId }: ContentPanelProps) {
               </div>
             ) : (
               <>
+                {/* Start Flashcards Button */}
+                <div className="glass-dark rounded-2xl p-6 border border-gray-200 mb-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-gray-900 font-semibold mb-1">
+                        Flashcards Prontos!
+                      </h4>
+                      <p className="text-sm text-gray-600">
+                        {flashcards.length} flashcards disponíveis para revisar com repetição espaçada
+                      </p>
+                    </div>
+                    <Button
+                      onClick={() => setFlashcardSessionOpen(true)}
+                      className="rounded-xl bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white shadow-lg"
+                    >
+                      <Play className="w-4 h-4 mr-2" />
+                      Iniciar Flashcards
+                    </Button>
+                  </div>
+                </div>
+
                 {flashcards.map((card, index) => (
                   <motion.div
                     key={card.id}
@@ -412,6 +435,14 @@ export function ContentPanel({ projectId }: ContentPanelProps) {
         projectId={projectId || ''}
         open={quizSessionOpen}
         onClose={() => setQuizSessionOpen(false)}
+      />
+
+      {/* Flashcard Session Modal */}
+      <FlashcardSession
+        flashcards={flashcards}
+        projectId={projectId || ''}
+        open={flashcardSessionOpen}
+        onClose={() => setFlashcardSessionOpen(false)}
       />
     </>
   );

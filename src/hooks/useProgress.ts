@@ -52,13 +52,21 @@ export const useProgress = () => {
 
   const saveFlashcardProgress = async (
     flashcardId: string,
-    acertou: boolean,
-    clicouNaoSei: boolean
+    rating: 'facil' | 'medio' | 'dificil',
+    nextReviewInterval: number,
+    tempoResposta?: number
   ) => {
     if (!user) throw new Error('User not authenticated');
 
     try {
       setSaving(true);
+
+      // For flashcards, we treat ratings differently:
+      // - facil: acertou = true, clicou_nao_sei = false
+      // - medio: acertou = null, clicou_nao_sei = false
+      // - dificil: acertou = false, clicou_nao_sei = true
+      const acertou = rating === 'facil' ? true : rating === 'dificil' ? false : null;
+      const clicouNaoSei = rating === 'dificil';
 
       const { data, error } = await supabase
         .from('progress')
@@ -67,6 +75,7 @@ export const useProgress = () => {
           flashcard_id: flashcardId,
           acertou,
           clicou_nao_sei: clicouNaoSei,
+          tempo_resposta: tempoResposta || null,
         })
         .select()
         .single();
