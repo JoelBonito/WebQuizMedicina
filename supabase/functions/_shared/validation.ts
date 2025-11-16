@@ -197,15 +197,30 @@ export function sanitizeString(input: string): string {
 /**
  * Sanitizes HTML content - removes dangerous tags and attributes
  * Removes dangerous protocols: javascript:, data:, vbscript:
+ * Uses iterative approach to prevent bypass via nested tags
  */
 export function sanitizeHtml(html: string): string {
-  return html
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
-    .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '')
-    .replace(/javascript:/gi, '')
-    .replace(/data:/gi, '')
-    .replace(/vbscript:/gi, '');
+  let sanitized = html;
+  let previous: string;
+
+  // Iteratively remove dangerous content until no changes occur
+  // This prevents bypass attacks using nested or malformed tags
+  do {
+    previous = sanitized;
+    sanitized = sanitized
+      // Remove script tags (handles </script> with optional whitespace)
+      .replace(/<script\b[^<]*(?:(?!<\/script\s*>)<[^<]*)*<\/script\s*>/gi, '')
+      // Remove iframe tags (handles </iframe> with optional whitespace)
+      .replace(/<iframe\b[^<]*(?:(?!<\/iframe\s*>)<[^<]*)*<\/iframe\s*>/gi, '')
+      // Remove event handlers
+      .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '')
+      // Remove dangerous protocols
+      .replace(/javascript:/gi, '')
+      .replace(/data:/gi, '')
+      .replace(/vbscript:/gi, '');
+  } while (sanitized !== previous);
+
+  return sanitized;
 }
 
 /**

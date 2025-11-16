@@ -342,17 +342,23 @@ export function sanitizeInput(input: unknown): unknown {
 
 /**
  * Creates a secure error response
- * Hides sensitive information in production
+ * NEVER exposes stack traces to clients (security risk)
+ * Stack traces are logged server-side only
  */
 export function createErrorResponse(
   error: Error,
   statusCode = 500
 ): Response {
-  const isDev = Deno.env.get('ENVIRONMENT') === 'development';
+  // Log full error details server-side (never send to client)
+  console.error('Error occurred:', {
+    message: error.message,
+    stack: error.stack,
+    timestamp: new Date().toISOString(),
+  });
 
+  // Return minimal error info to client (no stack traces)
   const body = {
     error: error.message,
-    ...(isDev && { stack: error.stack }),
     timestamp: new Date().toISOString(),
   };
 

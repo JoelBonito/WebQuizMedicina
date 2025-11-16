@@ -53,6 +53,34 @@ describe('Security Tests', () => {
       expect(clean).not.toContain('onerror');
       expect(clean).not.toContain('<script>');
     });
+
+    it('should handle nested script tags (bypass attempt)', () => {
+      const dirty = '<script><script>alert("XSS")</script></script>';
+      const clean = sanitizeHtml(dirty);
+      expect(clean).not.toContain('<script>');
+      expect(clean).not.toContain('alert');
+    });
+
+    it('should handle malformed script end tags with spaces', () => {
+      const dirty = '<script>alert("XSS")</script >';
+      const clean = sanitizeHtml(dirty);
+      expect(clean).not.toContain('<script>');
+      expect(clean).not.toContain('alert');
+    });
+
+    it('should handle nested iframe tags (bypass attempt)', () => {
+      const dirty = '<iframe><iframe src="evil.com"></iframe></iframe>';
+      const clean = sanitizeHtml(dirty);
+      expect(clean).not.toContain('<iframe>');
+      expect(clean).not.toContain('evil.com');
+    });
+
+    it('should iteratively remove all dangerous content', () => {
+      const dirty = '<<script>script>alert("XSS")<</script>/script>';
+      const clean = sanitizeHtml(dirty);
+      expect(clean).not.toContain('<script>');
+      expect(clean).not.toContain('alert');
+    });
   });
 
   describe('SQL Injection Prevention', () => {

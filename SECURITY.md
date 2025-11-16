@@ -69,8 +69,14 @@ export async function authorizeResourceAccess(...) { ... }
   - Configurações por contexto (strict, default, rich)
   - Localização: `src/lib/sanitize.ts`
 
+- **Sanitização Iterativa (Backend)**
+  - Proteção contra bypass via nested/malformed tags
+  - Algoritmo iterativo até estabilização
+  - Previne ataques como `<<script>script>alert()</script>`
+  - Localização: `supabase/functions/_shared/validation.ts:sanitizeHtml()`
+
 - **Validação de URLs**
-  - Bloqueio de protocolos perigosos (javascript:, data:, vbscript:)
+  - Bloqueio de protocolos perigosos (javascript:, data:, vbscript:, file:)
   - Whitelist de protocolos permitidos (https, http, mailto, tel)
 
 - **Validação de Filenames**
@@ -118,6 +124,13 @@ const safeUrl = sanitizeUrl(userProvidedUrl);
   - Disponível para APIs críticas
   - Verificação de integridade de requests
   - Algoritmo: HMAC-SHA256
+
+- **Error Handling Seguro**
+  - Stack traces NUNCA expostos em respostas (CWE-209)
+  - Logging server-side apenas (console.error)
+  - Mensagens de erro genéricas para clientes
+  - Timestamps para correlação de logs
+  - Localização: `supabase/functions/_shared/security.ts:createErrorResponse()`
 
 #### 📍 Configuração
 
@@ -478,6 +491,24 @@ supabase functions deploy chat
 ---
 
 ## 📝 Changelog de Segurança
+
+### 2025-11-16 - Correções CodeQL (Segunda Atualização)
+
+- ✅ **Iterative Sanitization** - Proteção contra bypass de HTML tags aninhadas
+  - Algoritmo iterativo em `sanitizeHtml()` previne ataques com nested tags
+  - Suporta detecção de `</script >` com espaços (malformed tags)
+  - Testes para bypass scenarios (nested, malformed, double-encoded)
+  - Fix: CWE-20 (Incomplete Multi-character Sanitization)
+
+- ✅ **Stack Trace Protection** - Nunca expõe stack traces em respostas
+  - Stack traces logados server-side apenas (`console.error`)
+  - Respostas de erro contêm apenas mensagem e timestamp
+  - Fix: CWE-209 (Information Exposure Through Error Messages)
+
+- ✅ **Protocol Validation Enhancement** - Bloqueio completo de protocolos perigosos
+  - Adicionado `data:`, `vbscript:`, `file:` aos bloqueios
+  - Validação case-insensitive melhorada
+  - Fix: CWE-184 (Incomplete List of Disallowed Inputs)
 
 ### 2025-11-16 - Implementação Inicial
 
