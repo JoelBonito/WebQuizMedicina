@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Navbar } from "./components/Navbar";
 import { SourcesPanel } from "./components/SourcesPanel";
 import { ContentPanel } from "./components/ContentPanel";
-import { ChatPanel } from "./components/ChatPanel";
+import { RightPanel } from "./components/RightPanel";
 import { Dashboard } from "./components/Dashboard";
 import { Auth } from "./components/Auth";
 import { useAuth } from "./hooks/useAuth";
@@ -70,9 +70,9 @@ export default function App() {
               <ContentPanel projectId={selectedProjectId} />
             </div>
 
-            {/* Right Panel - Chat (25%) */}
+            {/* Right Panel - Chat & Difficulties (25%) */}
             <div className="lg:col-span-3 h-full flex items-stretch">
-              <ChatPanel projectId={selectedProjectId} />
+              <RightPanel projectId={selectedProjectId} />
             </div>
           </div>
         </div>

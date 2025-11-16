@@ -11,6 +11,7 @@ export interface Difficulty {
   nivel: number;
   resolvido: boolean;
   created_at: string;
+  updated_at?: string;
 }
 
 export const useDifficulties = (projectId: string | null) => {
@@ -31,7 +32,6 @@ export const useDifficulties = (projectId: string | null) => {
         .select('*')
         .eq('user_id', user.id)
         .eq('project_id', projectId)
-        .eq('resolvido', false)
         .order('nivel', { ascending: false });
 
       if (error) throw error;
@@ -110,15 +110,17 @@ export const useDifficulties = (projectId: string | null) => {
 
   const markAsResolved = async (id: string) => {
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('difficulties')
-        .update({ resolvido: true })
-        .eq('id', id);
+        .update({ resolvido: true, updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .select()
+        .single();
 
       if (error) throw error;
 
-      // Remove from local state
-      setDifficulties(difficulties.filter((d) => d.id !== id));
+      // Update local state
+      setDifficulties(difficulties.map((d) => (d.id === id ? data : d)));
     } catch (err) {
       console.error('Error marking as resolved:', err);
       throw err;
@@ -127,6 +129,7 @@ export const useDifficulties = (projectId: string | null) => {
 
   const getTopDifficulties = (limit: number = 5) => {
     return difficulties
+      .filter((d) => !d.resolvido)
       .sort((a, b) => b.nivel - a.nivel)
       .slice(0, limit);
   };
