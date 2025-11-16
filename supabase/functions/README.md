@@ -44,7 +44,7 @@ supabase login
 #### 2. Link com seu projeto
 
 ```bash
-supabase link --project-ref tpwkthafekcmhbcxvupd
+supabase link --project-ref bwgglfforazywrjhbxsa
 ```
 
 #### 3. Configure a chave do Gemini

@@ -35,13 +35,13 @@ echo ""
 
 # Deploy the function
 echo "📦 Deploying generate-focused-summary..."
-supabase functions deploy generate-focused-summary --project-ref tpwkthafekcmhbcxvupd
+supabase functions deploy generate-focused-summary --project-ref bwgglfforazywrjhbxsa
 
 echo ""
 echo "✅ Deployment complete!"
 echo ""
 echo "📋 Next steps:"
-echo "  1. Verify in dashboard: https://supabase.com/dashboard/project/tpwkthafekcmhbcxvupd/functions"
+echo "  1. Verify in dashboard: https://supabase.com/dashboard/project/bwgglfforazywrjhbxsa/functions"
 echo "  2. Test in app: Go to Dificuldades tab → Click 'Gerar Resumo Focado'"
 echo "  3. Check logs: supabase functions logs generate-focused-summary"
 echo ""

@@ -350,7 +350,7 @@ const maliciousQuery = "'; DROP TABLE users; --";
 ```bash
 # Fazer 15 requests seguidas para Edge Function
 for i in {1..15}; do
-  curl -X POST https://your-project.supabase.co/functions/v1/generate-quiz \
+  curl -X POST https://bwgglfforazywrjhbxsa.supabase.co/functions/v1/generate-quiz \
     -H "Authorization: Bearer $TOKEN" \
     -H "Content-Type: application/json" \
     -d '{"project_id":"uuid"}'
@@ -363,7 +363,7 @@ done
 
 ```bash
 # Tentar acessar de origem não permitida
-curl -X POST https://your-project.supabase.co/functions/v1/generate-quiz \
+curl -X POST https://bwgglfforazywrjhbxsa.supabase.co/functions/v1/generate-quiz \
   -H "Origin: https://evil-site.com" \
   -H "Authorization: Bearer $TOKEN"
 
@@ -374,7 +374,7 @@ curl -X POST https://your-project.supabase.co/functions/v1/generate-quiz \
 
 ```bash
 # Tentar acessar projeto de outro usuário
-curl -X POST https://your-project.supabase.co/functions/v1/generate-quiz \
+curl -X POST https://bwgglfforazywrjhbxsa.supabase.co/functions/v1/generate-quiz \
   -H "Authorization: Bearer $USER_A_TOKEN" \
   -d '{"project_id":"USER_B_PROJECT_ID"}'
 

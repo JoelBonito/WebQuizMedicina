@@ -186,7 +186,7 @@ npm install -g supabase
 supabase login
 
 # Link com seu projeto
-supabase link --project-ref tpwkthafekcmhbcxvupd
+supabase link --project-ref bwgglfforazywrjhbxsa
 
 # Configure a chave do Gemini
 supabase secrets set GEMINI_API_KEY=sua_chave_gemini
