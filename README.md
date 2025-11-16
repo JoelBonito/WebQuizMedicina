@@ -49,7 +49,7 @@ Aplicação web educacional moderna para estudantes de medicina criarem conteúd
 - ✅ Integração com sistema de dificuldades
 - ✅ Tela de sumário com estatísticas de revisão
 
-**Fase 5: Chat com IA e RAG** 🆕
+**Fase 5: Chat com IA e RAG**
 - ✅ Edge Function para chat com RAG (Retrieval Augmented Generation)
 - ✅ Busca e combinação de conteúdo de todas as fontes do projeto
 - ✅ Citações automáticas de fontes nas respostas
@@ -58,9 +58,17 @@ Aplicação web educacional moderna para estudantes de medicina criarem conteúd
 - ✅ Interface interativa com auto-scroll
 - ✅ Respostas personalizadas considerando contexto de dificuldades
 
+**Fase 6: Dashboard de Dificuldades** 🆕
+- ✅ Visualização completa de dificuldades ativas e resolvidas
+- ✅ Grid de estatísticas (Total, Críticas, Moderadas, Resolvidas)
+- ✅ Barras de progresso visual por nível de dificuldade
+- ✅ Botão para marcar dificuldades como resolvidas
+- ✅ Geração de conteúdo personalizado focado nas top 5 dificuldades
+- ✅ Badges coloridos por origem (Quiz/Flashcard/Chat)
+- ✅ Sistema de tabs integrado no painel direito
+
 ### 🚧 Próximas Fases
 
-- 🚧 Dashboard de dificuldades
 - 🚧 Suporte a áudio nativo (sem transcrição)
 
 ## 📁 Estrutura do Projeto
@@ -75,7 +83,9 @@ WebQuizMedicina/
 │   │   ├── ContentPanel.tsx # Quiz, Flashcards, Resumos
 │   │   ├── QuizSession.tsx # Interface de quiz interativo (fullscreen)
 │   │   ├── FlashcardSession.tsx # Interface de flashcards com repetição espaçada
-│   │   ├── ChatPanel.tsx   # Chat com IA
+│   │   ├── ChatPanel.tsx   # Chat com IA e RAG
+│   │   ├── DifficultiesPanel.tsx # Dashboard de dificuldades
+│   │   ├── RightPanel.tsx  # Painel direito com tabs (Chat/Dificuldades)
 │   │   └── ui/             # Componentes shadcn/ui
 │   ├── hooks/              # Custom hooks
 │   │   ├── useAuth.ts      # Gerenciamento de autenticação
@@ -230,7 +240,7 @@ A aplicação estará disponível em `http://localhost:3000`
 - ✅ Integração com dificuldades
 - ✅ Tela de sumário com estatísticas
 
-### ✅ Fase 5: Chat com IA (Concluída!) 🎉
+### ✅ Fase 5: Chat com IA (Concluída!)
 
 - ✅ RAG sobre fontes do projeto
 - ✅ Edge Function: `chat`
@@ -239,11 +249,13 @@ A aplicação estará disponível em `http://localhost:3000`
 - ✅ Histórico de conversas
 - ✅ Respostas personalizadas
 
-### Fase 6: Dashboard de Dificuldades
+### ✅ Fase 6: Dashboard de Dificuldades (Concluída!) 🎉
 
-- [ ] Visualização de tópicos fracos
-- [ ] Geração de conteúdo personalizado
-- [ ] Marcar como resolvido
+- ✅ Visualização de tópicos fracos
+- ✅ Geração de conteúdo personalizado
+- ✅ Marcar como resolvido
+- ✅ Estatísticas e métricas
+- ✅ Sistema de tabs integrado
 
 ## 💡 Como Usar
 
@@ -258,6 +270,7 @@ A aplicação estará disponível em `http://localhost:3000`
    - **Quiz**: Clique em "Iniciar Quiz" → responda as questões ou clique "NÃO SEI" para marcar dificuldades
    - **Flashcards**: Clique em "Iniciar Flashcards" → vire os cards e avalie (Fácil/Médio/Difícil) para repetição espaçada
    - **Chat**: Converse com a IA sobre suas fontes → receba respostas com citações e sugestões baseadas em suas dificuldades
+   - **Dashboard**: Acesse a aba "Dificuldades" → visualize seus tópicos fracos, gere conteúdo personalizado e marque como resolvido
    - Sistema rastreia automaticamente seus tópicos fracos para revisão personalizada
 
 ## 🤝 Contribuindo
