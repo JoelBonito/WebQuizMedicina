@@ -15,7 +15,7 @@ export interface GeminiResponse {
 
 export async function callGemini(
   prompt: string,
-  model: 'gemini-2.0-flash-exp' | 'gemini-1.5-pro' = 'gemini-2.0-flash-exp'
+  model: 'gemini-2.5-flash' | 'gemini-2.5-pro' | 'gemini-2.5-flash-lite' = 'gemini-2.5-flash'
 ): Promise<string> {
   if (!GEMINI_API_KEY) {
     throw new Error('GEMINI_API_KEY not configured');
@@ -61,7 +61,7 @@ export async function callGeminiWithFile(
   prompt: string,
   fileData: string,
   mimeType: string,
-  model: 'gemini-2.0-flash-exp' | 'gemini-1.5-pro' = 'gemini-2.0-flash-exp'
+  model: 'gemini-2.5-flash' | 'gemini-2.5-pro' | 'gemini-2.5-flash-lite' = 'gemini-2.5-flash'
 ): Promise<string> {
   if (!GEMINI_API_KEY) {
     throw new Error('GEMINI_API_KEY not configured');

@@ -107,7 +107,7 @@ FORMATO DE SAÍDA (JSON estrito):
 
 Retorne APENAS o JSON, sem texto adicional antes ou depois.`;
 
-    const response = await callGemini(prompt, 'gemini-1.5-pro');
+    const response = await callGemini(prompt, 'gemini-2.5-pro');
     const parsed = parseJsonFromResponse(response);
 
     if (!parsed.titulo || !parsed.conteudo_html) {

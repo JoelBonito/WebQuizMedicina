@@ -201,8 +201,12 @@ Acesse o dashboard do Supabase:
 
 1. **Rate Limits do Gemini**: Configure retry logic se necessário
 2. **Timeouts**: Edge Functions têm timeout padrão de 30s
-3. **Custos**: Monitore uso da API do Gemini (Flash = mais barato)
+3. **Custos**: Monitore uso da API do Gemini (2.5 Flash = melhor custo-benefício)
 4. **Cache**: Considere cachear resultados para economizar
+5. **Modelos Disponíveis**:
+   - **Gemini 2.5 Flash** (padrão): Melhor custo-benefício, rápido
+   - **Gemini 2.5 Pro**: Mais avançado, usado para resumos complexos
+   - **Gemini 2.5 Flash-Lite**: Mais rápido, otimizado para eficiência
 
 ## 🔐 Segurança
 
@@ -228,4 +232,5 @@ supabase secrets set GEMINI_API_KEY=sua_chave
 
 ### Timeout
 - Reduza a quantidade de perguntas/flashcards
-- Use Gemini Flash ao invés de Pro para respostas mais rápidas
+- Use Gemini 2.5 Flash (padrão) ao invés de 2.5 Pro para respostas mais rápidas
+- Considere usar Gemini 2.5 Flash-Lite para máxima velocidade
