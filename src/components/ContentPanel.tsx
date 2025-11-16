@@ -2,13 +2,14 @@ import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
-import { Sparkles, Loader2, ChevronRight, BookOpen, Trash2 } from "lucide-react";
+import { Sparkles, Loader2, ChevronRight, BookOpen, Trash2, Play } from "lucide-react";
 import { motion } from "motion/react";
 import { useQuestions } from "../hooks/useQuestions";
 import { useFlashcards } from "../hooks/useFlashcards";
 import { useSummaries } from "../hooks/useSummaries";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
+import { QuizSession } from "./QuizSession";
 
 interface ContentPanelProps {
   projectId: string | null;
@@ -30,6 +31,7 @@ const getDifficultyColor = (difficulty: string) => {
 export function ContentPanel({ projectId }: ContentPanelProps) {
   const [activeTab, setActiveTab] = useState("quiz");
   const [selectedSummary, setSelectedSummary] = useState<any>(null);
+  const [quizSessionOpen, setQuizSessionOpen] = useState(false);
 
   const { questions, loading: loadingQuiz, generating: generatingQuiz, generateQuiz } = useQuestions(projectId);
   const { flashcards, loading: loadingFlashcards, generating: generatingFlashcards, generateFlashcards } = useFlashcards(projectId);
@@ -139,6 +141,27 @@ export function ContentPanel({ projectId }: ContentPanelProps) {
               </div>
             ) : (
               <>
+                {/* Start Quiz Button */}
+                <div className="glass-dark rounded-2xl p-6 border border-gray-200 mb-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-gray-900 font-semibold mb-1">
+                        Quiz Pronto!
+                      </h4>
+                      <p className="text-sm text-gray-600">
+                        {questions.length} questões disponíveis para testar seu conhecimento
+                      </p>
+                    </div>
+                    <Button
+                      onClick={() => setQuizSessionOpen(true)}
+                      className="rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white shadow-lg"
+                    >
+                      <Play className="w-4 h-4 mr-2" />
+                      Iniciar Quiz
+                    </Button>
+                  </div>
+                </div>
+
                 {questions.map((question, index) => (
                   <motion.div
                     key={question.id}
@@ -382,6 +405,14 @@ export function ContentPanel({ projectId }: ContentPanelProps) {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Quiz Session Modal */}
+      <QuizSession
+        questions={questions}
+        projectId={projectId || ''}
+        open={quizSessionOpen}
+        onClose={() => setQuizSessionOpen(false)}
+      />
     </>
   );
 }

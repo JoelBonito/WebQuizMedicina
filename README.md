@@ -23,7 +23,7 @@ Aplicação web educacional moderna para estudantes de medicina criarem conteúd
 - ✅ Armazenamento em Supabase Storage
 - ✅ Sistema de RLS (Row Level Security)
 
-**Fase 2: Geração de Conteúdo com IA** 🆕
+**Fase 2: Geração de Conteúdo com IA**
 - ✅ Edge Function: `generate-quiz` (15 perguntas personalizadas)
 - ✅ Edge Function: `generate-flashcards` (20 flashcards)
 - ✅ Edge Function: `generate-summary` (resumos estruturados em HTML)
@@ -32,9 +32,17 @@ Aplicação web educacional moderna para estudantes de medicina criarem conteúd
 - ✅ Sistema de prompts otimizados para medicina
 - ✅ Suporte a múltiplas fontes por geração
 
+**Fase 3: Sistema de Quiz Interativo** 🆕
+- ✅ Interface de quiz fullscreen com 3 estados (questão, feedback, sumário)
+- ✅ Botão "NÃO SEI" para rastrear dificuldades
+- ✅ Sistema de progresso (salva acertos, erros, tempo)
+- ✅ Sistema de dificuldades (auto-incrementa nível por tópico)
+- ✅ Feedback com justificativa e dica
+- ✅ Timer para rastrear tempo de resposta
+- ✅ Tela de sumário final com estatísticas
+
 ### 🚧 Próximas Fases
 
-- 🚧 Sistema de Quiz interativo com "NÃO SEI"
 - 🚧 Flashcards com repetição espaçada
 - 🚧 Chat com IA e RAG
 - 🚧 Dashboard de dificuldades
@@ -50,6 +58,7 @@ WebQuizMedicina/
 │   │   ├── Dashboard.tsx   # Lista de projetos
 │   │   ├── SourcesPanel.tsx # Upload e gestão de fontes
 │   │   ├── ContentPanel.tsx # Quiz, Flashcards, Resumos
+│   │   ├── QuizSession.tsx # Interface de quiz interativo (fullscreen)
 │   │   ├── ChatPanel.tsx   # Chat com IA
 │   │   └── ui/             # Componentes shadcn/ui
 │   ├── hooks/              # Custom hooks
@@ -58,7 +67,9 @@ WebQuizMedicina/
 │   │   ├── useSources.ts   # Upload e gestão de fontes
 │   │   ├── useQuestions.ts # Quiz + geração com IA
 │   │   ├── useFlashcards.ts # Flashcards + geração com IA
-│   │   └── useSummaries.ts # Resumos + geração com IA
+│   │   ├── useSummaries.ts # Resumos + geração com IA
+│   │   ├── useProgress.ts  # Salvar progresso de quiz/flashcards
+│   │   └── useDifficulties.ts # Sistema NÃO SEI (rastrear dificuldades)
 │   ├── lib/                # Utilitários
 │   │   ├── supabase.ts     # Cliente Supabase
 │   │   ├── database.types.ts # Types do banco
@@ -176,19 +187,21 @@ A aplicação estará disponível em `http://localhost:3000`
 
 ## 🎯 Roadmap
 
-### ✅ Fase 2: Geração de Conteúdo (Concluída!) 🎉
+### ✅ Fase 2: Geração de Conteúdo (Concluída!)
 
 - ✅ Edge Function: `generate-quiz`
 - ✅ Edge Function: `generate-flashcards`
 - ✅ Edge Function: `generate-summary`
 - ✅ Integração com Gemini 2.5
 
-### Fase 3: Sistema de Quiz
+### ✅ Fase 3: Sistema de Quiz (Concluída!) 🎉
 
-- [ ] Interface de quiz interativo
-- [ ] Botão "NÃO SEI"
-- [ ] Sistema de dificuldades
-- [ ] Feedback com justificativas
+- ✅ Interface de quiz interativo fullscreen
+- ✅ Botão "NÃO SEI" (orange-themed)
+- ✅ Sistema de dificuldades com auto-incremento
+- ✅ Feedback com justificativas e dicas
+- ✅ Timer de resposta
+- ✅ Tela de sumário com estatísticas
 
 ### Fase 4: Flashcards
 
