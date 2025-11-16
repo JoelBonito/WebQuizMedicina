@@ -12,8 +12,9 @@ Aplicação web educacional moderna para estudantes de medicina criarem conteúd
 
 ## 🎨 Funcionalidades
 
-### ✅ Implementado (Fase 1)
+### ✅ Implementado
 
+**Fase 1: Autenticação e Upload**
 - ✅ Autenticação com email/senha e Google OAuth
 - ✅ Dashboard de projetos (criar, editar, deletar)
 - ✅ Upload de fontes com drag & drop
@@ -22,9 +23,17 @@ Aplicação web educacional moderna para estudantes de medicina criarem conteúd
 - ✅ Armazenamento em Supabase Storage
 - ✅ Sistema de RLS (Row Level Security)
 
-### 🚧 Em Desenvolvimento
+**Fase 2: Geração de Conteúdo com IA** 🆕
+- ✅ Edge Function: `generate-quiz` (15 perguntas personalizadas)
+- ✅ Edge Function: `generate-flashcards` (20 flashcards)
+- ✅ Edge Function: `generate-summary` (resumos estruturados em HTML)
+- ✅ Integração completa com Google Gemini 2.5 Flash/Pro
+- ✅ Interface para gerar e visualizar conteúdo
+- ✅ Sistema de prompts otimizados para medicina
+- ✅ Suporte a múltiplas fontes por geração
 
-- 🚧 Edge Functions para geração de conteúdo com IA
+### 🚧 Próximas Fases
+
 - 🚧 Sistema de Quiz interativo com "NÃO SEI"
 - 🚧 Flashcards com repetição espaçada
 - 🚧 Chat com IA e RAG
@@ -46,13 +55,22 @@ WebQuizMedicina/
 │   ├── hooks/              # Custom hooks
 │   │   ├── useAuth.ts      # Gerenciamento de autenticação
 │   │   ├── useProjects.ts  # CRUD de projetos
-│   │   └── useSources.ts   # Upload e gestão de fontes
+│   │   ├── useSources.ts   # Upload e gestão de fontes
+│   │   ├── useQuestions.ts # Quiz + geração com IA
+│   │   ├── useFlashcards.ts # Flashcards + geração com IA
+│   │   └── useSummaries.ts # Resumos + geração com IA
 │   ├── lib/                # Utilitários
 │   │   ├── supabase.ts     # Cliente Supabase
 │   │   ├── database.types.ts # Types do banco
 │   │   └── fileUtils.ts    # Processamento de arquivos
 │   └── App.tsx             # Componente principal
 ├── supabase/
+│   ├── functions/          # Edge Functions
+│   │   ├── _shared/        # Código compartilhado (Gemini API, CORS)
+│   │   ├── generate-quiz/
+│   │   ├── generate-flashcards/
+│   │   ├── generate-summary/
+│   │   └── README.md       # Docs das Edge Functions
 │   └── migrations/         # Migrations SQL
 │       ├── 001_initial_schema.sql
 │       └── 002_storage_setup.sql
@@ -65,7 +83,7 @@ WebQuizMedicina/
 
 - Node.js 18+ e npm
 - Conta no Supabase
-- Chave de API do Google Gemini (para Edge Functions)
+- Chave de API do Google Gemini
 
 ### 2. Instalação
 
@@ -108,7 +126,30 @@ VITE_SUPABASE_URL=sua_url_do_supabase
 VITE_SUPABASE_ANON_KEY=sua_chave_anon
 ```
 
-### 5. Rodar localmente
+### 5. Deploy das Edge Functions 🆕
+
+```bash
+# Instale o Supabase CLI
+npm install -g supabase
+
+# Login
+supabase login
+
+# Link com seu projeto
+supabase link --project-ref tpwkthafekcmhbcxvupd
+
+# Configure a chave do Gemini
+supabase secrets set GEMINI_API_KEY=sua_chave_gemini
+
+# Deploy das funções
+supabase functions deploy generate-quiz
+supabase functions deploy generate-flashcards
+supabase functions deploy generate-summary
+```
+
+> **📖 Documentação completa:** Ver `supabase/functions/README.md`
+
+### 6. Rodar localmente
 
 ```bash
 npm run dev
@@ -135,12 +176,12 @@ A aplicação estará disponível em `http://localhost:3000`
 
 ## 🎯 Roadmap
 
-### Fase 2: Geração de Conteúdo
+### ✅ Fase 2: Geração de Conteúdo (Concluída!) 🎉
 
-- [ ] Edge Function: `generate-quiz`
-- [ ] Edge Function: `generate-flashcards`
-- [ ] Edge Function: `generate-summary`
-- [ ] Integração com Gemini 2.5
+- ✅ Edge Function: `generate-quiz`
+- ✅ Edge Function: `generate-flashcards`
+- ✅ Edge Function: `generate-summary`
+- ✅ Integração com Gemini 2.5
 
 ### Fase 3: Sistema de Quiz
 
@@ -167,6 +208,17 @@ A aplicação estará disponível em `http://localhost:3000`
 - [ ] Visualização de tópicos fracos
 - [ ] Geração de conteúdo personalizado
 - [ ] Marcar como resolvido
+
+## 💡 Como Usar
+
+1. **Criar conta** ou fazer login
+2. **Criar um projeto** (ex: "Farmacologia Geral")
+3. **Upload de fontes** (PDFs, textos, áudios)
+4. **Gerar conteúdo com IA**:
+   - Clique em "Gerar Quiz" → IA cria 15 perguntas
+   - Clique em "Gerar Flashcards" → IA cria 20 flashcards
+   - Clique em "Gerar Resumo" → IA cria resumo estruturado
+5. **Estudar** com o conteúdo gerado
 
 ## 🤝 Contribuindo
 
