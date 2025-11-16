@@ -92,6 +92,18 @@ describe('Security Tests', () => {
       expect(clean).toBe('');
     });
 
+    it('should block vbscript: protocol', () => {
+      const malicious = 'vbscript:msgbox("XSS")';
+      const clean = sanitizeUrl(malicious);
+      expect(clean).toBe('');
+    });
+
+    it('should block file: protocol', () => {
+      const malicious = 'file:///etc/passwd';
+      const clean = sanitizeUrl(malicious);
+      expect(clean).toBe('');
+    });
+
     it('should allow https URLs', () => {
       const safe = 'https://example.com/page';
       const clean = sanitizeUrl(safe);
@@ -164,6 +176,8 @@ describe('Security Tests', () => {
     it('should detect common XSS patterns', () => {
       expect(containsXSS('<script>')).toBe(true);
       expect(containsXSS('javascript:alert()')).toBe(true);
+      expect(containsXSS('data:text/html,<script>')).toBe(true);
+      expect(containsXSS('vbscript:msgbox()')).toBe(true);
       expect(containsXSS('onerror=')).toBe(true);
       expect(containsXSS('<iframe>')).toBe(true);
       expect(containsXSS('eval(')).toBe(true);

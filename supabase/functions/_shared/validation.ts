@@ -182,24 +182,30 @@ export class ValidationError extends Error {
 /**
  * Sanitizes string input to prevent XSS
  * Basic sanitization for backend - frontend should use DOMPurify
+ * Removes dangerous protocols: javascript:, data:, vbscript:
  */
 export function sanitizeString(input: string): string {
   return input
     .replace(/[<>]/g, '')
     .replace(/javascript:/gi, '')
+    .replace(/data:/gi, '')
+    .replace(/vbscript:/gi, '')
     .replace(/on\w+\s*=/gi, '')
     .trim();
 }
 
 /**
  * Sanitizes HTML content - removes dangerous tags and attributes
+ * Removes dangerous protocols: javascript:, data:, vbscript:
  */
 export function sanitizeHtml(html: string): string {
   return html
     .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
     .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
     .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '')
-    .replace(/javascript:/gi, '');
+    .replace(/javascript:/gi, '')
+    .replace(/data:/gi, '')
+    .replace(/vbscript:/gi, '');
 }
 
 /**

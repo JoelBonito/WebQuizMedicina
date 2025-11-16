@@ -97,16 +97,16 @@ export function sanitizeText(dirty: string): string {
 }
 
 /**
- * Sanitizes URL to prevent javascript: and data: protocols
+ * Sanitizes URL to prevent dangerous protocols
+ * Blocks: javascript:, data:, vbscript:, file:
  * Use for any user-provided URLs
  */
 export function sanitizeUrl(url: string): string {
   if (!url) return '';
 
-  // Remove dangerous protocols
-  const cleaned = url.trim();
+  const cleaned = url.trim().toLowerCase();
 
-  // Check for dangerous protocols
+  // Check for dangerous protocols (case-insensitive)
   const dangerousProtocols = /^(javascript|data|vbscript|file):/i;
   if (dangerousProtocols.test(cleaned)) {
     return '';
@@ -118,7 +118,7 @@ export function sanitizeUrl(url: string): string {
     return `https://${cleaned}`;
   }
 
-  return cleaned;
+  return url.trim(); // Return original case for the clean URL
 }
 
 /**
@@ -154,6 +154,7 @@ export function sanitizeFileName(fileName: string): string {
 
 /**
  * Checks if string contains potential XSS
+ * Detects: script tags, dangerous protocols, event handlers, executable content
  */
 export function containsXSS(input: string): boolean {
   if (!input) return false;
@@ -161,7 +162,9 @@ export function containsXSS(input: string): boolean {
   const xssPatterns = [
     /<script/i,
     /javascript:/i,
-    /on\w+\s*=/i, // Event handlers
+    /data:/i,
+    /vbscript:/i,
+    /on\w+\s*=/i,
     /<iframe/i,
     /<object/i,
     /<embed/i,
