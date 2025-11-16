@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { QuizSession } from "./QuizSession";
 import { FlashcardSession } from "./FlashcardSession";
+import { SummaryViewer } from "./SummaryViewer";
 
 interface ContentPanelProps {
   projectId: string | null;
@@ -34,6 +35,17 @@ export function ContentPanel({ projectId }: ContentPanelProps) {
   const [selectedSummary, setSelectedSummary] = useState<any>(null);
   const [quizSessionOpen, setQuizSessionOpen] = useState(false);
   const [flashcardSessionOpen, setFlashcardSessionOpen] = useState(false);
+
+  const handleAskChat = (selectedText: string) => {
+    // Save selected text to localStorage for ChatPanel to pick up
+    localStorage.setItem('chat_question', `Explique melhor: "${selectedText}"`);
+    // Trigger custom event to notify ChatPanel
+    window.dispatchEvent(new CustomEvent('ask-chat', { detail: selectedText }));
+    // Close summary dialog
+    setSelectedSummary(null);
+    // Show toast
+    toast.success("Pergunta enviada para o Chat! Alterne para a aba Chat.");
+  };
 
   const { questions, loading: loadingQuiz, generating: generatingQuiz, generateQuiz } = useQuestions(projectId);
   const { flashcards, loading: loadingFlashcards, generating: generatingFlashcards, generateFlashcards } = useFlashcards(projectId);
@@ -421,9 +433,9 @@ export function ContentPanel({ projectId }: ContentPanelProps) {
                 ))}
               </div>
             )}
-            <div
-              className="prose prose-sm max-w-none"
-              dangerouslySetInnerHTML={{ __html: selectedSummary?.conteudo_html || "" }}
+            <SummaryViewer
+              html={selectedSummary?.conteudo_html || ""}
+              onAskChat={handleAskChat}
             />
           </div>
         </DialogContent>

@@ -6,6 +6,7 @@ import { AlertTriangle, CheckCircle, Sparkles, TrendingUp, BookOpen, MessageSqua
 import { useDifficulties } from "../hooks/useDifficulties";
 import { useQuestions } from "../hooks/useQuestions";
 import { useFlashcards } from "../hooks/useFlashcards";
+import { useSummaries } from "../hooks/useSummaries";
 import { toast } from "sonner";
 import { ScrollArea } from "./ui/scroll-area";
 
@@ -52,11 +53,12 @@ const getLevelBadgeColor = (level: number) => {
 };
 
 export function DifficultiesPanel({ projectId }: DifficultiesPanelProps) {
-  const [generatingFocused, setGeneratingFocused] = useState(false);
+  const [generatingContent, setGeneratingContent] = useState(false);
 
   const { difficulties, loading, markAsResolved } = useDifficulties(projectId);
   const { generateQuiz } = useQuestions(projectId);
   const { generateFlashcards } = useFlashcards(projectId);
+  const { generateFocusedSummary } = useSummaries(projectId);
 
   const activeDifficulties = difficulties.filter((d) => !d.resolvido);
   const resolvedDifficulties = difficulties.filter((d) => d.resolvido);
@@ -83,33 +85,58 @@ export function DifficultiesPanel({ projectId }: DifficultiesPanelProps) {
     }
   };
 
-  const handleGenerateFocusedContent = async () => {
+  const handleGenerateFocusedSummary = async () => {
     if (topDifficulties.length === 0) {
       toast.error("Nenhuma dificuldade encontrada");
       return;
     }
 
     try {
-      setGeneratingFocused(true);
+      setGeneratingContent(true);
 
-      // Generate both quiz and flashcards focused on top difficulties
       const topicsText = topDifficulties.map((d) => d.topico).join(", ");
 
-      toast.promise(
-        Promise.all([
-          generateQuiz(undefined, 10),
-          generateFlashcards(undefined, 15),
-        ]),
+      await toast.promise(
+        generateFocusedSummary(),
         {
-          loading: `Gerando conteúdo focado em: ${topicsText}...`,
-          success: "Conteúdo personalizado gerado com sucesso! Confira no painel de Conteúdo.",
-          error: "Erro ao gerar conteúdo personalizado",
+          loading: `Criando resumo focado em: ${topicsText}...`,
+          success: "📚 Resumo Focado gerado! Estude-o na aba Resumos antes de fazer quiz/flashcards.",
+          error: "Erro ao gerar resumo focado",
         }
       );
     } catch (error) {
       console.error(error);
     } finally {
-      setGeneratingFocused(false);
+      setGeneratingContent(false);
+    }
+  };
+
+  const handleGeneratePracticeContent = async () => {
+    if (topDifficulties.length === 0) {
+      toast.error("Nenhuma dificuldade encontrada");
+      return;
+    }
+
+    try {
+      setGeneratingContent(true);
+
+      const topicsText = topDifficulties.map((d) => d.topico).join(", ");
+
+      await toast.promise(
+        Promise.all([
+          generateQuiz(undefined, 10),
+          generateFlashcards(undefined, 15),
+        ]),
+        {
+          loading: `Gerando quiz e flashcards sobre: ${topicsText}...`,
+          success: "✅ Quiz e Flashcards gerados! Teste seu conhecimento no painel Conteúdo.",
+          error: "Erro ao gerar conteúdo de prática",
+        }
+      );
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setGeneratingContent(false);
     }
   };
 
@@ -177,47 +204,59 @@ export function DifficultiesPanel({ projectId }: DifficultiesPanelProps) {
         </div>
       ) : (
         <>
-          {/* Generate Focused Content Button */}
+          {/* Generate Focused Content Buttons */}
           {topDifficulties.length > 0 && (
             <div className="glass-dark rounded-2xl p-4 mb-4 border border-orange-200 bg-gradient-to-br from-orange-50 to-red-50">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <h4 className="text-gray-900 font-semibold mb-1 flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-orange-600" />
-                    Conteúdo Personalizado
-                  </h4>
-                  <p className="text-sm text-gray-700 mb-2">
-                    Gere quiz e flashcards focados nos seus {topDifficulties.length} tópicos mais difíceis
-                  </p>
-                  <div className="flex flex-wrap gap-1">
-                    {topDifficulties.slice(0, 3).map((d, idx) => (
-                      <Badge key={idx} variant="outline" className="text-xs bg-white border-orange-300 text-orange-700">
-                        {d.topico}
-                      </Badge>
-                    ))}
-                    {topDifficulties.length > 3 && (
-                      <Badge variant="outline" className="text-xs bg-white border-orange-300 text-orange-700">
-                        +{topDifficulties.length - 3}
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-                <Button
-                  onClick={handleGenerateFocusedContent}
-                  disabled={generatingFocused}
-                  className="rounded-xl bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white shadow-lg ml-4"
-                >
-                  {generatingFocused ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Gerando...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-4 h-4 mr-2" />
-                      Gerar Conteúdo Focado
-                    </>
+              <div className="mb-3">
+                <h4 className="text-gray-900 font-semibold mb-1 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-orange-600" />
+                  Conteúdo Personalizado
+                </h4>
+                <p className="text-sm text-gray-700 mb-2">
+                  Focado nos seus {topDifficulties.length} tópicos mais difíceis
+                </p>
+                <div className="flex flex-wrap gap-1 mb-3">
+                  {topDifficulties.slice(0, 3).map((d, idx) => (
+                    <Badge key={idx} variant="outline" className="text-xs bg-white border-orange-300 text-orange-700">
+                      {d.topico}
+                    </Badge>
+                  ))}
+                  {topDifficulties.length > 3 && (
+                    <Badge variant="outline" className="text-xs bg-white border-orange-300 text-orange-700">
+                      +{topDifficulties.length - 3}
+                    </Badge>
                   )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <Button
+                  onClick={handleGenerateFocusedSummary}
+                  disabled={generatingContent}
+                  className="rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white shadow-lg flex flex-col items-center py-6 h-auto"
+                >
+                  {generatingContent ? (
+                    <Loader2 className="w-5 h-5 mb-1 animate-spin" />
+                  ) : (
+                    <BookOpen className="w-5 h-5 mb-1" />
+                  )}
+                  <span className="text-sm font-semibold">Gerar Resumo Focado</span>
+                  <span className="text-xs opacity-90 mt-1">Estude primeiro</span>
+                </Button>
+
+                <Button
+                  onClick={handleGeneratePracticeContent}
+                  disabled={generatingContent}
+                  variant="outline"
+                  className="rounded-xl border-2 border-orange-400 text-orange-700 hover:bg-orange-50 shadow-lg flex flex-col items-center py-6 h-auto"
+                >
+                  {generatingContent ? (
+                    <Loader2 className="w-5 h-5 mb-1 animate-spin" />
+                  ) : (
+                    <Brain className="w-5 h-5 mb-1" />
+                  )}
+                  <span className="text-sm font-semibold">Gerar Quiz + Flashcards</span>
+                  <span className="text-xs opacity-90 mt-1">Para praticar</span>
                 </Button>
               </div>
             </div>

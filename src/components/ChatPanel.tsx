@@ -29,6 +29,26 @@ export function ChatPanel({ projectId }: ChatPanelProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Listen for questions from summary text selection
+  useEffect(() => {
+    const handleAskChat = () => {
+      const question = localStorage.getItem('chat_question');
+      if (question) {
+        setInputValue(question);
+        localStorage.removeItem('chat_question');
+      }
+    };
+
+    window.addEventListener('ask-chat', handleAskChat);
+
+    // Check on mount
+    handleAskChat();
+
+    return () => {
+      window.removeEventListener('ask-chat', handleAskChat);
+    };
+  }, []);
+
   const handleSend = async () => {
     if (!inputValue.trim() || sending || !projectId) return;
 
