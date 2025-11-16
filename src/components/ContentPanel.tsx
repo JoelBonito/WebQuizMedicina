@@ -85,7 +85,11 @@ const mockSummaries: Summary[] = [
   },
 ];
 
-export function ContentPanel() {
+interface ContentPanelProps {
+  projectId: string | null;
+}
+
+export function ContentPanel({ projectId }: ContentPanelProps) {
   const [activeTab, setActiveTab] = useState("quiz");
 
   return (

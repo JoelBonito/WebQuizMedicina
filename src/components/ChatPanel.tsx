@@ -41,7 +41,11 @@ const suggestions = [
   "Explique a equação de Schrödinger",
 ];
 
-export function ChatPanel() {
+interface ChatPanelProps {
+  projectId: string | null;
+}
+
+export function ChatPanel({ projectId }: ChatPanelProps) {
   const [inputValue, setInputValue] = useState("");
 
   return (
