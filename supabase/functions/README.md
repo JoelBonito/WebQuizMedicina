@@ -197,6 +197,54 @@ Chat interativo com Retrieval Augmented Generation (RAG) sobre as fontes do proj
 - Histórico salvo automaticamente no banco de dados
 - Usa Gemini 2.5 Flash para respostas rápidas
 
+### 5. `generate-focused-summary` - Resumo Focado nas Dificuldades 🎯
+
+Gera resumo didático PERSONALIZADO focado exclusivamente nos tópicos onde o aluno tem dificuldade.
+
+**Request:**
+```json
+{
+  "project_id": "uuid"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "summary": {
+    "id": "uuid",
+    "titulo": "🎯 Resumo Focado nas Suas Dificuldades",
+    "conteudo_html": "<div class='focused-summary'>...</div>",
+    "topicos": ["Receptores Beta", "Farmacocinética"],
+    "tipo": "personalizado"
+  },
+  "difficulties_count": 8,
+  "top_topics": ["Receptores Beta", "Farmacocinética", "..."]
+}
+```
+
+**Características:**
+- Busca dificuldades NÃO resolvidas do aluno ordenadas por nível
+- Agrupa top 10 tópicos mais difíceis
+- Usa Gemini 2.5 Pro para explicações mais elaboradas
+- Formato HTML estruturado com seções especiais:
+  * 🔍 Explicação Simples - nível de estudante iniciante
+  * 💡 Analogia/Exemplo Prático - comparações do dia a dia
+  * 📌 Pontos-Chave para Memorizar - bullets essenciais
+  * 🏥 Aplicação Clínica - relevância prática
+  * 🔗 Conexões com Outros Conceitos - visão sistêmica
+- Retorna erro se não há dificuldades (aluno precisa estudar primeiro)
+- Marca resumo como tipo "personalizado" para destaque na UI
+
+**Fluxo de uso:**
+1. Aluno estuda com Quiz/Flashcards e clica "NÃO SEI" várias vezes
+2. Sistema acumula dificuldades no banco (table: difficulties)
+3. Aluno acessa Dashboard de Dificuldades
+4. Clica em "Gerar Resumo Focado"
+5. Edge Function gera resumo didático APENAS dos tópicos difíceis
+6. Aluno estuda o resumo antes de refazer quiz/flashcards
+
 ## 🔧 Teste Local
 
 Para testar localmente antes do deploy:

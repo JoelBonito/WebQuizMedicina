@@ -27,6 +27,7 @@ Aplicação web educacional moderna para estudantes de medicina criarem conteúd
 - ✅ Edge Function: `generate-quiz` (15 perguntas personalizadas)
 - ✅ Edge Function: `generate-flashcards` (20 flashcards)
 - ✅ Edge Function: `generate-summary` (resumos estruturados em HTML)
+- ✅ Edge Function: `generate-focused-summary` (resumos focados nas dificuldades do aluno)
 - ✅ Integração completa com Google Gemini 2.5 Flash/Pro
 - ✅ Interface para gerar e visualizar conteúdo
 - ✅ Sistema de prompts otimizados para medicina
@@ -63,9 +64,17 @@ Aplicação web educacional moderna para estudantes de medicina criarem conteúd
 - ✅ Grid de estatísticas (Total, Críticas, Moderadas, Resolvidas)
 - ✅ Barras de progresso visual por nível de dificuldade
 - ✅ Botão para marcar dificuldades como resolvidas
-- ✅ Geração de conteúdo personalizado focado nas top 5 dificuldades
+- ✅ **Geração de Resumo Focado personalizado** (Edge Function `generate-focused-summary`)
+- ✅ Geração de Quiz/Flashcards focados nas top 5 dificuldades
 - ✅ Badges coloridos por origem (Quiz/Flashcard/Chat)
 - ✅ Sistema de tabs integrado no painel direito
+
+**Fase 7: Seleção de Texto e Integração com Chat** 🆕
+- ✅ Seleção de texto em resumos com popover interativo
+- ✅ Botão "Perguntar ao Chat" para dúvidas específicas
+- ✅ Botão "Marcar Importante" para destacar conteúdo
+- ✅ Integração automática entre Resumos e Chat
+- ✅ Componente SummaryViewer com animações fluidas
 
 ### 🚧 Próximas Fases
 
@@ -86,6 +95,7 @@ WebQuizMedicina/
 │   │   ├── ChatPanel.tsx   # Chat com IA e RAG
 │   │   ├── DifficultiesPanel.tsx # Dashboard de dificuldades
 │   │   ├── RightPanel.tsx  # Painel direito com tabs (Chat/Dificuldades)
+│   │   ├── SummaryViewer.tsx # Visualizador de resumos com seleção de texto
 │   │   └── ui/             # Componentes shadcn/ui
 │   ├── hooks/              # Custom hooks
 │   │   ├── useAuth.ts      # Gerenciamento de autenticação
@@ -108,6 +118,7 @@ WebQuizMedicina/
 │   │   ├── generate-quiz/
 │   │   ├── generate-flashcards/
 │   │   ├── generate-summary/
+│   │   ├── generate-focused-summary/ # Resumo focado nas dificuldades
 │   │   ├── chat/           # Chat com RAG
 │   │   └── README.md       # Docs das Edge Functions
 │   └── migrations/         # Migrations SQL
@@ -184,9 +195,16 @@ supabase secrets set GEMINI_API_KEY=sua_chave_gemini
 supabase functions deploy generate-quiz
 supabase functions deploy generate-flashcards
 supabase functions deploy generate-summary
+supabase functions deploy generate-focused-summary
+supabase functions deploy chat
 ```
 
-> **📖 Documentação completa:** Ver `supabase/functions/README.md`
+Ou use o script de deploy rápido:
+```bash
+./deploy-edge-function.sh
+```
+
+> **📖 Documentação completa:** Ver `supabase/functions/README.md` e `DEPLOY_EDGE_FUNCTION.md`
 
 ### 6. Rodar localmente
 
@@ -252,10 +270,19 @@ A aplicação estará disponível em `http://localhost:3000`
 ### ✅ Fase 6: Dashboard de Dificuldades (Concluída!) 🎉
 
 - ✅ Visualização de tópicos fracos
-- ✅ Geração de conteúdo personalizado
+- ✅ Geração de resumo focado personalizado
+- ✅ Geração de quiz/flashcards focados
 - ✅ Marcar como resolvido
 - ✅ Estatísticas e métricas
 - ✅ Sistema de tabs integrado
+
+### ✅ Fase 7: Seleção de Texto e Integração (Concluída!) 🎉
+
+- ✅ Seleção de texto em resumos
+- ✅ "Perguntar ao Chat" sobre trechos selecionados
+- ✅ "Marcar Importante" para destaques
+- ✅ Integração fluida entre painéis
+- ✅ Animações e UX aprimorada
 
 ## 💡 Como Usar
 
@@ -270,7 +297,12 @@ A aplicação estará disponível em `http://localhost:3000`
    - **Quiz**: Clique em "Iniciar Quiz" → responda as questões ou clique "NÃO SEI" para marcar dificuldades
    - **Flashcards**: Clique em "Iniciar Flashcards" → vire os cards e avalie (Fácil/Médio/Difícil) para repetição espaçada
    - **Chat**: Converse com a IA sobre suas fontes → receba respostas com citações e sugestões baseadas em suas dificuldades
-   - **Dashboard**: Acesse a aba "Dificuldades" → visualize seus tópicos fracos, gere conteúdo personalizado e marque como resolvido
+   - **Dashboard de Dificuldades**:
+     - Visualize seus tópicos fracos por nível (crítico/moderado)
+     - Clique em **"Gerar Resumo Focado"** → IA cria material didático personalizado APENAS dos tópicos difíceis
+     - Estude o resumo → Selecione trechos e clique **"Perguntar ao Chat"** para esclarecimentos
+     - Depois de estudar, clique **"Gerar Quiz + Flashcards"** para praticar
+     - Marque dificuldades como resolvidas conforme aprende
    - Sistema rastreia automaticamente seus tópicos fracos para revisão personalizada
 
 ## 🤝 Contribuindo
