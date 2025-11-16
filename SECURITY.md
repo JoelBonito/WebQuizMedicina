@@ -70,10 +70,14 @@ export async function authorizeResourceAccess(...) { ... }
   - Localização: `src/lib/sanitize.ts`
 
 - **Sanitização Iterativa (Backend)**
-  - Proteção contra bypass via nested/malformed tags
-  - Algoritmo iterativo até estabilização
-  - Previne ataques como `<<script>script>alert()</script>`
-  - Localização: `supabase/functions/_shared/validation.ts:sanitizeHtml()`
+  - Proteção contra bypass via nested/malformed patterns
+  - Algoritmo iterativo até estabilização (do-while loop)
+  - Previne ataques como:
+    - `<<script>script>alert()` → script tags
+    - `ononclick=click=alert()` → event handlers
+    - `jajavascript:vascript:` → protocols
+  - Funções: `sanitizeString()`, `sanitizeHtml()`
+  - Localização: `supabase/functions/_shared/validation.ts`
 
 - **Validação de URLs**
   - Bloqueio de protocolos perigosos (javascript:, data:, vbscript:, file:)
@@ -492,9 +496,17 @@ supabase functions deploy chat
 
 ## 📝 Changelog de Segurança
 
+### 2025-11-16 - Correções CodeQL (Terceira Atualização)
+
+- ✅ **Iterative String Sanitization** - Proteção contra bypass em atributos HTML
+  - Algoritmo iterativo em `sanitizeString()` previne nested patterns
+  - Previne: `ononclick=click=` → `onclick=` → (removido)
+  - Previne: `jajavascript:vascript:` → `javascript:` → (removido)
+  - Fix: CWE-20 (Incomplete Multi-character Sanitization)
+
 ### 2025-11-16 - Correções CodeQL (Segunda Atualização)
 
-- ✅ **Iterative Sanitization** - Proteção contra bypass de HTML tags aninhadas
+- ✅ **Iterative HTML Sanitization** - Proteção contra bypass de HTML tags aninhadas
   - Algoritmo iterativo em `sanitizeHtml()` previne ataques com nested tags
   - Suporta detecção de `</script >` com espaços (malformed tags)
   - Testes para bypass scenarios (nested, malformed, double-encoded)

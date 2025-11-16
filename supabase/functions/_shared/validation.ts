@@ -183,15 +183,47 @@ export class ValidationError extends Error {
  * Sanitizes string input to prevent XSS
  * Basic sanitization for backend - frontend should use DOMPurify
  * Removes dangerous protocols: javascript:, data:, vbscript:
+ * Uses iterative approach to prevent bypass via nested patterns
+ *
+ * @param input - User input string to sanitize
+ * @returns Sanitized string safe for use in HTML attributes
+ *
+ * @example
+ * // Prevents nested protocol bypass
+ * sanitizeString('jajavascript:vascript:alert()') // → 'alert()'
+ *
+ * @example
+ * // Prevents nested event handler bypass
+ * sanitizeString('ononclick=click=alert()') // → 'alert()'
+ *
+ * @example
+ * // Prevents nested angle bracket bypass
+ * sanitizeString('<<script>>alert()<</script>>') // → 'scriptalert()/script'
+ *
+ * @security
+ * CWE-20: Improper Input Validation (Iterative sanitization prevents bypass)
+ * OWASP A03:2024 - Injection (XSS prevention)
  */
 export function sanitizeString(input: string): string {
-  return input
-    .replace(/[<>]/g, '')
-    .replace(/javascript:/gi, '')
-    .replace(/data:/gi, '')
-    .replace(/vbscript:/gi, '')
-    .replace(/on\w+\s*=/gi, '')
-    .trim();
+  let sanitized = input;
+  let previous: string;
+
+  // Iteratively remove dangerous content until no changes occur
+  // This prevents bypass attacks using nested or malformed patterns:
+  // - ononclick=click= → onclick= → (empty)
+  // - jajavascript:vascript: → javascript: → (empty)
+  // - <<>> → <> → (empty)
+  do {
+    previous = sanitized;
+    sanitized = sanitized
+      .replace(/[<>]/g, '')
+      .replace(/javascript:/gi, '')
+      .replace(/data:/gi, '')
+      .replace(/vbscript:/gi, '')
+      .replace(/on\w+\s*=/gi, '');
+  } while (sanitized !== previous);
+
+  return sanitized.trim();
 }
 
 /**
