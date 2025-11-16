@@ -230,6 +230,19 @@ export function sanitizeString(input: string): string {
  * Sanitizes HTML content - removes dangerous tags and attributes
  * Removes dangerous protocols: javascript:, data:, vbscript:
  * Uses iterative approach to prevent bypass via nested tags
+ *
+ * @param html - User-generated HTML to sanitize
+ * @returns Sanitized HTML with dangerous elements removed
+ *
+ * @example
+ * // Removes event handlers (quoted and unquoted)
+ * sanitizeHtml('<div onclick="alert(1)">') // → '<div >'
+ * sanitizeHtml('<div onclick=alert(1)>')   // → '<div >'
+ *
+ * @security
+ * CWE-20: Improper Input Validation
+ * CWE-79: Cross-site Scripting (XSS)
+ * OWASP A03:2024 - Injection
  */
 export function sanitizeHtml(html: string): string {
   let sanitized = html;
@@ -244,8 +257,10 @@ export function sanitizeHtml(html: string): string {
       .replace(/<script\b[^<]*(?:(?!<\/script\s*>)<[^<]*)*<\/script\s*>/gi, '')
       // Remove iframe tags (handles </iframe> with optional whitespace)
       .replace(/<iframe\b[^<]*(?:(?!<\/iframe\s*>)<[^<]*)*<\/iframe\s*>/gi, '')
-      // Remove event handlers
+      // Remove event handlers with quotes (onclick="...")
       .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '')
+      // Remove event handlers without quotes (onclick=alert)
+      .replace(/on\w+\s*=\s*[^\s>]*/gi, '')
       // Remove dangerous protocols
       .replace(/javascript:/gi, '')
       .replace(/data:/gi, '')

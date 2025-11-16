@@ -76,6 +76,10 @@ export async function authorizeResourceAccess(...) { ... }
     - `<<script>script>alert()` → script tags
     - `ononclick=click=alert()` → event handlers
     - `jajavascript:vascript:` → protocols
+  - Suporte para event handlers quoted e unquoted:
+    - `onclick="alert()"` → removido (com aspas)
+    - `onclick=alert()` → removido (sem aspas)
+    - `onerror=evil() onload="bad()"` → todos removidos
   - Funções: `sanitizeString()`, `sanitizeHtml()`
   - Localização: `supabase/functions/_shared/validation.ts`
 
@@ -495,6 +499,15 @@ supabase functions deploy chat
 ---
 
 ## 📝 Changelog de Segurança
+
+### 2025-11-16 - Correções CodeQL (Quarta Atualização)
+
+- ✅ **Unquoted Event Handler Removal** - Proteção contra event handlers sem aspas
+  - Adicionado regex para detectar `onclick=alert()` (sem aspas)
+  - Complementa proteção existente para `onclick="alert()"` (com aspas)
+  - Previne bypass via atributos HTML unquoted
+  - Testes adicionados para ambos os formatos
+  - Fix: CWE-20 (Incomplete Multi-character Sanitization)
 
 ### 2025-11-16 - Correções CodeQL (Terceira Atualização)
 

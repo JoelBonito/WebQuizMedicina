@@ -22,10 +22,25 @@ describe('Security Tests', () => {
       expect(clean).toContain('Hello');
     });
 
-    it('should remove event handlers', () => {
+    it('should remove event handlers with quotes', () => {
       const dirty = '<div onclick="alert(\'XSS\')">Click me</div>';
       const clean = sanitizeHtml(dirty);
       expect(clean).not.toContain('onclick');
+    });
+
+    it('should remove event handlers without quotes', () => {
+      const dirty = '<div onclick=alert(1)>Click me</div>';
+      const clean = sanitizeHtml(dirty);
+      expect(clean).not.toContain('onclick');
+      expect(clean).not.toContain('alert');
+    });
+
+    it('should remove mixed event handler formats', () => {
+      const dirty = '<img src=x onerror=alert(1) onload="evil()">';
+      const clean = sanitizeHtml(dirty);
+      expect(clean).not.toContain('onerror');
+      expect(clean).not.toContain('onload');
+      expect(clean).not.toContain('alert');
     });
 
     it('should remove javascript: protocol', () => {
