@@ -56,11 +56,19 @@ export const isPDFFile = (type: FileType): boolean => {
 const sanitizeText = (text: string): string => {
   if (!text) return '';
 
+  // Count null bytes BEFORE sanitization
+  const initialNullBytes = (text.match(/\u0000/g) || []).length;
+  if (initialNullBytes > 0 && import.meta.env.DEV) {
+    console.warn(`⚠️ Found ${initialNullBytes} null bytes in original text`);
+  }
+
   let sanitized = text
-    // Remove null bytes (U+0000) - PostgreSQL can't handle these
+    // Remove null bytes (U+0000) - PostgreSQL can't handle these - EXPLICIT REMOVAL
     .replace(/\u0000/g, '')
+    .replace(/\x00/g, '') // Try hex notation too
     // Remove all control characters (U+0000 to U+001F) except newline (U+000A) and tab (U+0009)
     .replace(/[\u0001-\u0008\u000B-\u001F\u007F]/g, '')
+    .replace(/[\x01-\x08\x0B-\x1F\x7F]/g, '') // Also hex notation
     // Remove invalid UTF-8 sequences (replacement character)
     .replace(/\uFFFD/g, '')
     // Remove zero-width characters that might cause issues
@@ -75,15 +83,17 @@ const sanitizeText = (text: string): string => {
     // Trim leading and trailing whitespace
     .trim();
 
-  // Validate the result contains only valid characters
-  // This regex matches any character that's NOT a printable ASCII, common Unicode, newline, or tab
-  const invalidChars = sanitized.match(/[^\x20-\x7E\n\t\u00A0-\uFFFF]/g);
-  if (invalidChars && import.meta.env.DEV) {
-    console.warn('Found invalid characters after sanitization:', invalidChars.slice(0, 10));
-  }
-
-  // Remove any remaining invalid characters
+  // AGGRESSIVE final pass - remove ANYTHING that's not safe
+  // Only allow: printable ASCII (32-126), newline (10), tab (9), and common Unicode (160-65535)
   sanitized = sanitized.replace(/[^\x20-\x7E\n\t\u00A0-\uFFFF]/g, '');
+
+  // Final verification - check for null bytes
+  const finalNullBytes = (sanitized.match(/\u0000/g) || []).length;
+  if (finalNullBytes > 0) {
+    console.error(`❌ CRITICAL: ${finalNullBytes} null bytes STILL PRESENT after sanitization!`);
+    // Last resort - split, filter, join
+    sanitized = sanitized.split('').filter(char => char.charCodeAt(0) !== 0).join('');
+  }
 
   return sanitized;
 };
