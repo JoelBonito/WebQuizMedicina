@@ -4,59 +4,106 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 // ============================================
-// CORS HELPER
+// CORS CONFIGURATION
 // ============================================
 
 /**
- * Gets the allowed origin, normalizing trailing slashes
+ * List of allowed origins for CORS
+ * Automatically includes production and development URLs
  */
-function getAllowedOrigin(): string {
-  const origin = Deno.env.get('ALLOWED_ORIGIN') || '*';
-  // Normalize: remove trailing slash for consistency
-  return origin === '*' ? '*' : origin.replace(/\/$/, '');
+const ALLOWED_ORIGINS = [
+  'https://web-quiz-medicina.vercel.app',
+  'http://localhost:5173',
+  'http://localhost:3000',
+  // Add custom origin from environment variable if provided
+  ...(Deno.env.get('ALLOWED_ORIGIN') ? [Deno.env.get('ALLOWED_ORIGIN')!] : []),
+];
+
+/**
+ * Gets CORS headers based on request origin
+ * Returns appropriate origin or rejects with default headers
+ */
+function getCorsHeaders(req: Request): Record<string, string> {
+  const origin = req.headers.get('origin');
+  
+  // Check if origin is in allowed list
+  const allowedOrigin = origin && ALLOWED_ORIGINS.includes(origin)
+    ? origin
+    : ALLOWED_ORIGINS[0]; // Default to production URL
+
+  return {
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-requested-with',
+    'Access-Control-Allow-Credentials': 'true',
+    'Access-Control-Max-Age': '86400', // 24 hours
+  };
 }
 
 // ============================================
 // SECURITY HEADERS
 // ============================================
 
+/**
+ * Get security headers for a request (includes CORS)
+ */
+export function getSecurityHeaders(req: Request): Record<string, string> {
+  return {
+    ...getCorsHeaders(req),
+    
+    // Security Headers (OWASP recommended)
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'X-XSS-Protection': '1; mode=block',
+    'Referrer-Policy': 'strict-origin-when-cross-origin',
+    'Permissions-Policy': 'geolocation=(), microphone=(), camera=()',
+
+    // Content Security Policy
+    'Content-Security-Policy': [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline'",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: https:",
+      "font-src 'self' data:",
+      "connect-src 'self' https://*.supabase.co",
+      "frame-ancestors 'none'",
+    ].join('; '),
+
+    // HTTPS only (when not in development)
+    ...(Deno.env.get('ENVIRONMENT') !== 'development' && {
+      'Strict-Transport-Security': 'max-age=31536000; includeSubDomains; preload',
+    }),
+  };
+}
+
+// Backward compatibility: export as constant (uses first allowed origin)
 export const securityHeaders = {
-  // CORS - Restrictive by default
-  'Access-Control-Allow-Origin': getAllowedOrigin(),
+  'Access-Control-Allow-Origin': ALLOWED_ORIGINS[0],
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-requested-with',
   'Access-Control-Allow-Credentials': 'true',
-  'Access-Control-Max-Age': '86400', // 24 hours
-
-  // Security Headers (OWASP recommended)
+  'Access-Control-Max-Age': '86400',
   'X-Content-Type-Options': 'nosniff',
   'X-Frame-Options': 'DENY',
   'X-XSS-Protection': '1; mode=block',
   'Referrer-Policy': 'strict-origin-when-cross-origin',
   'Permissions-Policy': 'geolocation=(), microphone=(), camera=()',
-
-  // Content Security Policy
   'Content-Security-Policy': [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline'", // Note: unsafe-inline needed for some frameworks
+    "script-src 'self' 'unsafe-inline'",
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: https:",
     "font-src 'self' data:",
     "connect-src 'self' https://*.supabase.co",
     "frame-ancestors 'none'",
   ].join('; '),
-
-  // HTTPS only (when not in development)
-  ...(Deno.env.get('ENVIRONMENT') !== 'development' && {
-    'Strict-Transport-Security': 'max-age=31536000; includeSubDomains; preload',
-  }),
 };
 
 export const corsHeaders = {
-  'Access-Control-Allow-Origin': securityHeaders['Access-Control-Allow-Origin'],
-  'Access-Control-Allow-Methods': securityHeaders['Access-Control-Allow-Methods'],
-  'Access-Control-Allow-Headers': securityHeaders['Access-Control-Allow-Headers'],
-  'Access-Control-Allow-Credentials': securityHeaders['Access-Control-Allow-Credentials'],
+  'Access-Control-Allow-Origin': ALLOWED_ORIGINS[0],
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-requested-with',
+  'Access-Control-Allow-Credentials': 'true',
 };
 
 // ============================================
@@ -84,7 +131,7 @@ const rateLimitStore = new Map<string, RateLimitEntry>();
 export async function checkRateLimit(
   req: Request,
   config: RateLimitConfig
-): Promise<{ allowed: boolean; remaining: number; resetAt: number }> {
+): Promise<{ allowed: boolean; remaining: number; resetAt: number; retryAfter?: number }> {
   // Get identifier (user ID or IP)
   const identifier = await getRateLimitIdentifier(req);
   const key = `${config.keyPrefix || 'rl'}:${identifier}`;
@@ -109,6 +156,7 @@ export async function checkRateLimit(
       allowed: false,
       remaining: 0,
       resetAt: currentEntry.resetAt,
+      retryAfter: currentEntry.resetAt - now,
     };
   }
 
@@ -194,7 +242,7 @@ export async function authenticateRequest(req: Request) {
   const authHeader = req.headers.get('Authorization');
 
   if (!authHeader) {
-    throw new AuthenticationError('Missing authorization header');
+    return { authenticated: false, user: null };
   }
 
   const supabaseClient = createClient(
@@ -206,10 +254,10 @@ export async function authenticateRequest(req: Request) {
   const { data: { user }, error } = await supabaseClient.auth.getUser();
 
   if (error || !user) {
-    throw new AuthenticationError('Invalid or expired token');
+    return { authenticated: false, user: null };
   }
 
-  return { user, supabaseClient };
+  return { authenticated: true, user, supabaseClient };
 }
 
 /**
@@ -332,7 +380,7 @@ export function sanitizeInput(input: unknown): unknown {
   if (typeof input === 'string') {
     return input
       .replace(/[<>]/g, '') // Basic XSS prevention
-      .replace(/['";]/g, '') // SQL injection prevention
+      .replace(/['\";]/g, '') // SQL injection prevention
       .trim();
   }
 
@@ -362,7 +410,8 @@ export function sanitizeInput(input: unknown): unknown {
  */
 export function createErrorResponse(
   error: Error,
-  statusCode = 500
+  statusCode = 500,
+  req?: Request
 ): Response {
   // Log full error details server-side (never send to client)
   console.error('Error occurred:', {
@@ -377,12 +426,14 @@ export function createErrorResponse(
     timestamp: new Date().toISOString(),
   };
 
+  const headers = req ? getSecurityHeaders(req) : securityHeaders;
+
   return new Response(
     JSON.stringify(body),
     {
       status: statusCode,
       headers: {
-        ...securityHeaders,
+        ...headers,
         'Content-Type': 'application/json',
       },
     }
@@ -394,14 +445,17 @@ export function createErrorResponse(
  */
 export function createSuccessResponse(
   data: unknown,
-  statusCode = 200
+  statusCode = 200,
+  req?: Request
 ): Response {
+  const headers = req ? getSecurityHeaders(req) : securityHeaders;
+  
   return new Response(
     JSON.stringify(data),
     {
       status: statusCode,
       headers: {
-        ...securityHeaders,
+        ...headers,
         'Content-Type': 'application/json',
       },
     }
