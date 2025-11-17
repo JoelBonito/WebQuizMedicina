@@ -99,13 +99,28 @@ export const useSources = (projectId: string | null) => {
         if (import.meta.env.DEV && extractedContent) {
           console.log('Extracted content length:', extractedContent.length);
           console.log('First 100 chars:', extractedContent.substring(0, 100));
+
+          // Check for null bytes
+          const nullByteCount = (extractedContent.match(/\u0000/g) || []).length;
+          if (nullByteCount > 0) {
+            console.error('⚠️ NULL BYTES FOUND:', nullByteCount);
+          }
+        }
+
+        // FINAL SAFETY CHECK: Remove any null bytes that might have slipped through
+        const safeContent = extractedContent ? extractedContent.replace(/\u0000/g, '') : extractedContent;
+
+        // Verify no null bytes remain
+        if (safeContent && safeContent.includes('\u0000')) {
+          console.error('❌ NULL BYTES STILL PRESENT AFTER FINAL CHECK!');
+          throw new Error('Texto contém caracteres inválidos que não podem ser processados');
         }
 
         // 5. Update source with extracted content
         const { data: updatedSource, error: updateError } = await supabase
           .from('sources')
           .update({
-            extracted_content: extractedContent,
+            extracted_content: safeContent,
             status: 'ready',
           })
           .eq('id', source.id)
