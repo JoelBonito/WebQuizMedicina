@@ -54,19 +54,38 @@ export const isPDFFile = (type: FileType): boolean => {
  * that PostgreSQL TEXT columns cannot handle
  */
 const sanitizeText = (text: string): string => {
-  return text
-    // Remove null bytes (U+0000)
+  if (!text) return '';
+
+  let sanitized = text
+    // Remove null bytes (U+0000) - PostgreSQL can't handle these
     .replace(/\u0000/g, '')
-    // Remove other problematic control characters (U+0001 to U+001F except newline, tab, carriage return)
-    .replace(/[\u0001-\u0008\u000B\u000C\u000E-\u001F]/g, '')
+    // Remove all control characters (U+0000 to U+001F) except newline (U+000A) and tab (U+0009)
+    .replace(/[\u0001-\u0008\u000B-\u001F\u007F]/g, '')
     // Remove invalid UTF-8 sequences (replacement character)
     .replace(/\uFFFD/g, '')
+    // Remove zero-width characters that might cause issues
+    .replace(/[\u200B-\u200D\uFEFF]/g, '')
+    // Normalize line endings to \n
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
     // Normalize multiple spaces to single space
-    .replace(/ +/g, ' ')
+    .replace(/ {2,}/g, ' ')
     // Normalize multiple newlines to double newline (paragraph breaks)
     .replace(/\n{3,}/g, '\n\n')
     // Trim leading and trailing whitespace
     .trim();
+
+  // Validate the result contains only valid characters
+  // This regex matches any character that's NOT a printable ASCII, common Unicode, newline, or tab
+  const invalidChars = sanitized.match(/[^\x20-\x7E\n\t\u00A0-\uFFFF]/g);
+  if (invalidChars && import.meta.env.DEV) {
+    console.warn('Found invalid characters after sanitization:', invalidChars.slice(0, 10));
+  }
+
+  // Remove any remaining invalid characters
+  sanitized = sanitized.replace(/[^\x20-\x7E\n\t\u00A0-\uFFFF]/g, '');
+
+  return sanitized;
 };
 
 export const extractTextFromPDF = async (file: File): Promise<string> => {
