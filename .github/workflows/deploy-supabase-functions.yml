@@ -26,24 +26,73 @@ jobs:
         with:
           version: latest
 
-      - name: Deploy Edge Functions
+      - name: Verify Shared Files
+        run: |
+          echo "🔍 Checking shared files..."
+          ls -la supabase/functions/_shared/
+          echo ""
+          echo "Files found:"
+          echo "- security.ts: $(test -f supabase/functions/_shared/security.ts && echo '✅' || echo '❌')"
+          echo "- validation.ts: $(test -f supabase/functions/_shared/validation.ts && echo '✅' || echo '❌')"
+          echo "- audit.ts: $(test -f supabase/functions/_shared/audit.ts && echo '✅' || echo '❌')"
+          echo "- gemini.ts: $(test -f supabase/functions/_shared/gemini.ts && echo '✅' || echo '❌')"
+          echo "- cors.ts: $(test -f supabase/functions/_shared/cors.ts && echo '✅' || echo '❌')"
+
+      - name: Deploy Edge Functions with Shared Dependencies
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_ID: bwgglfforazywrjhbxsa
         run: |
-          # Deploy all functions
-          supabase functions deploy chat --project-ref $SUPABASE_PROJECT_ID
-          supabase functions deploy generate-quiz --project-ref $SUPABASE_PROJECT_ID
-          supabase functions deploy generate-flashcards --project-ref $SUPABASE_PROJECT_ID
-          supabase functions deploy generate-summary --project-ref $SUPABASE_PROJECT_ID
-          supabase functions deploy generate-focused-summary --project-ref $SUPABASE_PROJECT_ID
+          echo "🚀 Deploying Edge Functions with shared dependencies..."
+          echo ""
+          echo "ℹ️  The Supabase CLI automatically bundles _shared files during deployment"
+          echo ""
+          
+          echo "📦 Deploying chat function..."
+          supabase functions deploy chat --project-ref $SUPABASE_PROJECT_ID --no-verify-jwt
+          
+          echo "📦 Deploying generate-quiz function..."
+          supabase functions deploy generate-quiz --project-ref $SUPABASE_PROJECT_ID --no-verify-jwt
+          
+          echo "📦 Deploying generate-flashcards function..."
+          supabase functions deploy generate-flashcards --project-ref $SUPABASE_PROJECT_ID --no-verify-jwt
+          
+          echo "📦 Deploying generate-summary function..."
+          supabase functions deploy generate-summary --project-ref $SUPABASE_PROJECT_ID --no-verify-jwt
+          
+          echo "📦 Deploying generate-focused-summary function..."
+          supabase functions deploy generate-focused-summary --project-ref $SUPABASE_PROJECT_ID --no-verify-jwt
+
+      - name: Environment Variables Reminder
+        run: |
+          echo ""
+          echo "⚙️  Environment variables are managed in Supabase Dashboard"
+          echo "Required secrets:"
+          echo "  - GEMINI_API_KEY"
+          echo "  - ALLOWED_ORIGIN (optional, for CORS)"
+          echo ""
+          echo "Configure at: https://supabase.com/dashboard/project/bwgglfforazywrjhbxsa/settings/functions"
 
       - name: Deployment Summary
         run: |
+          echo ""
           echo "✅ All Edge Functions deployed successfully!"
+          echo ""
           echo "📦 Functions deployed:"
           echo "  - chat"
           echo "  - generate-quiz"
           echo "  - generate-flashcards"
           echo "  - generate-summary"
           echo "  - generate-focused-summary"
+          echo ""
+          echo "🔧 Shared dependencies bundled (_shared folder):"
+          echo "  - security.ts (auth, rate limiting, CORS)"
+          echo "  - validation.ts (input validation, sanitization)"
+          echo "  - audit.ts (logging)"
+          echo "  - gemini.ts (AI API client)"
+          echo "  - cors.ts (CORS headers)"
+          echo ""
+          echo "🔐 Next steps:"
+          echo "  1. Set GEMINI_API_KEY in Supabase Dashboard"
+          echo "  2. Set ALLOWED_ORIGIN for production CORS"
+          echo "  3. Test endpoints at: https://bwgglfforazywrjhbxsa.supabase.co/functions/v1/"
