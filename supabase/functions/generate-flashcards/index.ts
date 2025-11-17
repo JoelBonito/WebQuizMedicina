@@ -5,10 +5,17 @@ import { validateRequest, generateFlashcardsSchema, sanitizeString } from '../_s
 import { AuditLogger, AuditEventType } from '../_shared/audit.ts';
 import { callGemini, parseJsonFromResponse } from '../_shared/gemini.ts';
 
-const auditLogger = new AuditLogger();
+// Lazy-initialize AuditLogger to avoid crashes if env vars are missing
+let auditLogger: AuditLogger | null = null;
+
 // Force re-deploy: CORS fixes in _shared/security.ts (2025-11-17)
 
 serve(async (req) => {
+  // Initialize audit logger on first request
+  if (!auditLogger) {
+    auditLogger = new AuditLogger();
+  }
+
   // Handle CORS preflight - MUST return 200 OK immediately
   if (req.method === 'OPTIONS') {
     return new Response(null, {
