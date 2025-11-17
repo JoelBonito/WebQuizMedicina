@@ -1,5 +1,9 @@
 # 🎯 Web Quiz Medicina
 
+[![Security Checks](https://github.com/JoelBonito/WebQuizMedicina/actions/workflows/security.yml/badge.svg)](https://github.com/JoelBonito/WebQuizMedicina/actions/workflows/security.yml)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+
 Aplicação web educacional moderna para estudantes de medicina criarem conteúdo de estudo (quiz, flashcards, resumos) a partir de múltiplas fontes (PDFs, áudios, textos, imagens) usando IA (Gemini 2.5).
 
 ## 🚀 Stack Tecnológica
@@ -304,6 +308,25 @@ A aplicação estará disponível em `http://localhost:3000`
      - Depois de estudar, clique **"Gerar Quiz + Flashcards"** para praticar
      - Marque dificuldades como resolvidas conforme aprende
    - Sistema rastreia automaticamente seus tópicos fracos para revisão personalizada
+
+## 🔒 Segurança
+
+Este projeto implementa **camadas de segurança completas** seguindo OWASP Top 10 2024:
+
+- ✅ **Validação e Sanitização**: Zod + DOMPurify (proteção contra XSS/SQL Injection)
+- ✅ **Rate Limiting**: Proteção contra abuso de APIs
+- ✅ **Security Headers**: CSP, HSTS, X-Frame-Options, X-Content-Type-Options
+- ✅ **Autenticação JWT**: Tokens seguros via Supabase Auth
+- ✅ **Row Level Security (RLS)**: Isolamento de dados no PostgreSQL
+- ✅ **Audit Logging**: Registro de eventos de segurança
+- ✅ **Dependency Scanning**: Dependabot + GitHub Actions
+- ✅ **CodeQL Analysis**: Análise estática de segurança
+
+Para mais detalhes, consulte a [Política de Segurança (SECURITY.md)](SECURITY.md).
+
+**Reportar vulnerabilidades:** Envie um email privado para o mantenedor do projeto.
+
+---
 
 ## 🤝 Contribuindo
 
