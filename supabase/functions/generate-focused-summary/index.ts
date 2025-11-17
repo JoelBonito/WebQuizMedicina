@@ -8,7 +8,7 @@ import { callGemini } from '../_shared/gemini.ts';
 // Lazy-initialize AuditLogger to avoid crashes if env vars are missing
 let auditLogger: AuditLogger | null = null;
 
-// Force re-deploy: CORS fixes in _shared/security.ts (2025-11-17)
+// Force re-deploy: Fix AuditLogger lazy initialization (2025-11-17 22:30)
 
 serve(async (req) => {
   // Initialize audit logger on first request
