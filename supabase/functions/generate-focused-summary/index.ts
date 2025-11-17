@@ -8,9 +8,12 @@ import { callGemini } from '../_shared/gemini.ts';
 const auditLogger = new AuditLogger();
 
 serve(async (req) => {
-  // Handle CORS preflight
+  // Handle CORS preflight - MUST return 200 OK immediately
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: securityHeaders });
+    return new Response(null, {
+      status: 200,
+      headers: securityHeaders
+    });
   }
 
   try {

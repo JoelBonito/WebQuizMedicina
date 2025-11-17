@@ -4,14 +4,28 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 // ============================================
+// CORS HELPER
+// ============================================
+
+/**
+ * Gets the allowed origin, normalizing trailing slashes
+ */
+function getAllowedOrigin(): string {
+  const origin = Deno.env.get('ALLOWED_ORIGIN') || '*';
+  // Normalize: remove trailing slash for consistency
+  return origin === '*' ? '*' : origin.replace(/\/$/, '');
+}
+
+// ============================================
 // SECURITY HEADERS
 // ============================================
 
 export const securityHeaders = {
   // CORS - Restrictive by default
-  'Access-Control-Allow-Origin': Deno.env.get('ALLOWED_ORIGIN') || '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Origin': getAllowedOrigin(),
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-requested-with',
+  'Access-Control-Allow-Credentials': 'true',
   'Access-Control-Max-Age': '86400', // 24 hours
 
   // Security Headers (OWASP recommended)
@@ -42,6 +56,7 @@ export const corsHeaders = {
   'Access-Control-Allow-Origin': securityHeaders['Access-Control-Allow-Origin'],
   'Access-Control-Allow-Methods': securityHeaders['Access-Control-Allow-Methods'],
   'Access-Control-Allow-Headers': securityHeaders['Access-Control-Allow-Headers'],
+  'Access-Control-Allow-Credentials': securityHeaders['Access-Control-Allow-Credentials'],
 };
 
 // ============================================
