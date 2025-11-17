@@ -48,15 +48,22 @@
             "sonner": "^2.0.3",
             "tailwind-merge": "*",
             "uuid": "^13.0.0",
-            "vaul": "^1.1.2"
+            "vaul": "^1.1.2",
+            "zod": "^3.23.8",
+            "dompurify": "^3.2.3",
+            "isomorphic-dompurify": "^2.20.0"
       },
       "devDependencies": {
             "@types/node": "^20.10.0",
+            "@types/uuid": "^10.0.0",
             "@vitejs/plugin-react-swc": "^3.10.2",
-            "vite": "6.3.5"
+            "vite": "^6.4.1"
       },
       "scripts": {
             "dev": "vite",
-            "build": "vite build"
+            "build": "vite build",
+            "security:audit": "npm audit",
+            "security:fix": "npm audit fix",
+            "security:check": "npm audit --audit-level=moderate"
       }
 }

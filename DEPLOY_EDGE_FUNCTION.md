@@ -19,7 +19,7 @@ If you have Supabase CLI installed, run:
 supabase login
 
 # Link to your project (if not already linked)
-supabase link --project-ref tpwkthafekcmhbcxvupd
+supabase link --project-ref bwgglfforazywrjhbxsa
 
 # Deploy the new function
 supabase functions deploy generate-focused-summary
@@ -30,7 +30,7 @@ supabase functions list
 
 ### Option 2: Using Supabase Dashboard (Manual)
 
-1. Go to your Supabase Dashboard: https://supabase.com/dashboard/project/tpwkthafekcmhbcxvupd
+1. Go to your Supabase Dashboard: https://supabase.com/dashboard/project/bwgglfforazywrjhbxsa
 2. Navigate to **Edge Functions** in the left sidebar
 3. Click **"Deploy a new function"**
 4. Name: `generate-focused-summary`
@@ -57,7 +57,7 @@ After deployment, test the function:
 
 ```bash
 curl -i --location --request POST \
-  'https://tpwkthafekcmhbcxvupd.supabase.co/functions/v1/generate-focused-summary' \
+  'https://bwgglfforazywrjhbxsa.supabase.co/functions/v1/generate-focused-summary' \
   --header 'Authorization: Bearer YOUR_ANON_KEY' \
   --header 'Content-Type: application/json' \
   --data '{"project_id":"YOUR_PROJECT_ID"}'

@@ -1,20 +1,64 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { corsHeaders } from '../_shared/cors.ts';
-import { callGemini, callGeminiWithFile, parseJsonFromResponse } from '../_shared/gemini.ts';
+import { securityHeaders, createErrorResponse, createSuccessResponse, RATE_LIMITS, checkRateLimit, authenticateRequest } from '../_shared/security.ts';
+import { validateRequest, generateQuizSchema, sanitizeString } from '../_shared/validation.ts';
+import { AuditLogger, AuditEventType } from '../_shared/audit.ts';
+import { callGemini, parseJsonFromResponse } from '../_shared/gemini.ts';
+
+const auditLogger = new AuditLogger();
 
 serve(async (req) => {
-  // Handle CORS
+  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: securityHeaders });
   }
 
   try {
-    const { source_id, project_id, count = 15 } = await req.json();
+    // 1. Rate limiting (10 requests per minute for AI generation)
+    const rateLimitResult = await checkRateLimit(req, RATE_LIMITS.AI_GENERATION);
+    if (!rateLimitResult.allowed) {
+      await auditLogger.logSecurity(
+        AuditEventType.SECURITY_RATE_LIMIT_EXCEEDED,
+        req,
+        null,
+        { endpoint: 'generate-quiz', limit: RATE_LIMITS.AI_GENERATION.maxRequests }
+      );
 
-    if (!source_id && !project_id) {
-      throw new Error('source_id or project_id is required');
+      return new Response(
+        JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
+        {
+          status: 429,
+          headers: {
+            ...securityHeaders,
+            'Content-Type': 'application/json',
+            'X-RateLimit-Remaining': '0',
+            'Retry-After': String(Math.ceil(rateLimitResult.retryAfter / 1000)),
+          },
+        }
+      );
     }
+
+    // 2. Authentication
+    const authResult = await authenticateRequest(req);
+    if (!authResult.authenticated || !authResult.user) {
+      await auditLogger.logAuth(
+        AuditEventType.AUTH_FAILED_LOGIN,
+        null,
+        req,
+        { reason: 'Invalid or missing token', endpoint: 'generate-quiz' }
+      );
+
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...securityHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const user = authResult.user;
+
+    // 3. Input validation
+    const validatedData = await validateRequest(req, generateQuizSchema);
+    const { source_id, project_id, count } = validatedData;
 
     // Initialize Supabase client
     const supabaseClient = createClient(
@@ -26,16 +70,6 @@ serve(async (req) => {
         },
       }
     );
-
-    // Get auth user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabaseClient.auth.getUser();
-
-    if (authError || !user) {
-      throw new Error('Unauthorized');
-    }
 
     let sources = [];
 
@@ -49,7 +83,7 @@ serve(async (req) => {
 
       if (error) throw error;
       sources = [data];
-    } else {
+    } else if (project_id) {
       const { data, error } = await supabaseClient
         .from('sources')
         .select('*')
@@ -68,7 +102,9 @@ serve(async (req) => {
     let combinedContent = '';
     for (const source of sources) {
       if (source.extracted_content) {
-        combinedContent += `\n\n=== ${source.name} ===\n${source.extracted_content}`;
+        // Sanitize content to prevent prompt injection
+        const sanitizedContent = sanitizeString(source.extracted_content);
+        combinedContent += `\n\n=== ${sanitizeString(source.name)} ===\n${sanitizedContent}`;
       }
     }
 
@@ -115,17 +151,17 @@ Retorne APENAS o JSON, sem texto adicional antes ou depois.`;
       throw new Error('Invalid response format from AI');
     }
 
-    // Save questions to database
+    // Save questions to database (sanitize all text fields)
     const questionsToInsert = parsed.perguntas.map((q: any) => ({
       project_id: project_id || sources[0].project_id,
       source_id: source_id || null,
-      pergunta: q.pergunta,
-      opcoes: q.opcoes,
-      resposta_correta: q.resposta_correta,
-      justificativa: q.justificativa,
-      dica: q.dica || null,
-      topico: q.topico || null,
-      dificuldade: q.dificuldade || 'médio',
+      pergunta: sanitizeString(q.pergunta || ''),
+      opcoes: Array.isArray(q.opcoes) ? q.opcoes.map((opt: string) => sanitizeString(opt)) : [],
+      resposta_correta: sanitizeString(q.resposta_correta || ''),
+      justificativa: sanitizeString(q.justificativa || ''),
+      dica: q.dica ? sanitizeString(q.dica) : null,
+      topico: q.topico ? sanitizeString(q.topico) : null,
+      dificuldade: ['fácil', 'médio', 'difícil'].includes(q.dificuldade) ? q.dificuldade : 'médio',
     }));
 
     const { data: insertedQuestions, error: insertError } = await supabaseClient
@@ -135,27 +171,26 @@ Retorne APENAS o JSON, sem texto adicional antes ou depois.`;
 
     if (insertError) throw insertError;
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        count: insertedQuestions.length,
-        questions: insertedQuestions,
-      }),
+    // Audit log: AI quiz generation
+    await auditLogger.logAIGeneration(
+      AuditEventType.AI_QUIZ_GENERATED,
+      user.id,
+      project_id || sources[0].project_id,
+      req,
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
+        source_count: sources.length,
+        questions_generated: insertedQuestions.length,
+        count_requested: count,
       }
     );
+
+    return createSuccessResponse({
+      success: true,
+      count: insertedQuestions.length,
+      questions: insertedQuestions,
+    });
   } catch (error) {
-    console.error('Error:', error);
-    return new Response(
-      JSON.stringify({
-        error: error.message,
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
-      }
-    );
+    // Secure error response (no stack traces to client)
+    return createErrorResponse(error as Error, 400);
   }
 });

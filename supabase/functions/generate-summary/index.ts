@@ -1,20 +1,64 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { corsHeaders } from '../_shared/cors.ts';
+import { securityHeaders, createErrorResponse, createSuccessResponse, RATE_LIMITS, checkRateLimit, authenticateRequest } from '../_shared/security.ts';
+import { validateRequest, generateSummarySchema, sanitizeString, sanitizeHtml } from '../_shared/validation.ts';
+import { AuditLogger, AuditEventType } from '../_shared/audit.ts';
 import { callGemini, parseJsonFromResponse } from '../_shared/gemini.ts';
 
+const auditLogger = new AuditLogger();
+
 serve(async (req) => {
-  // Handle CORS
+  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: securityHeaders });
   }
 
   try {
-    const { source_id, project_id } = await req.json();
+    // 1. Rate limiting (10 requests per minute for AI generation)
+    const rateLimitResult = await checkRateLimit(req, RATE_LIMITS.AI_GENERATION);
+    if (!rateLimitResult.allowed) {
+      await auditLogger.logSecurity(
+        AuditEventType.SECURITY_RATE_LIMIT_EXCEEDED,
+        req,
+        null,
+        { endpoint: 'generate-summary', limit: RATE_LIMITS.AI_GENERATION.maxRequests }
+      );
 
-    if (!source_id && !project_id) {
-      throw new Error('source_id or project_id is required');
+      return new Response(
+        JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
+        {
+          status: 429,
+          headers: {
+            ...securityHeaders,
+            'Content-Type': 'application/json',
+            'X-RateLimit-Remaining': '0',
+            'Retry-After': String(Math.ceil(rateLimitResult.retryAfter / 1000)),
+          },
+        }
+      );
     }
+
+    // 2. Authentication
+    const authResult = await authenticateRequest(req);
+    if (!authResult.authenticated || !authResult.user) {
+      await auditLogger.logAuth(
+        AuditEventType.AUTH_FAILED_LOGIN,
+        null,
+        req,
+        { reason: 'Invalid or missing token', endpoint: 'generate-summary' }
+      );
+
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...securityHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const user = authResult.user;
+
+    // 3. Input validation
+    const validatedData = await validateRequest(req, generateSummarySchema);
+    const { source_id, project_id } = validatedData;
 
     // Initialize Supabase client
     const supabaseClient = createClient(
@@ -26,16 +70,6 @@ serve(async (req) => {
         },
       }
     );
-
-    // Get auth user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabaseClient.auth.getUser();
-
-    if (authError || !user) {
-      throw new Error('Unauthorized');
-    }
 
     let sources = [];
 
@@ -49,7 +83,7 @@ serve(async (req) => {
 
       if (error) throw error;
       sources = [data];
-    } else {
+    } else if (project_id) {
       const { data, error } = await supabaseClient
         .from('sources')
         .select('*')
@@ -70,7 +104,9 @@ serve(async (req) => {
     for (const source of sources) {
       sourceIds.push(source.id);
       if (source.extracted_content) {
-        combinedContent += `\n\n=== ${source.name} ===\n${source.extracted_content}`;
+        // Sanitize content to prevent prompt injection
+        const sanitizedContent = sanitizeString(source.extracted_content);
+        combinedContent += `\n\n=== ${sanitizeString(source.name)} ===\n${sanitizedContent}`;
       }
     }
 
@@ -114,14 +150,14 @@ Retorne APENAS o JSON, sem texto adicional antes ou depois.`;
       throw new Error('Invalid response format from AI');
     }
 
-    // Save summary to database
+    // Save summary to database (sanitize HTML to prevent XSS)
     const { data: insertedSummary, error: insertError } = await supabaseClient
       .from('summaries')
       .insert({
         project_id: project_id || sources[0].project_id,
-        titulo: parsed.titulo,
-        conteudo_html: parsed.conteudo_html,
-        topicos: parsed.topicos || [],
+        titulo: sanitizeString(parsed.titulo),
+        conteudo_html: sanitizeHtml(parsed.conteudo_html),
+        topicos: Array.isArray(parsed.topicos) ? parsed.topicos.map((t: string) => sanitizeString(t)) : [],
         source_ids: sourceIds,
       })
       .select()
@@ -129,26 +165,24 @@ Retorne APENAS o JSON, sem texto adicional antes ou depois.`;
 
     if (insertError) throw insertError;
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        summary: insertedSummary,
-      }),
+    // Audit log: AI summary generation
+    await auditLogger.logAIGeneration(
+      AuditEventType.AI_SUMMARY_GENERATED,
+      user.id,
+      project_id || sources[0].project_id,
+      req,
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
+        source_count: sources.length,
+        summary_id: insertedSummary.id,
       }
     );
+
+    return createSuccessResponse({
+      success: true,
+      summary: insertedSummary,
+    });
   } catch (error) {
-    console.error('Error:', error);
-    return new Response(
-      JSON.stringify({
-        error: error.message,
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
-      }
-    );
+    // Secure error response (no stack traces to client)
+    return createErrorResponse(error as Error, 400);
   }
 });

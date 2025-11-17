@@ -99,11 +99,11 @@ b54984b - feat: Implementar Fase 6 - Dashboard de Dificuldades
 
 **Opção 2 - CLI Manual:**
 ```bash
-supabase functions deploy generate-focused-summary --project-ref tpwkthafekcmhbcxvupd
+supabase functions deploy generate-focused-summary --project-ref bwgglfforazywrjhbxsa
 ```
 
 **Opção 3 - Dashboard:**
-1. Acesse: https://supabase.com/dashboard/project/tpwkthafekcmhbcxvupd/functions
+1. Acesse: https://supabase.com/dashboard/project/bwgglfforazywrjhbxsa/functions
 2. Click "Deploy a new function"
 3. Nome: `generate-focused-summary`
 4. Copie o código de `supabase/functions/generate-focused-summary/index.ts`

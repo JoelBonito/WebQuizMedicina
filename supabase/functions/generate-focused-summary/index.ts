@@ -1,51 +1,75 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { corsHeaders } from '../_shared/cors.ts';
+import { securityHeaders, createErrorResponse, createSuccessResponse, RATE_LIMITS, checkRateLimit, authenticateRequest } from '../_shared/security.ts';
+import { validateRequest, generateFocusedSummarySchema, sanitizeString, sanitizeHtml } from '../_shared/validation.ts';
+import { AuditLogger, AuditEventType } from '../_shared/audit.ts';
 import { callGemini } from '../_shared/gemini.ts';
+
+const auditLogger = new AuditLogger();
 
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: securityHeaders });
   }
 
   try {
-    const { project_id } = await req.json();
+    // 1. Rate limiting (10 requests per minute for AI generation)
+    const rateLimitResult = await checkRateLimit(req, RATE_LIMITS.AI_GENERATION);
+    if (!rateLimitResult.allowed) {
+      await auditLogger.logSecurity(
+        AuditEventType.SECURITY_RATE_LIMIT_EXCEEDED,
+        req,
+        null,
+        { endpoint: 'generate-focused-summary', limit: RATE_LIMITS.AI_GENERATION.maxRequests }
+      );
 
-    if (!project_id) {
       return new Response(
-        JSON.stringify({ error: 'project_id is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
+        {
+          status: 429,
+          headers: {
+            ...securityHeaders,
+            'Content-Type': 'application/json',
+            'X-RateLimit-Remaining': '0',
+            'Retry-After': String(Math.ceil(rateLimitResult.retryAfter / 1000)),
+          },
+        }
       );
     }
 
-    // Get user from auth header
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
+    // 2. Authentication
+    const authResult = await authenticateRequest(req);
+    if (!authResult.authenticated || !authResult.user) {
+      await auditLogger.logAuth(
+        AuditEventType.AUTH_FAILED_LOGIN,
+        null,
+        req,
+        { reason: 'Invalid or missing token', endpoint: 'generate-focused-summary' }
+      );
+
       return new Response(
-        JSON.stringify({ error: 'Missing authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...securityHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    const user = authResult.user;
+
+    // 3. Input validation
+    const validatedData = await validateRequest(req, generateFocusedSummarySchema);
+    const { project_id } = validatedData;
+
+    // Initialize Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
+      {
+        global: {
+          headers: { Authorization: req.headers.get('Authorization')! },
+        },
+      }
     );
-
-    // Get user
-    const {
-      data: { user },
-      error: userError,
-    } = await supabaseClient.auth.getUser();
-
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
 
     // Verify project ownership
     const { data: project, error: projectError } = await supabaseClient
@@ -58,7 +82,7 @@ serve(async (req) => {
     if (projectError || !project) {
       return new Response(
         JSON.stringify({ error: 'Project not found or unauthorized' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 404, headers: { ...securityHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -81,7 +105,7 @@ serve(async (req) => {
         JSON.stringify({
           error: 'No difficulties found. Study with quiz and flashcards first to identify your weak points.'
         }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 400, headers: { ...securityHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -102,29 +126,35 @@ serve(async (req) => {
         JSON.stringify({
           error: 'No sources available. Please upload and process sources first.'
         }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 400, headers: { ...securityHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Combine all sources
+    // Combine all sources (sanitize to prevent prompt injection)
     const combinedContext = sources
-      .map((source) => `[Fonte: ${source.file_name}]\n${source.extracted_content}`)
+      .map((source) => {
+        const sanitizedName = sanitizeString(source.file_name || 'Unknown');
+        const sanitizedContent = sanitizeString(source.extracted_content || '');
+        return `[Fonte: ${sanitizedName}]\n${sanitizedContent}`;
+      })
       .join('\n\n---\n\n');
 
-    // Build focused prompt
+    // Build focused prompt (sanitize all user-generated data)
     const difficultiesList = difficulties
       .map((d, index) => {
         const stars = '⚠️'.repeat(Math.min(d.nivel, 5));
-        return `${index + 1}. ${d.topico} ${stars} (nível ${d.nivel}) - origem: ${d.tipo_origem}`;
+        const sanitizedTopic = sanitizeString(d.topico || 'Unknown');
+        const sanitizedType = sanitizeString(d.tipo_origem || 'unknown');
+        return `${index + 1}. ${sanitizedTopic} ${stars} (nível ${d.nivel}) - origem: ${sanitizedType}`;
       })
       .join('\n');
 
-    const topTopics = difficulties.slice(0, 5).map(d => d.topico);
+    const topTopics = difficulties.slice(0, 5).map(d => sanitizeString(d.topico));
 
     const prompt = `Você é um professor médico especializado em criar material didático personalizado.
 
 CONTEXTO DO ALUNO:
-O aluno está estudando "${project.name}" e identificou dificuldades específicas durante seus estudos.
+O aluno está estudando "${sanitizeString(project.name)}" e identificou dificuldades específicas durante seus estudos.
 
 MATERIAL DE ESTUDO DISPONÍVEL:
 ${combinedContext}
@@ -171,7 +201,7 @@ FORMATO DE SAÍDA (HTML estruturado):
 <div class="focused-summary">
   <div class="summary-header">
     <h1>🎯 Resumo Focado nas Suas Dificuldades</h1>
-    <p class="subtitle">Material personalizado para ${project.name}</p>
+    <p class="subtitle">Material personalizado para ${sanitizeString(project.name)}</p>
     <p class="meta">Baseado em ${difficulties.length} tópicos identificados durante seus estudos</p>
   </div>
 
@@ -230,14 +260,17 @@ Responda APENAS com o HTML formatado, sem explicações adicionais.`;
     // Call Gemini with focused prompt (use Pro for better quality)
     const htmlContent = await callGemini(prompt, 'gemini-2.5-pro');
 
-    // Save the focused summary
+    // Sanitize AI-generated HTML to prevent XSS
+    const sanitizedHtml = sanitizeHtml(htmlContent);
+
+    // Save the focused summary (with sanitized content)
     const { data: summary, error: summaryError } = await supabaseClient
       .from('summaries')
       .insert({
         project_id,
         user_id: user.id,
         titulo: `🎯 Resumo Focado nas Suas Dificuldades`,
-        conteudo_html: htmlContent,
+        conteudo_html: sanitizedHtml,
         topicos: topTopics,
         tipo: 'personalizado',
       })
@@ -248,25 +281,28 @@ Responda APENAS com o HTML formatado, sem explicações adicionais.`;
       throw summaryError;
     }
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        summary,
+    // Audit log: AI focused summary generation
+    await auditLogger.logAIGeneration(
+      AuditEventType.AI_SUMMARY_GENERATED,
+      user.id,
+      project_id,
+      req,
+      {
+        summary_type: 'focused',
         difficulties_count: difficulties.length,
-        top_topics: topTopics,
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        sources_count: sources.length,
+        summary_id: summary.id,
       }
     );
+
+    return createSuccessResponse({
+      success: true,
+      summary,
+      difficulties_count: difficulties.length,
+      top_topics: topTopics,
+    });
   } catch (error) {
-    console.error('Error in generate-focused-summary function:', error);
-    return new Response(
-      JSON.stringify({ error: error.message || 'Internal server error' }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
+    // Secure error response (no stack traces to client)
+    return createErrorResponse(error as Error, 500);
   }
 });

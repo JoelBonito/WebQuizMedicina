@@ -1,51 +1,75 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { corsHeaders } from '../_shared/cors.ts';
+import { securityHeaders, createErrorResponse, createSuccessResponse, RATE_LIMITS, checkRateLimit, authenticateRequest } from '../_shared/security.ts';
+import { validateRequest, chatMessageSchema, sanitizeString } from '../_shared/validation.ts';
+import { AuditLogger, AuditEventType } from '../_shared/audit.ts';
 import { callGemini } from '../_shared/gemini.ts';
+
+const auditLogger = new AuditLogger();
 
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: securityHeaders });
   }
 
   try {
-    const { message, project_id } = await req.json();
+    // 1. Rate limiting (30 requests per minute for chat)
+    const rateLimitResult = await checkRateLimit(req, RATE_LIMITS.CHAT);
+    if (!rateLimitResult.allowed) {
+      await auditLogger.logSecurity(
+        AuditEventType.SECURITY_RATE_LIMIT_EXCEEDED,
+        req,
+        null,
+        { endpoint: 'chat', limit: RATE_LIMITS.CHAT.maxRequests }
+      );
 
-    if (!message || !project_id) {
       return new Response(
-        JSON.stringify({ error: 'message and project_id are required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
+        {
+          status: 429,
+          headers: {
+            ...securityHeaders,
+            'Content-Type': 'application/json',
+            'X-RateLimit-Remaining': '0',
+            'Retry-After': String(Math.ceil(rateLimitResult.retryAfter / 1000)),
+          },
+        }
       );
     }
 
-    // Get user from auth header
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
+    // 2. Authentication
+    const authResult = await authenticateRequest(req);
+    if (!authResult.authenticated || !authResult.user) {
+      await auditLogger.logAuth(
+        AuditEventType.AUTH_FAILED_LOGIN,
+        null,
+        req,
+        { reason: 'Invalid or missing token', endpoint: 'chat' }
+      );
+
       return new Response(
-        JSON.stringify({ error: 'Missing authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...securityHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    const user = authResult.user;
+
+    // 3. Input validation
+    const validatedData = await validateRequest(req, chatMessageSchema);
+    const { message, project_id } = validatedData;
+
+    // Initialize Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
+      {
+        global: {
+          headers: { Authorization: req.headers.get('Authorization')! },
+        },
+      }
     );
-
-    // Get user
-    const {
-      data: { user },
-      error: userError,
-    } = await supabaseClient.auth.getUser();
-
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
 
     // Verify project ownership
     const { data: project, error: projectError } = await supabaseClient
@@ -58,7 +82,7 @@ serve(async (req) => {
     if (projectError || !project) {
       return new Response(
         JSON.stringify({ error: 'Project not found or unauthorized' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 404, headers: { ...securityHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -79,7 +103,7 @@ serve(async (req) => {
         JSON.stringify({
           error: 'No sources available. Please upload and process sources first.'
         }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 400, headers: { ...securityHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -92,21 +116,30 @@ serve(async (req) => {
       .order('nivel', { ascending: false })
       .limit(5);
 
-    // Simple RAG: Combine all sources (for MVP - in production, use embeddings + vector search)
+    // Simple RAG: Combine all sources (sanitize to prevent prompt injection)
     const combinedContext = sources
-      .map((source) => `[Fonte: ${source.file_name}]\n${source.extracted_content}`)
+      .map((source) => {
+        const sanitizedName = sanitizeString(source.file_name || 'Unknown');
+        const sanitizedContent = sanitizeString(source.extracted_content || '');
+        return `[Fonte: ${sanitizedName}]\n${sanitizedContent}`;
+      })
       .join('\n\n---\n\n');
 
+    // Sanitize user message to prevent prompt injection
+    const sanitizedMessage = sanitizeString(message);
+
     // Build prompt with RAG context
-    let prompt = `Você é um assistente de estudos médicos especializado. Você tem acesso às seguintes fontes do projeto "${project.name}":\n\n${combinedContext}\n\n`;
+    let prompt = `Você é um assistente de estudos médicos especializado. Você tem acesso às seguintes fontes do projeto "${sanitizeString(project.name)}":\n\n${combinedContext}\n\n`;
 
     if (difficulties && difficulties.length > 0) {
-      const topicsList = difficulties.map((d) => `- ${d.topico} (nível de dificuldade: ${d.nivel})`).join('\n');
+      const topicsList = difficulties
+        .map((d) => `- ${sanitizeString(d.topico)} (nível de dificuldade: ${d.nivel})`)
+        .join('\n');
       prompt += `\nO aluno tem dificuldade nos seguintes tópicos:\n${topicsList}\n\n`;
       prompt += `Ao responder, considere essas dificuldades e ofereça explicações mais detalhadas nesses tópicos quando relevante.\n\n`;
     }
 
-    prompt += `Pergunta do aluno: ${message}\n\n`;
+    prompt += `Pergunta do aluno: ${sanitizedMessage}\n\n`;
     prompt += `Instruções:
 1. Responda APENAS com base nas fontes fornecidas acima
 2. Se a informação não estiver nas fontes, diga claramente que não encontrou
@@ -120,21 +153,24 @@ Resposta:`;
     // Call Gemini with RAG context
     const response = await callGemini(prompt, 'gemini-2.5-flash');
 
+    // Sanitize AI response before storing
+    const sanitizedResponse = sanitizeString(response);
+
     // Extract sources mentioned (simple approach - match file names in response)
     const citedSources = sources
-      .filter((source) => response.toLowerCase().includes(source.file_name.toLowerCase()))
+      .filter((source) => sanitizedResponse.toLowerCase().includes(source.file_name.toLowerCase()))
       .map((source) => ({
         id: source.id,
         file_name: source.file_name,
         file_type: source.file_type,
       }));
 
-    // Save chat message to database
+    // Save chat message to database (with sanitized content)
     const { error: messageError } = await supabaseClient.from('chat_messages').insert({
       project_id,
       user_id: user.id,
-      message,
-      response,
+      message: sanitizedMessage,
+      response: sanitizedResponse,
       sources_cited: citedSources.map((s) => s.id),
     });
 
@@ -146,29 +182,32 @@ Resposta:`;
     // Check if response suggests topics related to difficulties
     const suggestedTopics = difficulties
       ? difficulties
-          .filter((d) => response.toLowerCase().includes(d.topico.toLowerCase()))
+          .filter((d) => sanitizedResponse.toLowerCase().includes(d.topico.toLowerCase()))
           .map((d) => d.topico)
       : [];
 
-    return new Response(
-      JSON.stringify({
-        response,
-        cited_sources: citedSources,
-        suggested_topics: suggestedTopics,
+    // Audit log: AI chat message
+    await auditLogger.logAIGeneration(
+      AuditEventType.AI_CHAT_MESSAGE,
+      user.id,
+      project_id,
+      req,
+      {
+        message_length: message.length,
+        sources_count: sources.length,
+        cited_sources_count: citedSources.length,
         has_difficulties_context: difficulties && difficulties.length > 0,
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
+
+    return createSuccessResponse({
+      response: sanitizedResponse,
+      cited_sources: citedSources,
+      suggested_topics: suggestedTopics,
+      has_difficulties_context: difficulties && difficulties.length > 0,
+    });
   } catch (error) {
-    console.error('Error in chat function:', error);
-    return new Response(
-      JSON.stringify({ error: error.message || 'Internal server error' }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
+    // Secure error response (no stack traces to client)
+    return createErrorResponse(error as Error, 500);
   }
 });
