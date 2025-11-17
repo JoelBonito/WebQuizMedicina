@@ -16,7 +16,17 @@ import {
 import { AuditEventType, AuditLogger } from "../_shared/audit.ts";
 import { callGemini, parseJsonFromResponse } from "../_shared/gemini.ts";
 
-const auditLogger = new AuditLogger();
+// Lazy-initialize AuditLogger to avoid crashes if env vars are missing
+let auditLogger: AuditLogger | null = null;
+function getAuditLogger(): AuditLogger {
+  if (!auditLogger) {
+    auditLogger = new AuditLogger(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+    );
+  }
+  return auditLogger;
+}
 
 // CORS configuration - defined at top level to avoid any dependency issues
 const ALLOWED_ORIGINS = [
@@ -59,7 +69,7 @@ serve(async (req) => {
       RATE_LIMITS.AI_GENERATION,
     );
     if (!rateLimitResult.allowed) {
-      await auditLogger.logSecurity(
+      await getAuditLogger().logSecurity(
         AuditEventType.SECURITY_RATE_LIMIT_EXCEEDED,
         req,
         null,
@@ -90,7 +100,7 @@ serve(async (req) => {
     // 2. Authentication
     const authResult = await authenticateRequest(req);
     if (!authResult.authenticated || !authResult.user) {
-      await auditLogger.logAuth(
+      await getAuditLogger().logAuth(
         AuditEventType.AUTH_FAILED_LOGIN,
         null,
         req,
@@ -233,7 +243,7 @@ Retorne APENAS o JSON, sem texto adicional antes ou depois.`;
     if (insertError) throw insertError;
 
     // Audit log
-    await auditLogger.logAIGeneration(
+    await getAuditLogger().logAIGeneration(
       AuditEventType.AI_QUIZ_GENERATED,
       user.id,
       project_id || sources[0].project_id,
