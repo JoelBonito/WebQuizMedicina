@@ -6,10 +6,21 @@ import { motion } from "motion/react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
 } from "./ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "./ui/alert-dialog";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { useProjects } from "../hooks/useProjects";
@@ -26,6 +37,7 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
   const { projects, loading, createProject, updateProject, deleteProject } = useProjects();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<{ id: string; name: string } | null>(null);
+  const [deletingProject, setDeletingProject] = useState<{ id: string; name: string } | null>(null);
   const [formData, setFormData] = useState({ name: "" });
   const [submitting, setSubmitting] = useState(false);
 
@@ -69,14 +81,13 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
     }
   };
 
-  const handleDeleteProject = async (id: string, name: string) => {
-    if (!confirm(`Tem certeza que deseja excluir "${name}"?`)) {
-      return;
-    }
+  const handleDeleteProject = async () => {
+    if (!deletingProject) return;
 
     try {
-      await deleteProject(id);
+      await deleteProject(deletingProject.id);
       toast.success("Projeto excluído");
+      setDeletingProject(null);
     } catch (error) {
       console.error("Error deleting project:", error);
       toast.error("Erro ao excluir projeto");
@@ -195,7 +206,7 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
                           className="h-8 w-8 rounded-lg hover:bg-red-50"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleDeleteProject(project.id, project.name);
+                            setDeletingProject({ id: project.id, name: project.name });
                           }}
                         >
                           <Trash2 className="w-4 h-4 text-red-600" />
@@ -253,29 +264,39 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
         >
           <DialogContent className="sm:max-w-[500px] rounded-3xl">
             <DialogHeader>
-              <DialogTitle>
-                {editingProject ? "Editar Projeto" : "Novo Projeto"}
+              <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                {editingProject ? "Editar Projeto" : "Criar Novo Projeto"}
               </DialogTitle>
+              <DialogDescription className="text-gray-600">
+                {editingProject
+                  ? "Atualize o nome do seu projeto de estudos."
+                  : "Dê um nome descritivo para organizar seus estudos de medicina."}
+              </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nome do Projeto</Label>
+            <div className="space-y-6 py-4">
+              <div className="space-y-3">
+                <Label htmlFor="name" className="text-sm font-medium text-gray-900">
+                  Nome do Projeto *
+                </Label>
                 <Input
                   id="name"
-                  placeholder="Ex: Farmacologia Geral"
+                  placeholder="Ex: Farmacologia Geral, Anatomia Cardíaca..."
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter") {
+                    if (e.key === "Enter" && formData.name.trim()) {
                       editingProject ? handleEditProject() : handleAddProject();
                     }
                   }}
-                  className="rounded-xl"
+                  className="rounded-xl border-gray-300 focus:border-purple-500 focus:ring-purple-500"
                   autoFocus
                 />
+                <p className="text-xs text-gray-500">
+                  Escolha um nome que facilite identificar o conteúdo do projeto
+                </p>
               </div>
             </div>
-            <DialogFooter>
+            <DialogFooter className="gap-3">
               <Button
                 variant="outline"
                 onClick={() => {
@@ -283,7 +304,7 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
                   setEditingProject(null);
                   setFormData({ name: "" });
                 }}
-                className="rounded-xl"
+                className="rounded-xl border-gray-300 hover:bg-gray-50"
                 disabled={submitting}
               >
                 Cancelar
@@ -291,16 +312,42 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
               <Button
                 onClick={editingProject ? handleEditProject : handleAddProject}
                 disabled={!formData.name.trim() || submitting}
-                className="rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+                className="rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg hover:shadow-xl transition-all"
               >
                 {submitting ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 ) : null}
-                {editingProject ? "Salvar" : "Criar"}
+                {editingProject ? "Salvar Alterações" : "Criar Projeto"}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={deletingProject !== null} onOpenChange={(open) => !open && setDeletingProject(null)}>
+          <AlertDialogContent className="rounded-3xl">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-xl font-bold text-gray-900">
+                Excluir Projeto?
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-gray-600">
+                Tem certeza que deseja excluir o projeto "{deletingProject?.name}"?
+                Esta ação não pode ser desfeita e todos os dados associados serão perdidos.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="rounded-xl">
+                Cancelar
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteProject}
+                className="rounded-xl bg-red-500 hover:bg-red-600 text-white"
+              >
+                Excluir Projeto
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </>
   );

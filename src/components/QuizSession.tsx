@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent } from "./ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Progress } from "./ui/progress";
@@ -205,6 +205,16 @@ export function QuizSession({
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden p-0">
+        <DialogTitle className="sr-only">
+          {state === "summary" ? "Resumo do Quiz" : `Questão ${currentIndex + 1} de ${questions.length}`}
+        </DialogTitle>
+        <DialogDescription className="sr-only">
+          {state === "summary"
+            ? "Visualização dos resultados do quiz completo com estatísticas de desempenho"
+            : state === "feedback"
+            ? "Feedback da resposta selecionada com explicação detalhada"
+            : "Responda a questão selecionando uma das alternativas ou clique em 'Não Sei'"}
+        </DialogDescription>
         <AnimatePresence mode="wait">
           {state === "summary" ? (
             <motion.div
