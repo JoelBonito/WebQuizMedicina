@@ -62,8 +62,15 @@ export const useChat = (projectId: string | null) => {
   }, [projectId, user]);
 
   const sendMessage = async (message: string): Promise<ChatResponse | null> => {
-    if (!session || !projectId) {
-      throw new Error('User not authenticated or project not selected');
+    // More detailed error checking
+    if (!session) {
+      console.error('[useChat] Session is missing:', { session, user, projectId });
+      throw new Error('Sessão expirada. Por favor, faça login novamente.');
+    }
+
+    if (!projectId) {
+      console.error('[useChat] ProjectId is missing:', { session: !!session, user: !!user, projectId });
+      throw new Error('Nenhum projeto selecionado. Por favor, selecione um projeto primeiro.');
     }
 
     try {
