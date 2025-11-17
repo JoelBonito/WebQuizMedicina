@@ -1,13 +1,13 @@
 import { supabase } from './supabase';
 import * as pdfjsLib from 'pdfjs-dist';
 
-// Configure PDF.js worker - use local copy to avoid CORS issues
-// The worker is copied from node_modules during build (see package.json)
-pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
+// Configure PDF.js worker - use CDN to avoid build/deployment issues
+// Using unpkg.com CDN which is reliable and automatically serves the correct version
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
 if (import.meta.env.DEV) {
   console.log('PDF.js version:', pdfjsLib.version);
-  console.log('PDF.js worker (local):', pdfjsLib.GlobalWorkerOptions.workerSrc);
+  console.log('PDF.js worker (CDN):', pdfjsLib.GlobalWorkerOptions.workerSrc);
 }
 
 export type FileType = 'pdf' | 'txt' | 'md' | 'mp3' | 'wav' | 'm4a' | 'jpg' | 'png' | 'jpeg';
