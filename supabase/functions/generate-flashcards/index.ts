@@ -6,6 +6,7 @@ import { AuditLogger, AuditEventType } from '../_shared/audit.ts';
 import { callGemini, parseJsonFromResponse } from '../_shared/gemini.ts';
 
 const auditLogger = new AuditLogger();
+// Force re-deploy: CORS fixes in _shared/security.ts (2025-11-17)
 
 serve(async (req) => {
   // Handle CORS preflight - MUST return 200 OK immediately
