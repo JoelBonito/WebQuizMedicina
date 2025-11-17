@@ -95,6 +95,12 @@ export const useSources = (projectId: string | null) => {
       try {
         const extractedContent = await processFile(file);
 
+        // Log for debugging
+        if (import.meta.env.DEV && extractedContent) {
+          console.log('Extracted content length:', extractedContent.length);
+          console.log('First 100 chars:', extractedContent.substring(0, 100));
+        }
+
         // 5. Update source with extracted content
         const { data: updatedSource, error: updateError } = await supabase
           .from('sources')
@@ -106,17 +112,28 @@ export const useSources = (projectId: string | null) => {
           .select()
           .single();
 
-        if (updateError) throw updateError;
+        if (updateError) {
+          console.error('Supabase update error:', {
+            code: updateError.code,
+            message: updateError.message,
+            details: updateError.details,
+            hint: updateError.hint,
+          });
+          throw updateError;
+        }
 
         // Update in state
         setSources(sources.map((s) => (s.id === source.id ? updatedSource : s)));
       } catch (processError) {
         console.error('Error processing file:', processError);
 
-        // Mark as ready anyway (will process later for audio/images)
+        // Mark as error with message
         const { data: updatedSource } = await supabase
           .from('sources')
-          .update({ status: 'ready' })
+          .update({
+            status: 'error',
+            // Store error message in metadata if possible
+          })
           .eq('id', source.id)
           .select()
           .single();
@@ -124,6 +141,9 @@ export const useSources = (projectId: string | null) => {
         if (updatedSource) {
           setSources(sources.map((s) => (s.id === source.id ? updatedSource : s)));
         }
+
+        // Re-throw to show toast error
+        throw processError;
       }
 
       return source;
