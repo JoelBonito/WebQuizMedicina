@@ -1,0 +1,49 @@
+name: Deploy Supabase Edge Functions
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'supabase/functions/**'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Deploy Edge Functions
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_ID: bwgglfforazywrjhbxsa
+        run: |
+          # Deploy all functions
+          supabase functions deploy chat --project-ref $SUPABASE_PROJECT_ID
+          supabase functions deploy generate-quiz --project-ref $SUPABASE_PROJECT_ID
+          supabase functions deploy generate-flashcards --project-ref $SUPABASE_PROJECT_ID
+          supabase functions deploy generate-summary --project-ref $SUPABASE_PROJECT_ID
+          supabase functions deploy generate-focused-summary --project-ref $SUPABASE_PROJECT_ID
+
+      - name: Deployment Summary
+        run: |
+          echo "✅ All Edge Functions deployed successfully!"
+          echo "📦 Functions deployed:"
+          echo "  - chat"
+          echo "  - generate-quiz"
+          echo "  - generate-flashcards"
+          echo "  - generate-summary"
+          echo "  - generate-focused-summary"
