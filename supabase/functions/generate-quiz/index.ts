@@ -1,24 +1,23 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { securityHeaders, createErrorResponse, createSuccessResponse, RATE_LIMITS, checkRateLimit, authenticateRequest } from '../_shared/security.ts';
+import { getSecurityHeaders, createErrorResponse, createSuccessResponse, RATE_LIMITS, checkRateLimit, authenticateRequest } from '../_shared/security.ts';
 import { validateRequest, generateQuizSchema, sanitizeString } from '../_shared/validation.ts';
 import { AuditLogger, AuditEventType } from '../_shared/audit.ts';
 import { callGemini, parseJsonFromResponse } from '../_shared/gemini.ts';
 
 const auditLogger = new AuditLogger();
-// Force re-deploy: CORS fixes in _shared/security.ts (2025-11-17)
 
 serve(async (req) => {
-  // Handle CORS preflight - MUST return 200 OK immediately
+  // Handle CORS preflight - MUST return 200 OK immediately with correct origin
   if (req.method === 'OPTIONS') {
     return new Response(null, {
       status: 200,
-      headers: securityHeaders
+      headers: getSecurityHeaders(req)
     });
   }
 
   try {
-    // 1. Rate limiting (10 requests per minute for AI generation)
+    // 1. Rate limiting
     const rateLimitResult = await checkRateLimit(req, RATE_LIMITS.AI_GENERATION);
     if (!rateLimitResult.allowed) {
       await auditLogger.logSecurity(
@@ -33,10 +32,10 @@ serve(async (req) => {
         {
           status: 429,
           headers: {
-            ...securityHeaders,
+            ...getSecurityHeaders(req),
             'Content-Type': 'application/json',
             'X-RateLimit-Remaining': '0',
-            'Retry-After': String(Math.ceil(rateLimitResult.retryAfter / 1000)),
+            'Retry-After': String(Math.ceil((rateLimitResult.retryAfter || 60000) / 1000)),
           },
         }
       );
@@ -54,7 +53,7 @@ serve(async (req) => {
 
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...securityHeaders, 'Content-Type': 'application/json' } }
+        { status: 401, headers: { ...getSecurityHeaders(req), 'Content-Type': 'application/json' } }
       );
     }
 
@@ -106,7 +105,6 @@ serve(async (req) => {
     let combinedContent = '';
     for (const source of sources) {
       if (source.extracted_content) {
-        // Sanitize content to prevent prompt injection
         const sanitizedContent = sanitizeString(source.extracted_content);
         combinedContent += `\n\n=== ${sanitizeString(source.name)} ===\n${sanitizedContent}`;
       }
@@ -155,7 +153,7 @@ Retorne APENAS o JSON, sem texto adicional antes ou depois.`;
       throw new Error('Invalid response format from AI');
     }
 
-    // Save questions to database (sanitize all text fields)
+    // Save questions to database
     const questionsToInsert = parsed.perguntas.map((q: any) => ({
       project_id: project_id || sources[0].project_id,
       source_id: source_id || null,
@@ -175,7 +173,7 @@ Retorne APENAS o JSON, sem texto adicional antes ou depois.`;
 
     if (insertError) throw insertError;
 
-    // Audit log: AI quiz generation
+    // Audit log
     await auditLogger.logAIGeneration(
       AuditEventType.AI_QUIZ_GENERATED,
       user.id,
@@ -192,9 +190,8 @@ Retorne APENAS o JSON, sem texto adicional antes ou depois.`;
       success: true,
       count: insertedQuestions.length,
       questions: insertedQuestions,
-    });
+    }, 200, req);
   } catch (error) {
-    // Secure error response (no stack traces to client)
-    return createErrorResponse(error as Error, 400);
+    return createErrorResponse(error as Error, 400, req);
   }
 });
