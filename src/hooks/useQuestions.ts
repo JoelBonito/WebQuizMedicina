@@ -47,14 +47,17 @@ export const useQuestions = (projectId: string | null) => {
     fetchQuestions();
   }, [projectId]);
 
-  const generateQuiz = async (sourceId?: string, count: number = 15) => {
-    if (!projectId && !sourceId) throw new Error('Project or source required');
+  const generateQuiz = async (sourceIds?: string | string[], count: number = 15) => {
+    if (!projectId && !sourceIds) throw new Error('Project or source required');
 
     try {
       setGenerating(true);
 
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
+
+      // Support both single sourceId (string) and multiple sourceIds (array)
+      const source_ids = Array.isArray(sourceIds) ? sourceIds : (sourceIds ? [sourceIds] : undefined);
 
       const response = await fetch(
         `${supabase.supabaseUrl}/functions/v1/generate-quiz`,
@@ -65,7 +68,7 @@ export const useQuestions = (projectId: string | null) => {
             Authorization: `Bearer ${session.access_token}`,
           },
           body: JSON.stringify({
-            source_id: sourceId,
+            source_ids,
             project_id: projectId,
             count,
           }),
