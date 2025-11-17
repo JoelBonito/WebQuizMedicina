@@ -1,5 +1,16 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "build",
-  "framework": "vite"
+  "framework": "vite",
+  "git": {
+    "deploymentEnabled": {
+      "main": false
+    }
+  },
+  "github": {
+    "enabled": false,
+    "autoAlias": false,
+    "autoJobCancelation": false,
+    "silent": true
+  }
 }
