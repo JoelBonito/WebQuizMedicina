@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
-import { Sparkles, Loader2, ChevronRight, BookOpen, Trash2, Play } from "lucide-react";
+import { Sparkles, Loader2, ChevronRight, BookOpen, Trash2, Play, X } from "lucide-react";
 import { motion } from "motion/react";
 import { useQuestions } from "../hooks/useQuestions";
 import { useFlashcards } from "../hooks/useFlashcards";
@@ -432,14 +432,22 @@ export function ContentPanel({ projectId, selectedSourceIds = [] }: ContentPanel
 
       {/* Summary Dialog */}
       <Dialog open={!!selectedSummary} onOpenChange={() => setSelectedSummary(null)}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{selectedSummary?.titulo}</DialogTitle>
-            <DialogDescription className="sr-only">
-              Visualização completa do resumo. Selecione texto para enviar perguntas ao chat.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="mt-4">
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto rounded-3xl">
+          <div className="flex items-center justify-between mb-4">
+            <DialogTitle className="text-xl font-semibold text-gray-900">
+              {selectedSummary?.titulo}
+            </DialogTitle>
+            <button
+              onClick={() => setSelectedSummary(null)}
+              className="text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <DialogDescription className="sr-only">
+            Visualização completa do resumo. Selecione texto para enviar perguntas ao chat.
+          </DialogDescription>
+          <div>
             {selectedSummary?.topicos && selectedSummary.topicos.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-6">
                 {selectedSummary.topicos.map((topico: string, i: number) => (

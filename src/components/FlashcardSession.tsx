@@ -198,9 +198,9 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
         {sessionState === "studying" ? (
           <div className="flex flex-col h-full">
             {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-pink-50">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <div className="flex items-center gap-4">
-                <h3 className="text-lg font-semibold text-gray-900">
+                <h3 className="text-xl font-semibold text-gray-900">
                   Flashcard {currentIndex + 1} de {flashcards.length}
                 </h3>
                 {currentCard && (
@@ -209,14 +209,12 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
                   </Badge>
                 )}
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
+              <button
                 onClick={handleClose}
-                className="rounded-full hover:bg-white/50"
+                className="text-gray-400 hover:text-gray-600 transition-colors"
               >
                 <X className="w-5 h-5" />
-              </Button>
+              </button>
             </div>
 
             {/* Progress Bar */}
@@ -275,7 +273,7 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="p-6 border-t border-gray-200 bg-gray-50"
+                className="p-6 border-t border-gray-200 bg-gray-50/50"
               >
                 <p className="text-sm text-gray-700 mb-4 text-center font-medium">
                   Como foi a dificuldade deste flashcard?
@@ -284,7 +282,7 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
                   <Button
                     onClick={() => handleRating("dificil")}
                     variant="outline"
-                    className="h-auto py-4 rounded-xl border-2 border-red-300 text-red-700 hover:bg-red-50 hover:border-red-400 flex flex-col gap-2"
+                    className="h-auto py-4 rounded-xl border-2 border-gray-300 text-red-700 hover:bg-red-50 hover:border-red-400 flex flex-col gap-2"
                   >
                     <Frown className="w-6 h-6" />
                     <span className="font-semibold">Difícil</span>
@@ -293,7 +291,7 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
                   <Button
                     onClick={() => handleRating("medio")}
                     variant="outline"
-                    className="h-auto py-4 rounded-xl border-2 border-yellow-300 text-yellow-700 hover:bg-yellow-50 hover:border-yellow-400 flex flex-col gap-2"
+                    className="h-auto py-4 rounded-xl border-2 border-gray-300 text-yellow-700 hover:bg-yellow-50 hover:border-yellow-400 flex flex-col gap-2"
                   >
                     <Meh className="w-6 h-6" />
                     <span className="font-semibold">Médio</span>
@@ -302,7 +300,7 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
                   <Button
                     onClick={() => handleRating("facil")}
                     variant="outline"
-                    className="h-auto py-4 rounded-xl border-2 border-green-300 text-green-700 hover:bg-green-50 hover:border-green-400 flex flex-col gap-2"
+                    className="h-auto py-4 rounded-xl border-2 border-gray-300 text-green-700 hover:bg-green-50 hover:border-green-400 flex flex-col gap-2"
                   >
                     <Smile className="w-6 h-6" />
                     <span className="font-semibold">Fácil</span>
@@ -398,14 +396,14 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
               <Button
                 onClick={handleRestart}
                 variant="outline"
-                className="rounded-xl border-2 border-purple-300 text-purple-700 hover:bg-purple-50"
+                className="rounded-xl border-gray-300 hover:bg-gray-50 text-gray-700"
               >
                 <RotateCw className="w-4 h-4 mr-2" />
                 Revisar Novamente
               </Button>
               <Button
                 onClick={handleClose}
-                className="rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+                className="rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg"
               >
                 Concluir
                 <ChevronRight className="w-4 h-4 ml-2" />

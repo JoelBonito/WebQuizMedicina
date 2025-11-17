@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, BookOpen, Trash2, Edit, ChevronRight, Sparkles, Loader2, LogOut, Settings } from "lucide-react";
+import { Plus, BookOpen, Trash2, Edit, ChevronRight, Sparkles, Loader2, LogOut, Settings, X } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { motion } from "motion/react";
@@ -290,20 +290,30 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
           }}
         >
           <DialogContent className="sm:max-w-[500px] rounded-3xl">
-            <DialogHeader>
-              <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+            <div className="flex items-center justify-between mb-2">
+              <DialogTitle className="text-xl font-semibold text-gray-900">
                 {editingProject ? "Editar Projeto" : "Criar Novo Projeto"}
               </DialogTitle>
-              <DialogDescription className="text-gray-600">
-                {editingProject
-                  ? "Atualize o nome do seu projeto de estudos."
-                  : "Dê um nome descritivo para organizar seus estudos de medicina."}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-6 py-4">
-              <div className="space-y-3">
-                <Label htmlFor="name" className="text-sm font-medium text-gray-900">
-                  Nome do Projeto *
+              <button
+                onClick={() => {
+                  setIsAddDialogOpen(false);
+                  setEditingProject(null);
+                  setFormData({ name: "" });
+                }}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <DialogDescription className="text-sm text-gray-500 sr-only">
+              {editingProject
+                ? "Atualize o nome do seu projeto de estudos."
+                : "Dê um nome descritivo para organizar seus estudos de medicina."}
+            </DialogDescription>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="name" className="text-sm font-medium text-gray-700">
+                  Nome do Projeto
                 </Label>
                 <Input
                   id="name"
@@ -315,15 +325,12 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
                       editingProject ? handleEditProject() : handleAddProject();
                     }
                   }}
-                  className="rounded-xl border-gray-300 focus:border-purple-500 focus:ring-purple-500"
+                  className="rounded-xl border-gray-300 focus:border-purple-500"
                   autoFocus
                 />
-                <p className="text-xs text-gray-500">
-                  Escolha um nome que facilite identificar o conteúdo do projeto
-                </p>
               </div>
             </div>
-            <DialogFooter className="gap-3">
+            <DialogFooter className="gap-3 pt-4">
               <Button
                 variant="outline"
                 onClick={() => {
@@ -331,7 +338,7 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
                   setEditingProject(null);
                   setFormData({ name: "" });
                 }}
-                className="rounded-xl border-gray-300 hover:bg-gray-50"
+                className="rounded-xl border-gray-300 hover:bg-gray-50 text-gray-700"
                 disabled={submitting}
               >
                 Cancelar
@@ -339,12 +346,12 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
               <Button
                 onClick={editingProject ? handleEditProject : handleAddProject}
                 disabled={!formData.name.trim() || submitting}
-                className="rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg hover:shadow-xl transition-all"
+                className="rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg"
               >
                 {submitting ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 ) : null}
-                {editingProject ? "Salvar Alterações" : "Criar Projeto"}
+                {editingProject ? "Salvar" : "Criar"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -354,23 +361,22 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
         <AlertDialog open={deletingProject !== null} onOpenChange={(open) => !open && setDeletingProject(null)}>
           <AlertDialogContent className="rounded-3xl">
             <AlertDialogHeader>
-              <AlertDialogTitle className="text-xl font-bold text-gray-900">
+              <AlertDialogTitle className="text-xl font-semibold text-gray-900">
                 Excluir Projeto?
               </AlertDialogTitle>
-              <AlertDialogDescription className="text-gray-600">
-                Tem certeza que deseja excluir o projeto "{deletingProject?.name}"?
-                Esta ação não pode ser desfeita e todos os dados associados serão perdidos.
+              <AlertDialogDescription className="text-sm text-gray-600">
+                Tem certeza que deseja excluir o projeto "{deletingProject?.name}"? Esta ação não pode ser desfeita.
               </AlertDialogDescription>
             </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel className="rounded-xl">
+            <AlertDialogFooter className="gap-3">
+              <AlertDialogCancel className="rounded-xl border-gray-300 hover:bg-gray-50 text-gray-700">
                 Cancelar
               </AlertDialogCancel>
               <AlertDialogAction
                 onClick={handleDeleteProject}
-                className="rounded-xl bg-red-500 hover:bg-red-600 text-white"
+                className="rounded-xl bg-red-500 hover:bg-red-600 text-white shadow-lg"
               >
-                Excluir Projeto
+                Excluir
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
