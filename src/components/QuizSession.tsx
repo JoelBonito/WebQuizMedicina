@@ -291,7 +291,7 @@ export function QuizSession({
                 <Button
                   variant="outline"
                   onClick={handleClose}
-                  className="flex-1 rounded-xl"
+                  className="flex-1 rounded-xl border-gray-300 hover:bg-gray-50 text-gray-700"
                 >
                   Fechar
                 </Button>
@@ -302,7 +302,7 @@ export function QuizSession({
                     setAnswers([]);
                     setStartTime(Date.now());
                   }}
-                  className="flex-1 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+                  className="flex-1 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg"
                 >
                   Tentar Novamente
                 </Button>
@@ -320,9 +320,9 @@ export function QuizSession({
               <div className="p-6 border-b border-gray-200">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <Badge className="rounded-lg bg-purple-50 text-purple-700 border-purple-200">
+                    <h3 className="text-xl font-semibold text-gray-900">
                       Questão {currentIndex + 1} de {questions.length}
-                    </Badge>
+                    </h3>
                     {currentQuestion.dificuldade && (
                       <Badge
                         className={`rounded-lg ${
@@ -344,14 +344,12 @@ export function QuizSession({
                         <span className="font-mono">{elapsedTime}s</span>
                       </div>
                     )}
-                    <Button
-                      variant="ghost"
-                      size="icon"
+                    <button
                       onClick={handleClose}
-                      className="rounded-lg"
+                      className="text-gray-400 hover:text-gray-600 transition-colors"
                     >
                       <X className="w-5 h-5" />
-                    </Button>
+                    </button>
                   </div>
                 </div>
 
@@ -505,7 +503,7 @@ export function QuizSession({
                       <Button
                         onClick={handleNaoSei}
                         variant="outline"
-                        className="flex-1 rounded-xl border-2 border-orange-400 text-orange-700 hover:bg-orange-50 hover:text-orange-800 hover:border-orange-500 font-semibold"
+                        className="flex-1 rounded-xl border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold"
                       >
                         <HelpCircle className="w-5 h-5 mr-2" />
                         NÃO SEI
@@ -514,7 +512,7 @@ export function QuizSession({
                   ) : (
                     <Button
                       onClick={handleNext}
-                      className="w-full rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+                      className="w-full rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg"
                     >
                       {currentIndex < questions.length - 1
                         ? "Próxima Questão"
