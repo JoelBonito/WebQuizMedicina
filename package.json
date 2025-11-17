@@ -64,9 +64,7 @@
       },
       "scripts": {
             "dev": "vite",
-            "build": "npm run copy-pdf-worker && vite build",
-            "copy-pdf-worker": "cp node_modules/pdfjs-dist/build/pdf.worker.min.js public/pdf.worker.min.js || echo 'PDF worker will be copied during build'",
-            "postinstall": "npm run copy-pdf-worker",
+            "build": "vite build",
             "security:audit": "npm audit",
             "security:fix": "npm audit fix",
             "security:check": "npm audit --audit-level=moderate"
