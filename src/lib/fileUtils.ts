@@ -1,8 +1,14 @@
 import { supabase } from './supabase';
 import * as pdfjsLib from 'pdfjs-dist';
 
-// Configure PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+// Configure PDF.js worker using unpkg.com CDN (more reliable than cdnjs)
+// This ensures the worker loads correctly in all environments
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
+
+if (import.meta.env.DEV) {
+  console.log('PDF.js version:', pdfjsLib.version);
+  console.log('PDF.js worker:', pdfjsLib.GlobalWorkerOptions.workerSrc);
+}
 
 export type FileType = 'pdf' | 'txt' | 'md' | 'mp3' | 'wav' | 'm4a' | 'jpg' | 'png' | 'jpeg';
 
