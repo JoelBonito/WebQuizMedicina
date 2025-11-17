@@ -15,6 +15,7 @@ import { SummaryViewer } from "./SummaryViewer";
 
 interface ContentPanelProps {
   projectId: string | null;
+  selectedSourceIds?: string[];
 }
 
 const getDifficultyColor = (difficulty: string) => {
@@ -30,7 +31,7 @@ const getDifficultyColor = (difficulty: string) => {
   }
 };
 
-export function ContentPanel({ projectId }: ContentPanelProps) {
+export function ContentPanel({ projectId, selectedSourceIds = [] }: ContentPanelProps) {
   const [activeTab, setActiveTab] = useState("quiz");
   const [selectedSummary, setSelectedSummary] = useState<any>(null);
   const [quizSessionOpen, setQuizSessionOpen] = useState(false);
@@ -52,8 +53,12 @@ export function ContentPanel({ projectId }: ContentPanelProps) {
   const { summaries, loading: loadingSummaries, generating: generatingSummary, generateSummary, deleteSummary } = useSummaries(projectId);
 
   const handleGenerateQuiz = async () => {
+    if (selectedSourceIds.length === 0) {
+      toast.error("Selecione pelo menos uma fonte para gerar o quiz");
+      return;
+    }
     try {
-      await generateQuiz(undefined, 15);
+      await generateQuiz(selectedSourceIds, 15);
       toast.success("Quiz gerado com sucesso!");
     } catch (error) {
       toast.error("Erro ao gerar quiz. Verifique se há fontes disponíveis.");
@@ -61,8 +66,12 @@ export function ContentPanel({ projectId }: ContentPanelProps) {
   };
 
   const handleGenerateFlashcards = async () => {
+    if (selectedSourceIds.length === 0) {
+      toast.error("Selecione pelo menos uma fonte para gerar flashcards");
+      return;
+    }
     try {
-      await generateFlashcards(undefined, 20);
+      await generateFlashcards(selectedSourceIds, 20);
       toast.success("Flashcards gerados com sucesso!");
     } catch (error) {
       toast.error("Erro ao gerar flashcards. Verifique se há fontes disponíveis.");
@@ -70,8 +79,12 @@ export function ContentPanel({ projectId }: ContentPanelProps) {
   };
 
   const handleGenerateSummary = async () => {
+    if (selectedSourceIds.length === 0) {
+      toast.error("Selecione pelo menos uma fonte para gerar o resumo");
+      return;
+    }
     try {
-      await generateSummary();
+      await generateSummary(selectedSourceIds);
       toast.success("Resumo gerado com sucesso!");
     } catch (error) {
       toast.error("Erro ao gerar resumo. Verifique se há fontes disponíveis.");

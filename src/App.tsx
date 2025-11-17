@@ -12,6 +12,7 @@ import { Toaster } from "./components/ui/sonner";
 export default function App() {
   const { user, loading } = useAuth();
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [selectedSourceIds, setSelectedSourceIds] = useState<string[]>([]);
   const [view, setView] = useState<"dashboard" | "project">("dashboard");
 
   const handleSelectProject = (projectId: string) => {
@@ -22,6 +23,10 @@ export default function App() {
   const handleBackToDashboard = () => {
     setView("dashboard");
     setSelectedProjectId(null);
+  };
+
+  const handleSelectedSourcesChange = (sourceIds: string[]) => {
+    setSelectedSourceIds(sourceIds);
   };
 
   if (loading) {
@@ -62,12 +67,18 @@ export default function App() {
           <div className="h-full grid grid-cols-1 lg:grid-cols-12 gap-4 overflow-hidden">
             {/* Left Panel - Sources (25%) */}
             <div className="lg:col-span-3 h-full flex items-stretch overflow-hidden">
-              <SourcesPanel projectId={selectedProjectId} />
+              <SourcesPanel
+                projectId={selectedProjectId}
+                onSelectedSourcesChange={handleSelectedSourcesChange}
+              />
             </div>
 
             {/* Center Panel - Content (50%) */}
             <div className="lg:col-span-6 h-full flex items-stretch overflow-hidden">
-              <ContentPanel projectId={selectedProjectId} />
+              <ContentPanel
+                projectId={selectedProjectId}
+                selectedSourceIds={selectedSourceIds}
+              />
             </div>
 
             {/* Right Panel - Chat & Difficulties (25%) */}

@@ -44,14 +44,17 @@ export const useSummaries = (projectId: string | null) => {
     fetchSummaries();
   }, [projectId]);
 
-  const generateSummary = async (sourceId?: string) => {
-    if (!projectId && !sourceId) throw new Error('Project or source required');
+  const generateSummary = async (sourceIds?: string | string[]) => {
+    if (!projectId && !sourceIds) throw new Error('Project or source required');
 
     try {
       setGenerating(true);
 
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
+
+      // Support both single sourceId (string) and multiple sourceIds (array)
+      const source_ids = Array.isArray(sourceIds) ? sourceIds : (sourceIds ? [sourceIds] : undefined);
 
       const response = await fetch(
         `${supabase.supabaseUrl}/functions/v1/generate-summary`,
@@ -62,7 +65,7 @@ export const useSummaries = (projectId: string | null) => {
             Authorization: `Bearer ${session.access_token}`,
           },
           body: JSON.stringify({
-            source_id: sourceId,
+            source_ids,
             project_id: projectId,
           }),
         }

@@ -12,6 +12,8 @@ import {
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { ScrollArea } from "./ui/scroll-area";
+import { Checkbox } from "./ui/checkbox";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { motion } from "motion/react";
 import { useSources } from "../hooks/useSources";
 import { toast } from "sonner";
@@ -24,6 +26,7 @@ import {
 
 interface SourcesPanelProps {
   projectId: string | null;
+  onSelectedSourcesChange?: (sourceIds: string[]) => void;
 }
 
 const getFileIcon = (type: string) => {
@@ -63,10 +66,26 @@ const getStatusBadge = (status: string) => {
   }
 };
 
-export function SourcesPanel({ projectId }: SourcesPanelProps) {
+const truncateFileName = (name: string, maxLength: number = 20): string => {
+  if (name.length <= maxLength) return name;
+
+  const parts = name.split('.');
+  const extension = parts.length > 1 ? parts.pop() : '';
+  const nameWithoutExt = parts.join('.');
+
+  if (nameWithoutExt.length > maxLength - extension.length - 4) {
+    const truncated = nameWithoutExt.substring(0, maxLength - extension.length - 4);
+    return `${truncated}...${extension ? '.' + extension : ''}`;
+  }
+
+  return name;
+};
+
+export function SourcesPanel({ projectId, onSelectedSourcesChange }: SourcesPanelProps) {
   const { sources, loading, uploading, uploadSource, deleteSource } =
     useSources(projectId);
   const [isDragging, setIsDragging] = useState(false);
+  const [selectedSources, setSelectedSources] = useState<Set<string>>(new Set());
   const [generatedCounts, setGeneratedCounts] = useState<
     Record<string, { quiz: number; flashcards: number; summaries: number }>
   >({});
@@ -88,6 +107,26 @@ export function SourcesPanel({ projectId }: SourcesPanelProps) {
     };
     fetchCounts();
   }, [sources]);
+
+  // Initialize all sources as selected by default
+  useEffect(() => {
+    if (sources.length > 0) {
+      const allSourceIds = new Set(sources.filter(s => s.status === 'ready').map(s => s.id));
+      setSelectedSources(allSourceIds);
+      onSelectedSourcesChange?.(Array.from(allSourceIds));
+    }
+  }, [sources.length]);
+
+  const handleSourceToggle = (sourceId: string, checked: boolean) => {
+    const newSelected = new Set(selectedSources);
+    if (checked) {
+      newSelected.add(sourceId);
+    } else {
+      newSelected.delete(sourceId);
+    }
+    setSelectedSources(newSelected);
+    onSelectedSourcesChange?.(Array.from(newSelected));
+  };
 
   const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -256,11 +295,25 @@ export function SourcesPanel({ projectId }: SourcesPanelProps) {
                 className="glass-hover glass-dark rounded-2xl p-4 border border-gray-200"
               >
                 <div className="flex items-start gap-3">
+                  {source.status === 'ready' && (
+                    <Checkbox
+                      checked={selectedSources.has(source.id)}
+                      onCheckedChange={(checked) => handleSourceToggle(source.id, checked as boolean)}
+                      className="mt-1"
+                    />
+                  )}
                   <div className="mt-1">{getFileIcon(source.type)}</div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-gray-900 truncate mb-2">
-                      {source.name}
-                    </p>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <p className="text-sm text-gray-900 cursor-default mb-2">
+                          {truncateFileName(source.name)}
+                        </p>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{source.name}</p>
+                      </TooltipContent>
+                    </Tooltip>
                     <div className="flex flex-wrap gap-2">
                       {getStatusBadge(source.status)}
                       {generatedCounts[source.id]?.quiz > 0 && (

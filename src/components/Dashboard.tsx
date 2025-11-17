@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, BookOpen, Trash2, Edit, ChevronRight, Sparkles, Loader2 } from "lucide-react";
+import { Plus, BookOpen, Trash2, Edit, ChevronRight, Sparkles, Loader2, LogOut, Settings } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { motion } from "motion/react";
@@ -33,7 +33,7 @@ interface DashboardProps {
 }
 
 export function Dashboard({ onSelectSubject }: DashboardProps) {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { projects, loading, createProject, updateProject, deleteProject } = useProjects();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<{ id: string; name: string } | null>(null);
@@ -104,6 +104,15 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
     setEditingProject(project);
   };
 
+  const handleSignOut = async () => {
+    const { error } = await signOut();
+    if (error) {
+      toast.error("Erro ao sair");
+    } else {
+      toast.success("Até logo!");
+    }
+  };
+
   const colors = [
     "from-purple-500 to-pink-500",
     "from-green-500 to-emerald-500",
@@ -132,13 +141,31 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
                   </p>
                 </div>
               </div>
-              <Button
-                onClick={openAddDialog}
-                className="rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Novo Projeto
-              </Button>
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-xl hover:bg-gray-100"
+                  onClick={() => toast.info("Configurações em breve!")}
+                >
+                  <Settings className="w-5 h-5 text-gray-700" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-xl hover:bg-red-50"
+                  onClick={handleSignOut}
+                >
+                  <LogOut className="w-5 h-5 text-red-600" />
+                </Button>
+                <Button
+                  onClick={openAddDialog}
+                  className="rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Novo Projeto
+                </Button>
+              </div>
             </div>
           </div>
         </div>
