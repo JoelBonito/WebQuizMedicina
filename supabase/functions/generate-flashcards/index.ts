@@ -1,20 +1,64 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { corsHeaders } from '../_shared/cors.ts';
+import { securityHeaders, createErrorResponse, createSuccessResponse, RATE_LIMITS, checkRateLimit, authenticateRequest } from '../_shared/security.ts';
+import { validateRequest, generateFlashcardsSchema, sanitizeString } from '../_shared/validation.ts';
+import { AuditLogger, AuditEventType } from '../_shared/audit.ts';
 import { callGemini, parseJsonFromResponse } from '../_shared/gemini.ts';
 
+const auditLogger = new AuditLogger();
+
 serve(async (req) => {
-  // Handle CORS
+  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: securityHeaders });
   }
 
   try {
-    const { source_id, project_id, count = 20 } = await req.json();
+    // 1. Rate limiting (10 requests per minute for AI generation)
+    const rateLimitResult = await checkRateLimit(req, RATE_LIMITS.AI_GENERATION);
+    if (!rateLimitResult.allowed) {
+      await auditLogger.logSecurity(
+        AuditEventType.SECURITY_RATE_LIMIT_EXCEEDED,
+        req,
+        null,
+        { endpoint: 'generate-flashcards', limit: RATE_LIMITS.AI_GENERATION.maxRequests }
+      );
 
-    if (!source_id && !project_id) {
-      throw new Error('source_id or project_id is required');
+      return new Response(
+        JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
+        {
+          status: 429,
+          headers: {
+            ...securityHeaders,
+            'Content-Type': 'application/json',
+            'X-RateLimit-Remaining': '0',
+            'Retry-After': String(Math.ceil(rateLimitResult.retryAfter / 1000)),
+          },
+        }
+      );
     }
+
+    // 2. Authentication
+    const authResult = await authenticateRequest(req);
+    if (!authResult.authenticated || !authResult.user) {
+      await auditLogger.logAuth(
+        AuditEventType.AUTH_FAILED_LOGIN,
+        null,
+        req,
+        { reason: 'Invalid or missing token', endpoint: 'generate-flashcards' }
+      );
+
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...securityHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const user = authResult.user;
+
+    // 3. Input validation
+    const validatedData = await validateRequest(req, generateFlashcardsSchema);
+    const { source_id, project_id, count } = validatedData;
 
     // Initialize Supabase client
     const supabaseClient = createClient(
@@ -26,16 +70,6 @@ serve(async (req) => {
         },
       }
     );
-
-    // Get auth user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabaseClient.auth.getUser();
-
-    if (authError || !user) {
-      throw new Error('Unauthorized');
-    }
 
     let sources = [];
 
@@ -49,7 +83,7 @@ serve(async (req) => {
 
       if (error) throw error;
       sources = [data];
-    } else {
+    } else if (project_id) {
       const { data, error } = await supabaseClient
         .from('sources')
         .select('*')
@@ -68,7 +102,9 @@ serve(async (req) => {
     let combinedContent = '';
     for (const source of sources) {
       if (source.extracted_content) {
-        combinedContent += `\n\n=== ${source.name} ===\n${source.extracted_content}`;
+        // Sanitize content to prevent prompt injection
+        const sanitizedContent = sanitizeString(source.extracted_content);
+        combinedContent += `\n\n=== ${sanitizeString(source.name)} ===\n${sanitizedContent}`;
       }
     }
 
@@ -112,14 +148,14 @@ Retorne APENAS o JSON, sem texto adicional antes ou depois.`;
       throw new Error('Invalid response format from AI');
     }
 
-    // Save flashcards to database
+    // Save flashcards to database (sanitize all text fields)
     const flashcardsToInsert = parsed.flashcards.map((f: any) => ({
       project_id: project_id || sources[0].project_id,
       source_id: source_id || null,
-      frente: f.frente,
-      verso: f.verso,
-      topico: f.topico || null,
-      dificuldade: f.dificuldade || 'médio',
+      frente: sanitizeString(f.frente || ''),
+      verso: sanitizeString(f.verso || ''),
+      topico: f.topico ? sanitizeString(f.topico) : null,
+      dificuldade: ['fácil', 'médio', 'difícil'].includes(f.dificuldade) ? f.dificuldade : 'médio',
     }));
 
     const { data: insertedFlashcards, error: insertError } = await supabaseClient
@@ -129,27 +165,26 @@ Retorne APENAS o JSON, sem texto adicional antes ou depois.`;
 
     if (insertError) throw insertError;
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        count: insertedFlashcards.length,
-        flashcards: insertedFlashcards,
-      }),
+    // Audit log: AI flashcard generation
+    await auditLogger.logAIGeneration(
+      AuditEventType.AI_FLASHCARDS_GENERATED,
+      user.id,
+      project_id || sources[0].project_id,
+      req,
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
+        source_count: sources.length,
+        flashcards_generated: insertedFlashcards.length,
+        count_requested: count,
       }
     );
+
+    return createSuccessResponse({
+      success: true,
+      count: insertedFlashcards.length,
+      flashcards: insertedFlashcards,
+    });
   } catch (error) {
-    console.error('Error:', error);
-    return new Response(
-      JSON.stringify({
-        error: error.message,
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
-      }
-    );
+    // Secure error response (no stack traces to client)
+    return createErrorResponse(error as Error, 400);
   }
 });
