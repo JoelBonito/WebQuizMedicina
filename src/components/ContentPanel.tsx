@@ -89,7 +89,7 @@ export function ContentPanel({ projectId }: ContentPanelProps) {
 
   if (!projectId) {
     return (
-      <div className="h-full flex flex-col bg-gray-50/50 rounded-3xl p-4 border border-gray-200">
+      <div className="h-full w-full flex flex-col bg-gray-50/50 rounded-3xl p-4 border border-gray-200 overflow-hidden">
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <BookOpen className="w-12 h-12 mx-auto mb-4 text-gray-400" />
@@ -102,7 +102,7 @@ export function ContentPanel({ projectId }: ContentPanelProps) {
 
   return (
     <>
-      <div className="h-full flex flex-col bg-gray-50/50 rounded-3xl p-4 border border-gray-200">
+      <div className="h-full w-full flex flex-col bg-gray-50/50 rounded-3xl p-4 border border-gray-200 overflow-hidden">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
           <TabsList className="glass-dark border border-gray-200 p-1 mb-4 rounded-2xl h-auto">
             <TabsTrigger
