@@ -7,15 +7,19 @@ import { callGemini, parseJsonFromResponse } from '../_shared/gemini.ts';
 
 // Lazy-initialize AuditLogger to avoid crashes if env vars are missing
 let auditLogger: AuditLogger | null = null;
+function getAuditLogger(): AuditLogger {
+  if (!auditLogger) {
+    auditLogger = new AuditLogger(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+    );
+  }
+  return auditLogger;
+}
 
-// Force re-deploy: Fix AuditLogger lazy initialization (2025-11-17 22:30)
+// Force re-deploy: Fix AuditLogger lazy initialization with params (2025-11-17 22:45)
 
 serve(async (req) => {
-  // Initialize audit logger on first request
-  if (!auditLogger) {
-    auditLogger = new AuditLogger();
-  }
-
   // Handle CORS preflight - MUST return 200 OK immediately
   if (req.method === 'OPTIONS') {
     return new Response(null, {
@@ -28,7 +32,7 @@ serve(async (req) => {
     // 1. Rate limiting (10 requests per minute for AI generation)
     const rateLimitResult = await checkRateLimit(req, RATE_LIMITS.AI_GENERATION);
     if (!rateLimitResult.allowed) {
-      await auditLogger.logSecurity(
+      await getAuditLogger().logSecurity(
         AuditEventType.SECURITY_RATE_LIMIT_EXCEEDED,
         req,
         null,
@@ -52,7 +56,7 @@ serve(async (req) => {
     // 2. Authentication
     const authResult = await authenticateRequest(req);
     if (!authResult.authenticated || !authResult.user) {
-      await auditLogger.logAuth(
+      await getAuditLogger().logAuth(
         AuditEventType.AUTH_FAILED_LOGIN,
         null,
         req,
@@ -177,7 +181,7 @@ Retorne APENAS o JSON, sem texto adicional antes ou depois.`;
     if (insertError) throw insertError;
 
     // Audit log: AI flashcard generation
-    await auditLogger.logAIGeneration(
+    await getAuditLogger().logAIGeneration(
       AuditEventType.AI_FLASHCARDS_GENERATED,
       user.id,
       project_id || sources[0].project_id,
