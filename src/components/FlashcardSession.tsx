@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { X, RotateCw, ChevronRight, Trophy, Smile, Meh, Frown } from "lucide-react";
-import { Dialog, DialogContent } from "./ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "./ui/dialog";
 import { Progress } from "./ui/progress";
 import { useProgress } from "../hooks/useProgress";
 import { useDifficulties } from "../hooks/useDifficulties";
@@ -185,6 +185,16 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] p-0 gap-0 overflow-hidden">
+        <DialogTitle className="sr-only">
+          {sessionState === "summary"
+            ? "Resumo da Sessão de Flashcards"
+            : `Flashcard ${currentIndex + 1} de ${flashcards.length}`}
+        </DialogTitle>
+        <DialogDescription className="sr-only">
+          {sessionState === "summary"
+            ? "Visualização dos resultados da sessão de flashcards com estatísticas de desempenho"
+            : "Estude os flashcards virando as cartas e avalie seu conhecimento"}
+        </DialogDescription>
         {sessionState === "studying" ? (
           <div className="flex flex-col h-full">
             {/* Header */}

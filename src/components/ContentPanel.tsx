@@ -8,7 +8,7 @@ import { useQuestions } from "../hooks/useQuestions";
 import { useFlashcards } from "../hooks/useFlashcards";
 import { useSummaries } from "../hooks/useSummaries";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
 import { QuizSession } from "./QuizSession";
 import { FlashcardSession } from "./FlashcardSession";
 import { SummaryViewer } from "./SummaryViewer";
@@ -422,6 +422,9 @@ export function ContentPanel({ projectId }: ContentPanelProps) {
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{selectedSummary?.titulo}</DialogTitle>
+            <DialogDescription className="sr-only">
+              Visualização completa do resumo. Selecione texto para enviar perguntas ao chat.
+            </DialogDescription>
           </DialogHeader>
           <div className="mt-4">
             {selectedSummary?.topicos && selectedSummary.topicos.length > 0 && (
