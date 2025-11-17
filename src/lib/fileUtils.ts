@@ -49,6 +49,26 @@ export const isPDFFile = (type: FileType): boolean => {
   return type === 'pdf';
 };
 
+/**
+ * Sanitizes text by removing null bytes and other problematic Unicode characters
+ * that PostgreSQL TEXT columns cannot handle
+ */
+const sanitizeText = (text: string): string => {
+  return text
+    // Remove null bytes (U+0000)
+    .replace(/\u0000/g, '')
+    // Remove other problematic control characters (U+0001 to U+001F except newline, tab, carriage return)
+    .replace(/[\u0001-\u0008\u000B\u000C\u000E-\u001F]/g, '')
+    // Remove invalid UTF-8 sequences (replacement character)
+    .replace(/\uFFFD/g, '')
+    // Normalize multiple spaces to single space
+    .replace(/ +/g, ' ')
+    // Normalize multiple newlines to double newline (paragraph breaks)
+    .replace(/\n{3,}/g, '\n\n')
+    // Trim leading and trailing whitespace
+    .trim();
+};
+
 export const extractTextFromPDF = async (file: File): Promise<string> => {
   try {
     const arrayBuffer = await file.arrayBuffer();
@@ -64,7 +84,8 @@ export const extractTextFromPDF = async (file: File): Promise<string> => {
       fullText += pageText + '\n\n';
     }
 
-    return fullText;
+    // Sanitize the extracted text to remove problematic characters
+    return sanitizeText(fullText);
   } catch (error) {
     console.error('Error extracting text from PDF:', error);
     throw new Error('Falha ao extrair texto do PDF');
@@ -73,7 +94,9 @@ export const extractTextFromPDF = async (file: File): Promise<string> => {
 
 export const extractTextFromTextFile = async (file: File): Promise<string> => {
   try {
-    return await file.text();
+    const text = await file.text();
+    // Also sanitize text files to ensure consistency
+    return sanitizeText(text);
   } catch (error) {
     console.error('Error reading text file:', error);
     throw new Error('Falha ao ler arquivo de texto');
