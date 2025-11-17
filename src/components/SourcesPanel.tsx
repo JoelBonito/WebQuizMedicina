@@ -166,7 +166,7 @@ export function SourcesPanel({ projectId }: SourcesPanelProps) {
 
   if (!projectId) {
     return (
-      <div className="h-full flex flex-col bg-gray-50/50 rounded-3xl p-4 border border-gray-200">
+      <div className="h-full w-full flex flex-col bg-gray-50/50 rounded-3xl p-4 border border-gray-200 overflow-hidden">
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <Upload className="w-12 h-12 mx-auto mb-4 text-gray-400" />
@@ -178,7 +178,7 @@ export function SourcesPanel({ projectId }: SourcesPanelProps) {
   }
 
   return (
-    <div className="h-full flex flex-col bg-gray-50/50 rounded-3xl p-4 border border-gray-200">
+    <div className="h-full w-full flex flex-col bg-gray-50/50 rounded-3xl p-4 border border-gray-200 overflow-hidden">
       <input
         ref={fileInputRef}
         type="file"

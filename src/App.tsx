@@ -58,20 +58,20 @@ export default function App() {
         <Navbar onBackClick={handleBackToDashboard} />
 
         {/* Main Content */}
-        <div className="pt-20 px-6 pb-6 h-screen">
-          <div className="h-full grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <div className="pt-20 px-6 pb-6 h-screen overflow-hidden">
+          <div className="h-full grid grid-cols-1 lg:grid-cols-12 gap-4 overflow-hidden">
             {/* Left Panel - Sources (25%) */}
-            <div className="lg:col-span-3 h-full flex items-stretch">
+            <div className="lg:col-span-3 h-full flex items-stretch overflow-hidden">
               <SourcesPanel projectId={selectedProjectId} />
             </div>
 
             {/* Center Panel - Content (50%) */}
-            <div className="lg:col-span-6 h-full flex items-stretch">
+            <div className="lg:col-span-6 h-full flex items-stretch overflow-hidden">
               <ContentPanel projectId={selectedProjectId} />
             </div>
 
             {/* Right Panel - Chat & Difficulties (25%) */}
-            <div className="lg:col-span-3 h-full flex items-stretch">
+            <div className="lg:col-span-3 h-full flex items-stretch overflow-hidden">
               <RightPanel projectId={selectedProjectId} />
             </div>
           </div>
