@@ -4,13 +4,7 @@
   "framework": "vite",
   "git": {
     "deploymentEnabled": {
-      "main": false
+      "main": true
     }
-  },
-  "github": {
-    "enabled": false,
-    "autoAlias": false,
-    "autoJobCancelation": false,
-    "silent": true
   }
 }
