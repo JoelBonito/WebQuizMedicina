@@ -4,6 +4,7 @@ import { securityHeaders, createErrorResponse, createSuccessResponse, RATE_LIMIT
 import { validateRequest, chatMessageSchema, sanitizeString } from '../_shared/validation.ts';
 import { AuditLogger, AuditEventType } from '../_shared/audit.ts';
 import { callGemini } from '../_shared/gemini.ts';
+import { hasAnyEmbeddings, semanticSearch } from '../_shared/embeddings.ts';
 
 // Lazy-initialize AuditLogger to avoid crashes if env vars are missing
 let auditLogger: AuditLogger | null = null;
@@ -123,15 +124,6 @@ serve(async (req) => {
       );
     }
 
-    // PHASE 0: Limit to 3 most recent sources to prevent token overflow
-    const MAX_SOURCES = 3;
-    const MAX_CONTENT_LENGTH = 40000; // ~10k tokens
-
-    if (sources.length > MAX_SOURCES) {
-      console.warn(`⚠️ [PHASE 0] Limiting from ${sources.length} to ${MAX_SOURCES} most recent sources to prevent token overflow`);
-      sources = sources.slice(0, MAX_SOURCES);
-    }
-
     // Get user's difficulties for context
     const { data: difficulties } = await supabaseClient
       .from('difficulties')
@@ -141,19 +133,72 @@ serve(async (req) => {
       .order('nivel', { ascending: false })
       .limit(5);
 
-    // Simple RAG: Combine all sources (sanitize to prevent prompt injection)
-    let combinedContext = sources
-      .map((source) => {
-        const sanitizedName = sanitizeString(source.name || 'Unknown');
-        const sanitizedContent = sanitizeString(source.extracted_content || '');
-        return `[Fonte: ${sanitizedName}]\n${sanitizedContent}`;
-      })
-      .join('\n\n---\n\n');
+    // PHASE 2: Check if embeddings exist for semantic search
+    const sourceIds = sources.map(s => s.id);
+    let useSemanticSearch = await hasAnyEmbeddings(supabaseClient, sourceIds);
 
-    // PHASE 0: Truncate if content exceeds limit
-    if (combinedContext.length > MAX_CONTENT_LENGTH) {
-      console.warn(`⚠️ [PHASE 0] Truncating chat context from ${combinedContext.length} to ${MAX_CONTENT_LENGTH} characters to prevent token overflow`);
-      combinedContext = combinedContext.substring(0, MAX_CONTENT_LENGTH) + '\n\n[Conteúdo truncado para evitar limite de tokens]';
+    let combinedContext = '';
+
+    if (useSemanticSearch) {
+      // ✅ PHASE 2: Use semantic search with embeddings
+      console.log('🎯 [PHASE 2] Using semantic search with embeddings for chat');
+
+      // Use the user's message as the query for semantic search
+      const sanitizedMessage = sanitizeString(message);
+
+      // Get top 10 most relevant chunks for the user's question
+      const relevantChunks = await semanticSearch(
+        supabaseClient,
+        sanitizedMessage,
+        sourceIds,
+        10 // top K - focused on user's question
+      );
+
+      if (relevantChunks.length === 0) {
+        console.warn('⚠️ [PHASE 2] No relevant chunks found, falling back to concatenation');
+        useSemanticSearch = false;
+      } else {
+        // Build context from relevant chunks
+        combinedContext = relevantChunks
+          .map((chunk, idx) => {
+            const similarity = (chunk.similarity * 100).toFixed(1);
+            return `[Trecho ${idx + 1} - Relevância: ${similarity}%]\n${chunk.content}`;
+          })
+          .join('\n\n---\n\n');
+
+        const avgSimilarity = (relevantChunks.reduce((sum, c) => sum + c.similarity, 0) / relevantChunks.length * 100).toFixed(1);
+        console.log(`✅ [PHASE 2] Using ${relevantChunks.length} relevant chunks (avg similarity: ${avgSimilarity}%)`);
+        console.log(`📊 [PHASE 2] Total context: ${combinedContext.length} characters`);
+      }
+    }
+
+    if (!useSemanticSearch) {
+      // ⚠️ PHASE 0: Fallback to truncated concatenation (legacy method)
+      console.warn('⚠️ [PHASE 0] No embeddings found. Using fallback method (truncated concatenation)');
+
+      const MAX_SOURCES = 3;
+      const MAX_CONTENT_LENGTH = 40000; // ~10k tokens
+
+      let usedSources = sources;
+      if (sources.length > MAX_SOURCES) {
+        console.warn(`⚠️ [PHASE 0] Limiting from ${sources.length} to ${MAX_SOURCES} most recent sources`);
+        usedSources = sources.slice(0, MAX_SOURCES);
+      }
+
+      // Combine all sources (sanitize to prevent prompt injection)
+      combinedContext = usedSources
+        .map((source) => {
+          const sanitizedName = sanitizeString(source.name || 'Unknown');
+          const sanitizedContent = sanitizeString(source.extracted_content || '');
+          return `[Fonte: ${sanitizedName}]\n${sanitizedContent}`;
+        })
+        .join('\n\n---\n\n');
+
+      // Truncate if content exceeds limit
+      if (combinedContext.length > MAX_CONTENT_LENGTH) {
+        console.warn(`⚠️ [PHASE 0] Truncating context from ${combinedContext.length} to ${MAX_CONTENT_LENGTH} characters`);
+        combinedContext = combinedContext.substring(0, MAX_CONTENT_LENGTH) + '\n\n[Conteúdo truncado para evitar limite de tokens]';
+      }
     }
 
     // Sanitize user message to prevent prompt injection
