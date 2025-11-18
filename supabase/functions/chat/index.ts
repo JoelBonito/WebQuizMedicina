@@ -104,7 +104,7 @@ serve(async (req) => {
     // Get all sources for this project
     const { data: sources, error: sourcesError } = await supabaseClient
       .from('sources')
-      .select('id, file_name, extracted_content, file_type')
+      .select('id, name, extracted_content, type')
       .eq('project_id', project_id)
       .eq('status', 'ready')
       .not('extracted_content', 'is', null);
@@ -134,7 +134,7 @@ serve(async (req) => {
     // Simple RAG: Combine all sources (sanitize to prevent prompt injection)
     const combinedContext = sources
       .map((source) => {
-        const sanitizedName = sanitizeString(source.file_name || 'Unknown');
+        const sanitizedName = sanitizeString(source.name || 'Unknown');
         const sanitizedContent = sanitizeString(source.extracted_content || '');
         return `[Fonte: ${sanitizedName}]\n${sanitizedContent}`;
       })
@@ -173,11 +173,11 @@ Resposta:`;
 
     // Extract sources mentioned (simple approach - match file names in response)
     const citedSources = sources
-      .filter((source) => sanitizedResponse.toLowerCase().includes(source.file_name.toLowerCase()))
+      .filter((source) => sanitizedResponse.toLowerCase().includes(source.name.toLowerCase()))
       .map((source) => ({
         id: source.id,
-        file_name: source.file_name,
-        file_type: source.file_type,
+        file_name: source.name,  // Keep as file_name for response interface compatibility
+        file_type: source.type,  // Keep as file_type for response interface compatibility
       }));
 
     // Save chat message to database (with sanitized content)
