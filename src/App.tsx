@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Navbar } from "./components/Navbar";
 import { SourcesPanel } from "./components/SourcesPanel";
 import { ContentPanel } from "./components/ContentPanel";
@@ -15,12 +15,19 @@ export default function App() {
   const [selectedSourceIds, setSelectedSourceIds] = useState<string[]>([]);
   const [view, setView] = useState<"dashboard" | "project">("dashboard");
 
+  // Debug logging for selectedProjectId changes
+  useEffect(() => {
+    console.log('[App] Selected Project ID changed:', selectedProjectId);
+  }, [selectedProjectId]);
+
   const handleSelectProject = (projectId: string) => {
+    console.log('[App] handleSelectProject called with:', projectId);
     setSelectedProjectId(projectId);
     setView("project");
   };
 
   const handleBackToDashboard = () => {
+    console.log('[App] handleBackToDashboard called - clearing projectId');
     setView("dashboard");
     setSelectedProjectId(null);
   };
