@@ -18,11 +18,15 @@ import { motion } from "motion/react";
 import { useSources } from "../hooks/useSources";
 import { toast } from "sonner";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "./ui/alert-dialog";
 
 interface SourcesPanelProps {
   projectId: string | null;
@@ -86,6 +90,7 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange }: SourcesPane
     useSources(projectId);
   const [isDragging, setIsDragging] = useState(false);
   const [selectedSources, setSelectedSources] = useState<Set<string>>(new Set());
+  const [deletingSource, setDeletingSource] = useState<{ id: string; name: string } | null>(null);
   const [generatedCounts, setGeneratedCounts] = useState<
     Record<string, { quiz: number; flashcards: number; summaries: number }>
   >({});
@@ -193,10 +198,13 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange }: SourcesPane
     }
   };
 
-  const handleDelete = async (id: string, name: string) => {
+  const handleDeleteConfirm = async () => {
+    if (!deletingSource) return;
+
     try {
-      await deleteSource(id);
-      toast.success(`${name} removido com sucesso`);
+      await deleteSource(deletingSource.id);
+      toast.success(`${deletingSource.name} removido com sucesso`);
+      setDeletingSource(null);
     } catch (error) {
       console.error("Delete error:", error);
       toast.error("Erro ao remover arquivo");
@@ -345,32 +353,48 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange }: SourcesPane
                       )}
                     </div>
                   </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 rounded-lg hover:bg-gray-100"
-                      >
-                        <Trash2 className="w-4 h-4 text-gray-600" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem
-                        className="text-red-600"
-                        onClick={() => handleDelete(source.id, source.name)}
-                      >
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        Remover
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-lg hover:bg-red-50"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDeletingSource({ id: source.id, name: source.name });
+                    }}
+                  >
+                    <Trash2 className="w-4 h-4 text-red-600" />
+                  </Button>
                 </div>
               </motion.div>
             ))}
           </div>
         )}
       </ScrollArea>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deletingSource !== null} onOpenChange={(open) => !open && setDeletingSource(null)}>
+        <AlertDialogContent className="rounded-3xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-xl font-semibold text-gray-900">
+              Excluir Fonte?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-sm text-gray-600">
+              Tem certeza que deseja excluir "{deletingSource?.name}"? Esta ação não pode ser desfeita e todos os conteúdos gerados a partir desta fonte serão removidos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-3">
+            <AlertDialogCancel className="rounded-xl border-gray-300 hover:bg-gray-50 text-gray-700">
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="rounded-xl bg-red-500 hover:bg-red-600 text-white shadow-lg"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

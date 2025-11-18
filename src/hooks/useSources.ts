@@ -89,7 +89,7 @@ export const useSources = (projectId: string | null) => {
       if (insertError) throw insertError;
 
       // Add to state immediately
-      setSources([source, ...sources]);
+      setSources(prevSources => [source, ...prevSources]);
 
       // 4. Process file (extract content if possible)
       try {
@@ -138,7 +138,7 @@ export const useSources = (projectId: string | null) => {
         }
 
         // Update in state
-        setSources(sources.map((s) => (s.id === source.id ? updatedSource : s)));
+        setSources(prevSources => prevSources.map((s) => (s.id === source.id ? updatedSource : s)));
       } catch (processError) {
         console.error('Error processing file:', processError);
 
@@ -154,7 +154,7 @@ export const useSources = (projectId: string | null) => {
           .single();
 
         if (updatedSource) {
-          setSources(sources.map((s) => (s.id === source.id ? updatedSource : s)));
+          setSources(prevSources => prevSources.map((s) => (s.id === source.id ? updatedSource : s)));
         }
 
         // Re-throw to show toast error
@@ -172,21 +172,25 @@ export const useSources = (projectId: string | null) => {
 
   const deleteSource = async (id: string) => {
     try {
+      // Get source from current state
       const source = sources.find((s) => s.id === id);
       if (!source) throw new Error('Source not found');
 
-      // Delete from storage
-      const { error: storageError } = await supabase.storage
-        .from('project-sources')
-        .remove([source.storage_path]);
-
-      if (storageError) console.error('Storage delete error:', storageError);
-
-      // Delete from database
+      // Delete from database first
       const { error } = await supabase.from('sources').delete().eq('id', id);
 
       if (error) throw error;
-      setSources(sources.filter((s) => s.id !== id));
+
+      // Delete from storage (non-blocking)
+      supabase.storage
+        .from('project-sources')
+        .remove([source.storage_path])
+        .then(({ error: storageError }) => {
+          if (storageError) console.error('Storage delete error:', storageError);
+        });
+
+      // Update state immediately
+      setSources(prevSources => prevSources.filter((s) => s.id !== id));
     } catch (err) {
       console.error('Error deleting source:', err);
       throw err;
