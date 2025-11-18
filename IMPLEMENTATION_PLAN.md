@@ -103,7 +103,7 @@ ON source_chunks(source_id, chunk_index);
 **1. `supabase/functions/_shared/embeddings.ts`**
 
 ```typescript
-const GEMINI_EMBEDDING_MODEL = 'text-embedding-004';
+const GEMINI_EMBEDDING_MODEL = 'gemini-embedding-001';
 const CHUNK_SIZE_TOKENS = 800; // Safe limit
 const CHUNK_OVERLAP_TOKENS = 100;
 
