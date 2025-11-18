@@ -129,12 +129,13 @@ serve(async (req) => {
       // Define query optimized for summary generation
       const query = `Gerar resumo abrangente sobre os principais conceitos, tópicos centrais, processos fundamentais, terminologia chave, mecanismos importantes e aplicações práticas do conteúdo médico. Incluir aspectos clínicos, diagnósticos e terapêuticos relevantes.`;
 
-      // Get top 20 most relevant chunks (more for comprehensive summary)
+      // Get top 10 most relevant chunks (reduced from 20 to avoid MAX_TOKENS)
+      // Each chunk ~700 tokens, so 10 chunks = ~7000 tokens input + instructions
       const relevantChunks = await semanticSearch(
         supabaseClient,
         query,
         sourceIds,
-        20 // top K - more chunks for better coverage
+        10 // top K - reduced to prevent MAX_TOKENS error
       );
 
       if (relevantChunks.length === 0) {
@@ -152,6 +153,13 @@ serve(async (req) => {
         const avgSimilarity = (relevantChunks.reduce((sum, c) => sum + c.similarity, 0) / relevantChunks.length * 100).toFixed(1);
         console.log(`✅ [PHASE 2] Using ${relevantChunks.length} relevant chunks (avg similarity: ${avgSimilarity}%)`);
         console.log(`📊 [PHASE 2] Total content: ${combinedContent.length} characters`);
+
+        // Safety check: truncate if content still too large
+        const MAX_SEMANTIC_CONTENT = 35000; // ~8750 tokens - leaves room for instructions and output
+        if (combinedContent.length > MAX_SEMANTIC_CONTENT) {
+          console.warn(`⚠️ [PHASE 2] Truncating content from ${combinedContent.length} to ${MAX_SEMANTIC_CONTENT} characters`);
+          combinedContent = combinedContent.substring(0, MAX_SEMANTIC_CONTENT) + '\n\n[Conteúdo truncado para evitar limite de tokens]';
+        }
       }
     }
 
