@@ -180,15 +180,34 @@ export async function callGeminiWithFile(
  * Attempts to recover valid items from a truncated JSON array
  * Used when the API response was cut off mid-generation
  */
-function recoverItemsFromTruncatedJson(text: string, arrayKey: string = 'perguntas'): any[] {
+function recoverItemsFromTruncatedJson(text: string, arrayKey?: string): any[] {
   console.warn('🔧 Attempting to recover valid items from truncated JSON...');
 
   const items: any[] = [];
 
+  // Auto-detect array key if not provided
+  let detectedKey = arrayKey;
+  if (!detectedKey) {
+    // Try common array names
+    const commonKeys = ['perguntas', 'flashcards', 'items', 'data', 'results'];
+    for (const key of commonKeys) {
+      if (text.indexOf(`"${key}"`) !== -1) {
+        detectedKey = key;
+        console.log(`✅ Auto-detected array key: "${key}"`);
+        break;
+      }
+    }
+
+    if (!detectedKey) {
+      console.error(`❌ Could not auto-detect array key in response`);
+      return items;
+    }
+  }
+
   // Try to find the start of the array
-  const arrayStart = text.indexOf(`"${arrayKey}"`);
+  const arrayStart = text.indexOf(`"${detectedKey}"`);
   if (arrayStart === -1) {
-    console.error(`❌ Could not find "${arrayKey}" array in response`);
+    console.error(`❌ Could not find "${detectedKey}" array in response`);
     return items;
   }
 
@@ -298,11 +317,13 @@ export function parseJsonFromResponse(text: string): any {
         firstError.message.includes('Expected') && isTruncated) {
       console.warn('🔧 JSON truncated by token limit. Attempting recovery...');
 
-      // Try to recover partial items
-      const recoveredItems = recoverItemsFromTruncatedJson(cleaned, 'perguntas');
+      // Try to recover partial items (auto-detect array key)
+      const recoveredItems = recoverItemsFromTruncatedJson(cleaned);
       if (recoveredItems.length > 0) {
+        // Detect which array key was used
+        const arrayKey = cleaned.indexOf('"flashcards"') !== -1 ? 'flashcards' : 'perguntas';
         console.log(`✅ Recovered ${recoveredItems.length} complete items from truncated response`);
-        return { perguntas: recoveredItems };
+        return { [arrayKey]: recoveredItems };
       }
 
       throw new Error(`Response was truncated at ${cleaned.length} characters. Recovered 0 items. Please try requesting fewer questions.`);
@@ -325,11 +346,13 @@ export function parseJsonFromResponse(text: string): any {
         } catch (fixError) {
           console.warn('⚠️ Could not fix JSON, attempting item recovery...');
 
-          // Last resort: try to recover items
-          const recoveredItems = recoverItemsFromTruncatedJson(fixed, 'perguntas');
+          // Last resort: try to recover items (auto-detect array key)
+          const recoveredItems = recoverItemsFromTruncatedJson(fixed);
           if (recoveredItems.length > 0) {
+            // Detect which array key was used
+            const arrayKey = fixed.indexOf('"flashcards"') !== -1 ? 'flashcards' : 'perguntas';
             console.log(`✅ Recovered ${recoveredItems.length} items after fix attempt`);
-            return { perguntas: recoveredItems };
+            return { [arrayKey]: recoveredItems };
           }
 
           console.error('Failed to parse JSON after fixes:', {

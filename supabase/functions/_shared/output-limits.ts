@@ -7,9 +7,10 @@
  * Includes JSON overhead (~15% extra)
  */
 export const OUTPUT_LIMITS = {
-  // Flashcards: ~250 tokens + JSON overhead
+  // Flashcards: ~250-350 tokens + JSON overhead
+  // Increased from 290 to 350 to account for detailed explanations and prevent truncation
   FLASHCARD: {
-    TOKENS_PER_ITEM: 290,
+    TOKENS_PER_ITEM: 350,
     DESCRIPTION: 'flashcard com frente, verso, tópico, dificuldade',
   },
 
