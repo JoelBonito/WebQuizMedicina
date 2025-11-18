@@ -177,6 +177,75 @@ export async function callGeminiWithFile(
 }
 
 /**
+ * Attempts to recover a partial object from truncated JSON
+ * Used for responses that return a single object (e.g., summaries)
+ * Extracts complete fields even if the object is not fully closed
+ */
+function recoverPartialObject(text: string): any | null {
+  console.warn('🔧 Attempting to recover partial object from truncated JSON...');
+
+  const recovered: any = {};
+
+  // Find all complete string fields
+  const stringFieldPattern = /"([^"]+)"\s*:\s*"((?:[^"\\]|\\.)*)"/g;
+  let match;
+
+  while ((match = stringFieldPattern.exec(text)) !== null) {
+    const key = match[1];
+    const value = match[2];
+
+    // Unescape the value
+    try {
+      recovered[key] = value.replace(/\\"/g, '"').replace(/\\n/g, '\n').replace(/\\\\/g, '\\');
+      console.log(`✅ Recovered field: "${key}" (${value.length} chars)`);
+    } catch (e) {
+      console.warn(`⚠️ Failed to unescape field "${key}": ${e.message}`);
+    }
+  }
+
+  // Find complete array fields
+  const arrayFieldPattern = /"([^"]+)"\s*:\s*\[((?:[^\[\]]*(?:\[[^\]]*\])?)*)\]/g;
+  while ((match = arrayFieldPattern.exec(text)) !== null) {
+    const key = match[1];
+    const arrayContent = match[2];
+
+    try {
+      recovered[key] = JSON.parse(`[${arrayContent}]`);
+      console.log(`✅ Recovered array field: "${key}" (${recovered[key].length} items)`);
+    } catch (e) {
+      console.warn(`⚠️ Failed to parse array field "${key}": ${e.message}`);
+    }
+  }
+
+  // Find complete number fields
+  const numberFieldPattern = /"([^"]+)"\s*:\s*(\d+(?:\.\d+)?)/g;
+  while ((match = numberFieldPattern.exec(text)) !== null) {
+    const key = match[1];
+    const value = parseFloat(match[2]);
+    recovered[key] = value;
+    console.log(`✅ Recovered number field: "${key}" = ${value}`);
+  }
+
+  // Find complete boolean fields
+  const boolFieldPattern = /"([^"]+)"\s*:\s*(true|false)/g;
+  while ((match = boolFieldPattern.exec(text)) !== null) {
+    const key = match[1];
+    const value = match[2] === 'true';
+    recovered[key] = value;
+    console.log(`✅ Recovered boolean field: "${key}" = ${value}`);
+  }
+
+  const fieldCount = Object.keys(recovered).length;
+  if (fieldCount > 0) {
+    console.log(`✅ Recovered ${fieldCount} complete fields from partial object`);
+    return recovered;
+  }
+
+  console.warn('⚠️ Could not recover any complete fields from partial object');
+  return null;
+}
+
+/**
  * Attempts to recover valid items from a truncated JSON array
  * Used when the API response was cut off mid-generation
  */
@@ -326,7 +395,15 @@ export function parseJsonFromResponse(text: string): any {
         return { [arrayKey]: recoveredItems };
       }
 
-      throw new Error(`Response was truncated at ${cleaned.length} characters. Recovered 0 items. Please try requesting fewer questions.`);
+      // If no array items recovered, try to recover partial object (for summaries, etc)
+      console.warn('⚠️ No array items recovered. Trying partial object recovery...');
+      const partialObject = recoverPartialObject(cleaned);
+      if (partialObject && Object.keys(partialObject).length > 0) {
+        console.log(`✅ Recovered partial object with ${Object.keys(partialObject).length} fields`);
+        return partialObject;
+      }
+
+      throw new Error(`Response was truncated at ${cleaned.length} characters. Could not recover sufficient data. Please try again.`);
     }
 
     // Try to find complete JSON object/array in text
@@ -353,6 +430,14 @@ export function parseJsonFromResponse(text: string): any {
             const arrayKey = fixed.indexOf('"flashcards"') !== -1 ? 'flashcards' : 'perguntas';
             console.log(`✅ Recovered ${recoveredItems.length} items after fix attempt`);
             return { [arrayKey]: recoveredItems };
+          }
+
+          // If no array items, try partial object recovery
+          console.warn('⚠️ Last resort: trying partial object recovery...');
+          const partialObject = recoverPartialObject(fixed);
+          if (partialObject && Object.keys(partialObject).length > 0) {
+            console.log(`✅ Recovered partial object with ${Object.keys(partialObject).length} fields (last resort)`);
+            return partialObject;
           }
 
           console.error('Failed to parse JSON after fixes:', {

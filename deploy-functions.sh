@@ -76,7 +76,7 @@ echo -e "${YELLOW}📦 Fazendo deploy das edge functions com correções...${NC}
 echo ""
 
 # Deploy generate-quiz (com correção de JSON truncado)
-echo -e "${YELLOW}[1/3] Deploying: generate-quiz${NC}"
+echo -e "${YELLOW}[1/4] Deploying: generate-quiz${NC}"
 if supabase functions deploy generate-quiz --project-ref "$PROJECT_REF"; then
     echo -e "${GREEN}✅ generate-quiz deployed com sucesso!${NC}"
 else
@@ -86,7 +86,7 @@ fi
 echo ""
 
 # Deploy generate-flashcards (com correção de JSON truncado)
-echo -e "${YELLOW}[2/3] Deploying: generate-flashcards${NC}"
+echo -e "${YELLOW}[2/4] Deploying: generate-flashcards${NC}"
 if supabase functions deploy generate-flashcards --project-ref "$PROJECT_REF"; then
     echo -e "${GREEN}✅ generate-flashcards deployed com sucesso!${NC}"
 else
@@ -95,8 +95,18 @@ else
 fi
 echo ""
 
+# Deploy generate-summary (com correção de JSON truncado + objetos parciais)
+echo -e "${YELLOW}[3/4] Deploying: generate-summary${NC}"
+if supabase functions deploy generate-summary --project-ref "$PROJECT_REF"; then
+    echo -e "${GREEN}✅ generate-summary deployed com sucesso!${NC}"
+else
+    echo -e "${RED}❌ Erro ao fazer deploy de generate-summary${NC}"
+    exit 1
+fi
+echo ""
+
 # Deploy chat (com correção de schema)
-echo -e "${YELLOW}[3/3] Deploying: chat${NC}"
+echo -e "${YELLOW}[4/4] Deploying: chat${NC}"
 if supabase functions deploy chat --project-ref "$PROJECT_REF"; then
     echo -e "${GREEN}✅ chat deployed com sucesso!${NC}"
 else
@@ -127,6 +137,12 @@ echo "      • Batches menores (18 flashcards)"
 echo "      • Chunks otimizados (8 ao invés de 15)"
 echo "      • Limite de contexto para evitar MAX_TOKENS"
 echo ""
+echo "   📄 generate-summary:"
+echo "      • Recuperação de objetos parciais (novo!)"
+echo "      • Auto-recuperação de JSON truncado"
+echo "      • Chunks otimizados (10 ao invés de 20)"
+echo "      • Limite de contexto para evitar MAX_TOKENS"
+echo ""
 echo "   💬 chat:"
 echo "      • Schema correto (role + content)"
 echo "      • Chunks otimizados (6 ao invés de 10)"
@@ -135,6 +151,7 @@ echo ""
 echo "🔗 URLs das funções:"
 echo "   https://bwgglfforazywrjhbxsa.supabase.co/functions/v1/generate-quiz"
 echo "   https://bwgglfforazywrjhbxsa.supabase.co/functions/v1/generate-flashcards"
+echo "   https://bwgglfforazywrjhbxsa.supabase.co/functions/v1/generate-summary"
 echo "   https://bwgglfforazywrjhbxsa.supabase.co/functions/v1/chat"
 echo ""
 echo "🧪 Agora você pode testar todas as funcionalidades no aplicativo!"
