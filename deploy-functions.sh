@@ -72,15 +72,25 @@ echo ""
 # ============================================================================
 # Deploy Edge Functions
 # ============================================================================
-echo -e "${YELLOW}📦 Fazendo deploy das edge functions...${NC}"
+echo -e "${YELLOW}📦 Fazendo deploy das edge functions com correções...${NC}"
 echo ""
 
 # Deploy generate-quiz (com correção de JSON truncado)
-echo -e "${YELLOW}Deploying: generate-quiz${NC}"
+echo -e "${YELLOW}[1/2] Deploying: generate-quiz${NC}"
 if supabase functions deploy generate-quiz --project-ref "$PROJECT_REF"; then
     echo -e "${GREEN}✅ generate-quiz deployed com sucesso!${NC}"
 else
     echo -e "${RED}❌ Erro ao fazer deploy de generate-quiz${NC}"
+    exit 1
+fi
+echo ""
+
+# Deploy generate-flashcards (com correção de JSON truncado)
+echo -e "${YELLOW}[2/2] Deploying: generate-flashcards${NC}"
+if supabase functions deploy generate-flashcards --project-ref "$PROJECT_REF"; then
+    echo -e "${GREEN}✅ generate-flashcards deployed com sucesso!${NC}"
+else
+    echo -e "${RED}❌ Erro ao fazer deploy de generate-flashcards${NC}"
     exit 1
 fi
 echo ""
@@ -90,18 +100,26 @@ echo ""
 # ============================================================================
 echo ""
 echo "════════════════════════════════════════════════════════════════"
-echo -e "${GREEN}🎉 Deploy concluído!${NC}"
+echo -e "${GREEN}🎉 Deploy concluído com sucesso!${NC}"
 echo "════════════════════════════════════════════════════════════════"
 echo ""
-echo "✅ Função generate-quiz atualizada com:"
-echo "   - Parser de JSON truncado melhorado"
-echo "   - Recuperação automática de questões parciais"
-echo "   - Batches menores (12 questões ao invés de 16)"
+echo "✅ Correções aplicadas em AMBAS as funções:"
 echo ""
-echo "🔗 URL da função:"
+echo "   📝 generate-quiz:"
+echo "      • Auto-recuperação de JSON truncado"
+echo "      • Batches menores (12 questões)"
+echo "      • Suporte a questões parciais"
+echo ""
+echo "   📇 generate-flashcards:"
+echo "      • Auto-detecção de array key"
+echo "      • Batches menores (18 flashcards)"
+echo "      • Recuperação de items truncados"
+echo ""
+echo "🔗 URLs das funções:"
 echo "   https://bwgglfforazywrjhbxsa.supabase.co/functions/v1/generate-quiz"
+echo "   https://bwgglfforazywrjhbxsa.supabase.co/functions/v1/generate-flashcards"
 echo ""
-echo "🧪 Agora você pode testar gerando um quiz no seu aplicativo!"
+echo "🧪 Agora você pode testar gerando quiz e flashcards no aplicativo!"
 echo ""
 echo "════════════════════════════════════════════════════════════════"
 echo ""
