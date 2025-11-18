@@ -23,6 +23,15 @@ export async function callGemini(
     throw new Error('GEMINI_API_KEY not configured');
   }
 
+  // Log prompt size for debugging
+  const promptChars = prompt.length;
+  const estimatedTokens = Math.ceil(promptChars / 4); // Rough estimate: 1 token ≈ 4 characters
+  console.log(`📊 [Gemini] Sending prompt: ${promptChars} chars (~${estimatedTokens} tokens), model: ${model}, maxOutputTokens: ${maxOutputTokens}`);
+
+  if (estimatedTokens > 30000) {
+    console.warn(`⚠️ [Gemini] Very large prompt detected! This may cause API errors. Consider reducing content.`);
+  }
+
   const response = await fetch(
     `${GEMINI_API_URL}/${model}:generateContent?key=${GEMINI_API_KEY}`,
     {
@@ -56,12 +65,40 @@ export async function callGemini(
   }
 
   const data: GeminiResponse = await response.json();
+
+  // Validate response structure
+  if (!data.candidates || !Array.isArray(data.candidates) || data.candidates.length === 0) {
+    console.error('❌ Invalid Gemini response structure:', JSON.stringify(data, null, 2));
+    throw new Error(
+      `Gemini returned invalid response. This may be due to:\n` +
+      `- Prompt too large (try reducing content or number of items)\n` +
+      `- Content safety filters triggered\n` +
+      `- API quota exceeded\n` +
+      `Response: ${JSON.stringify(data).substring(0, 500)}`
+    );
+  }
+
   const candidate = data.candidates[0];
+
+  if (!candidate.content || !candidate.content.parts || candidate.content.parts.length === 0) {
+    console.error('❌ Invalid candidate structure:', JSON.stringify(candidate, null, 2));
+    throw new Error(`Gemini candidate has no content. Response: ${JSON.stringify(candidate).substring(0, 500)}`);
+  }
+
   const finishReason = candidate.finishReason;
 
   // Check if response was truncated
   if (finishReason === 'MAX_TOKENS') {
     console.warn('⚠️ Gemini response was truncated due to MAX_TOKENS limit. Consider requesting less content or increasing maxOutputTokens.');
+  }
+
+  // Check for other problematic finish reasons
+  if (finishReason === 'SAFETY') {
+    throw new Error('Response blocked by safety filters. Content may contain sensitive medical information.');
+  }
+
+  if (finishReason === 'RECITATION') {
+    console.warn('⚠️ Response flagged for recitation. Content may be too similar to training data.');
   }
 
   return candidate.content.parts[0].text;
@@ -116,7 +153,27 @@ export async function callGeminiWithFile(
   }
 
   const data: GeminiResponse = await response.json();
-  return data.candidates[0].content.parts[0].text;
+
+  // Validate response structure
+  if (!data.candidates || !Array.isArray(data.candidates) || data.candidates.length === 0) {
+    console.error('❌ Invalid Gemini response structure:', JSON.stringify(data, null, 2));
+    throw new Error(
+      `Gemini returned invalid response. This may be due to:\n` +
+      `- File too large or prompt too complex\n` +
+      `- Content safety filters triggered\n` +
+      `- API quota exceeded\n` +
+      `Response: ${JSON.stringify(data).substring(0, 500)}`
+    );
+  }
+
+  const candidate = data.candidates[0];
+
+  if (!candidate.content || !candidate.content.parts || candidate.content.parts.length === 0) {
+    console.error('❌ Invalid candidate structure:', JSON.stringify(candidate, null, 2));
+    throw new Error(`Gemini candidate has no content. Response: ${JSON.stringify(candidate).substring(0, 500)}`);
+  }
+
+  return candidate.content.parts[0].text;
 }
 
 export function parseJsonFromResponse(text: string): any {
