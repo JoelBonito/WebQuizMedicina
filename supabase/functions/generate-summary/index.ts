@@ -5,6 +5,7 @@ import { validateRequest, generateSummarySchema, sanitizeString, sanitizeHtml } 
 import { AuditLogger, AuditEventType } from '../_shared/audit.ts';
 import { callGemini, parseJsonFromResponse } from '../_shared/gemini.ts';
 import { calculateSummaryStrategy, SAFE_OUTPUT_LIMIT } from '../_shared/output-limits.ts';
+import { hasAnyEmbeddings, semanticSearch } from '../_shared/embeddings.ts';
 
 // Lazy-initialize AuditLogger to avoid crashes if env vars are missing
 let auditLogger: AuditLogger | null = null;
@@ -115,31 +116,71 @@ serve(async (req) => {
       throw new Error('No sources found');
     }
 
-    // PHASE 0: Limit to 3 most recent sources to prevent token overflow
-    const MAX_SOURCES = 3;
-    const MAX_CONTENT_LENGTH = 40000; // ~10k tokens
+    // PHASE 2: Check if embeddings exist for semantic search
+    const sourceIds = sources.map(s => s.id);
+    let useSemanticSearch = await hasAnyEmbeddings(supabaseClient, sourceIds);
 
-    if (sources.length > MAX_SOURCES) {
-      console.warn(`⚠️ [PHASE 0] Limiting from ${sources.length} to ${MAX_SOURCES} most recent sources to prevent token overflow`);
-      sources = sources.slice(0, MAX_SOURCES);
-    }
-
-    // Combine content from all sources
     let combinedContent = '';
-    const sourceIds = [];
-    for (const source of sources) {
-      sourceIds.push(source.id);
-      if (source.extracted_content) {
-        // Sanitize content to prevent prompt injection
-        const sanitizedContent = sanitizeString(source.extracted_content);
-        combinedContent += `\n\n=== ${sanitizeString(source.name)} ===\n${sanitizedContent}`;
+
+    if (useSemanticSearch) {
+      // ✅ PHASE 2: Use semantic search with embeddings
+      console.log('🎯 [PHASE 2] Using semantic search with embeddings');
+
+      // Define query optimized for summary generation
+      const query = `Gerar resumo abrangente sobre os principais conceitos, tópicos centrais, processos fundamentais, terminologia chave, mecanismos importantes e aplicações práticas do conteúdo médico. Incluir aspectos clínicos, diagnósticos e terapêuticos relevantes.`;
+
+      // Get top 20 most relevant chunks (more for comprehensive summary)
+      const relevantChunks = await semanticSearch(
+        supabaseClient,
+        query,
+        sourceIds,
+        20 // top K - more chunks for better coverage
+      );
+
+      if (relevantChunks.length === 0) {
+        console.warn('⚠️ [PHASE 2] No relevant chunks found, falling back to concatenation');
+        useSemanticSearch = false;
+      } else {
+        // Build context from relevant chunks
+        combinedContent = relevantChunks
+          .map((chunk, idx) => {
+            const similarity = (chunk.similarity * 100).toFixed(1);
+            return `[Trecho ${idx + 1} - Relevância: ${similarity}%]\n${chunk.content}`;
+          })
+          .join('\n\n---\n\n');
+
+        const avgSimilarity = (relevantChunks.reduce((sum, c) => sum + c.similarity, 0) / relevantChunks.length * 100).toFixed(1);
+        console.log(`✅ [PHASE 2] Using ${relevantChunks.length} relevant chunks (avg similarity: ${avgSimilarity}%)`);
+        console.log(`📊 [PHASE 2] Total content: ${combinedContent.length} characters`);
       }
     }
 
-    // PHASE 0: Truncate if content exceeds limit
-    if (combinedContent.length > MAX_CONTENT_LENGTH) {
-      console.warn(`⚠️ [PHASE 0] Truncating content from ${combinedContent.length} to ${MAX_CONTENT_LENGTH} characters to prevent token overflow`);
-      combinedContent = combinedContent.substring(0, MAX_CONTENT_LENGTH) + '\n\n[Conteúdo truncado para evitar limite de tokens]';
+    if (!useSemanticSearch) {
+      // ⚠️ PHASE 0: Fallback to truncated concatenation (legacy method)
+      console.warn('⚠️ [PHASE 0] No embeddings found. Using fallback method (truncated concatenation)');
+
+      const MAX_SOURCES = 3;
+      const MAX_CONTENT_LENGTH = 40000; // ~10k tokens
+
+      let usedSources = sources;
+      if (sources.length > MAX_SOURCES) {
+        console.warn(`⚠️ [PHASE 0] Limiting from ${sources.length} to ${MAX_SOURCES} most recent sources`);
+        usedSources = sources.slice(0, MAX_SOURCES);
+      }
+
+      // Combine content from all sources
+      for (const source of usedSources) {
+        if (source.extracted_content) {
+          const sanitizedContent = sanitizeString(source.extracted_content);
+          combinedContent += `\n\n=== ${sanitizeString(source.name)} ===\n${sanitizedContent}`;
+        }
+      }
+
+      // Truncate if content exceeds limit
+      if (combinedContent.length > MAX_CONTENT_LENGTH) {
+        console.warn(`⚠️ [PHASE 0] Truncating content from ${combinedContent.length} to ${MAX_CONTENT_LENGTH} characters`);
+        combinedContent = combinedContent.substring(0, MAX_CONTENT_LENGTH) + '\n\n[Conteúdo truncado para evitar limite de tokens]';
+      }
     }
 
     if (!combinedContent.trim()) {
