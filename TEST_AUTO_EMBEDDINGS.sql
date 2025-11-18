@@ -6,6 +6,32 @@
 -- ============================================================================
 
 -- ============================================================================
+-- PARTE 0: PRÉ-REQUISITOS E PREPARAÇÃO
+-- ============================================================================
+
+-- 0.1 Verificar autenticação (IMPORTANTE!)
+-- Você deve estar autenticado via Supabase Dashboard para este script funcionar
+SELECT
+  CASE
+    WHEN auth.uid() IS NOT NULL THEN '✅ Autenticado como: ' || auth.uid()::TEXT
+    ELSE '❌ NÃO AUTENTICADO - Faça login no Supabase Dashboard primeiro!'
+  END as auth_status;
+
+-- Esperado: Deve mostrar seu user_id
+
+-- 0.2 Verificar migration 006 aplicada
+SELECT
+  CASE
+    WHEN EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_name = 'sources' AND column_name = 'embeddings_status'
+    ) THEN '✅ Migration 006 aplicada'
+    ELSE '❌ Migration 006 NÃO aplicada - Execute migration 006 primeiro!'
+  END as migration_status;
+
+-- Esperado: ✅ Migration 006 aplicada
+
+-- ============================================================================
 -- PARTE 1: VERIFICAR INSTALAÇÃO
 -- ============================================================================
 
@@ -78,15 +104,33 @@ DO $$
 DECLARE
   test_project_id UUID;
   test_source_id UUID;
+  current_user_id UUID;
 BEGIN
+  -- Obter user_id atual
+  SELECT auth.uid() INTO current_user_id;
+
+  -- Verificar se usuário está autenticado
+  IF current_user_id IS NULL THEN
+    RAISE EXCEPTION 'Você precisa estar autenticado. Execute: SELECT auth.uid();';
+  END IF;
+
   -- Pegar um project_id existente do seu usuário
   SELECT id INTO test_project_id
   FROM projects
-  WHERE user_id = auth.uid()
+  WHERE user_id = current_user_id
   LIMIT 1;
 
+  -- Se não existir projeto, criar um de teste
   IF test_project_id IS NULL THEN
-    RAISE EXCEPTION 'Você precisa ter pelo menos 1 projeto criado';
+    RAISE NOTICE '⚠️ Nenhum projeto encontrado. Criando projeto de teste...';
+
+    INSERT INTO projects (user_id, name)
+    VALUES (current_user_id, '[TESTE] Projeto Auto Embeddings')
+    RETURNING id INTO test_project_id;
+
+    RAISE NOTICE '✅ Projeto de teste criado: %', test_project_id;
+  ELSE
+    RAISE NOTICE '✅ Usando projeto existente: %', test_project_id;
   END IF;
 
   -- Criar source de teste
@@ -331,11 +375,21 @@ DO $$
 DECLARE
   test_project_id UUID;
   test_source_id UUID;
+  current_user_id UUID;
 BEGIN
+  -- Obter user_id atual
+  SELECT auth.uid() INTO current_user_id;
+
+  -- Pegar projeto de teste (criado na Parte 3 ou projeto existente)
   SELECT id INTO test_project_id
   FROM projects
-  WHERE user_id = auth.uid()
+  WHERE user_id = current_user_id
+  ORDER BY CASE WHEN name LIKE '[TESTE]%' THEN 0 ELSE 1 END, created_at DESC
   LIMIT 1;
+
+  IF test_project_id IS NULL THEN
+    RAISE EXCEPTION 'Nenhum projeto encontrado. Execute a Parte 3 primeiro.';
+  END IF;
 
   INSERT INTO sources (
     project_id,
