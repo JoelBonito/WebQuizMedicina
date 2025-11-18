@@ -42,21 +42,33 @@ COMMENT ON COLUMN source_chunks.embedding IS '768-dimensional embedding vector f
 COMMENT ON COLUMN source_chunks.chunk_index IS 'Sequential index of chunk within source (0-based)';
 COMMENT ON COLUMN source_chunks.token_count IS 'Estimated token count for the chunk content';
 
--- Drop existing function if it exists (to avoid "function name not unique" error)
-DROP FUNCTION IF EXISTS match_source_chunks(vector, UUID[], INT);
+-- Drop all existing versions of match_source_chunks function
+DO $$
+BEGIN
+  -- Drop any existing versions of the function
+  DROP FUNCTION IF EXISTS match_source_chunks(vector, UUID[], INT);
+  DROP FUNCTION IF EXISTS match_source_chunks(vector, UUID[], INT, FLOAT);
+EXCEPTION
+  WHEN OTHERS THEN
+    -- Ignore errors if function doesn't exist
+    NULL;
+END $$;
 
 -- Create RPC function for semantic search
 -- Returns chunks ranked by cosine similarity to query embedding
 CREATE FUNCTION match_source_chunks(
   query_embedding vector(768),
   source_ids UUID[],
-  match_count INT DEFAULT 5
+  match_count INT DEFAULT 5,
+  similarity_threshold FLOAT DEFAULT 0.0
 )
 RETURNS TABLE (
+  id UUID,
   content TEXT,
   similarity FLOAT,
   source_id UUID,
-  chunk_index INT
+  chunk_index INT,
+  token_count INT
 )
 LANGUAGE plpgsql
 STABLE
@@ -64,13 +76,16 @@ AS $$
 BEGIN
   RETURN QUERY
   SELECT
+    source_chunks.id,
     source_chunks.content,
     1 - (source_chunks.embedding <=> query_embedding) AS similarity,
     source_chunks.source_id,
-    source_chunks.chunk_index
+    source_chunks.chunk_index,
+    source_chunks.token_count
   FROM source_chunks
   WHERE source_chunks.source_id = ANY(source_ids)
     AND source_chunks.embedding IS NOT NULL
+    AND (1 - (source_chunks.embedding <=> query_embedding)) >= similarity_threshold
   ORDER BY source_chunks.embedding <=> query_embedding
   LIMIT match_count;
 END;
