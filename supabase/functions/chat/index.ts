@@ -241,17 +241,31 @@ Resposta:`;
         file_type: source.type,  // Keep as file_type for response interface compatibility
       }));
 
-    // Save chat message to database (with sanitized content)
-    const { error: messageError } = await supabaseClient.from('chat_messages').insert({
+    // Save chat messages to database (with sanitized content)
+    // Insert user message
+    const { error: userMessageError } = await supabaseClient.from('chat_messages').insert({
       project_id,
       user_id: user.id,
-      message: sanitizedMessage,
-      response: sanitizedResponse,
-      sources_cited: citedSources.map((s) => s.id),
+      role: 'user',
+      content: sanitizedMessage,
+      sources_cited: null,
     });
 
-    if (messageError) {
-      console.error('Error saving message:', messageError);
+    if (userMessageError) {
+      console.error('Error saving user message:', userMessageError);
+    }
+
+    // Insert assistant response
+    const { error: assistantMessageError } = await supabaseClient.from('chat_messages').insert({
+      project_id,
+      user_id: user.id,
+      role: 'assistant',
+      content: sanitizedResponse,
+      sources_cited: citedSources.length > 0 ? citedSources.map((s) => s.id) : null,
+    });
+
+    if (assistantMessageError) {
+      console.error('Error saving assistant message:', assistantMessageError);
       // Don't throw - still return the response
     }
 
