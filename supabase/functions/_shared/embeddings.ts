@@ -286,6 +286,47 @@ export async function hasAnyEmbeddings(
 }
 
 /**
+ * Check if embeddings exist for a specific source
+ */
+export async function hasEmbeddings(
+  supabaseClient: any,
+  sourceId: string
+): Promise<boolean> {
+  const { data, error } = await supabaseClient
+    .from('source_chunks')
+    .select('id')
+    .eq('source_id', sourceId)
+    .limit(1);
+  
+  if (error) {
+    console.error('Error checking embeddings:', error);
+    return false;
+  }
+  
+  return data && data.length > 0;
+}
+
+/**
+ * Delete all embeddings for a source
+ */
+export async function deleteEmbeddings(
+  supabaseClient: any,
+  sourceId: string
+): Promise<void> {
+  const { error } = await supabaseClient
+    .from('source_chunks')
+    .delete()
+    .eq('source_id', sourceId);
+  
+  if (error) {
+    console.error('Error deleting embeddings:', error);
+    throw error;
+  }
+  
+  console.log(`🗑️ [Embeddings] Deleted all embeddings for source ${sourceId}`);
+}
+
+/**
  * Format chunks into context string for LLM
  */
 export function formatChunksForContext(chunks: SemanticSearchResult[]): string {
