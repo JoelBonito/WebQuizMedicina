@@ -110,27 +110,41 @@ BEGIN
   SELECT auth.uid() INTO current_user_id;
 
   -- Verificar se usuário está autenticado
-  IF current_user_id IS NULL THEN
-    RAISE EXCEPTION 'Você precisa estar autenticado. Execute: SELECT auth.uid();';
-  END IF;
+  IF current_user_id IS NOT NULL THEN
+    RAISE NOTICE '✅ Autenticado como: %', current_user_id;
 
-  -- Pegar um project_id existente do seu usuário
-  SELECT id INTO test_project_id
-  FROM projects
-  WHERE user_id = current_user_id
-  LIMIT 1;
+    -- Pegar um project_id existente do usuário autenticado
+    SELECT id INTO test_project_id
+    FROM projects
+    WHERE user_id = current_user_id
+    LIMIT 1;
 
-  -- Se não existir projeto, criar um de teste
-  IF test_project_id IS NULL THEN
-    RAISE NOTICE '⚠️ Nenhum projeto encontrado. Criando projeto de teste...';
+    -- Se não existir projeto do usuário, criar um de teste
+    IF test_project_id IS NULL THEN
+      RAISE NOTICE '⚠️ Nenhum projeto encontrado para o usuário. Criando projeto de teste...';
 
-    INSERT INTO projects (user_id, name)
-    VALUES (current_user_id, '[TESTE] Projeto Auto Embeddings')
-    RETURNING id INTO test_project_id;
+      INSERT INTO projects (user_id, name)
+      VALUES (current_user_id, '[TESTE] Projeto Auto Embeddings')
+      RETURNING id INTO test_project_id;
 
-    RAISE NOTICE '✅ Projeto de teste criado: %', test_project_id;
+      RAISE NOTICE '✅ Projeto de teste criado: %', test_project_id;
+    ELSE
+      RAISE NOTICE '✅ Usando projeto existente do usuário: %', test_project_id;
+    END IF;
   ELSE
-    RAISE NOTICE '✅ Usando projeto existente: %', test_project_id;
+    RAISE NOTICE '⚠️ Não autenticado (auth.uid() é NULL). Tentando usar projeto existente...';
+
+    -- Se não está autenticado, tentar usar qualquer projeto disponível
+    SELECT id INTO test_project_id
+    FROM projects
+    ORDER BY created_at DESC
+    LIMIT 1;
+
+    IF test_project_id IS NULL THEN
+      RAISE EXCEPTION 'Nenhum projeto encontrado na tabela projects. Por favor, faça login no Supabase Dashboard ou crie um projeto manualmente primeiro.';
+    ELSE
+      RAISE NOTICE '✅ Usando primeiro projeto disponível: %', test_project_id;
+    END IF;
   END IF;
 
   -- Criar source de teste
@@ -381,14 +395,33 @@ BEGIN
   SELECT auth.uid() INTO current_user_id;
 
   -- Pegar projeto de teste (criado na Parte 3 ou projeto existente)
-  SELECT id INTO test_project_id
-  FROM projects
-  WHERE user_id = current_user_id
-  ORDER BY CASE WHEN name LIKE '[TESTE]%' THEN 0 ELSE 1 END, created_at DESC
-  LIMIT 1;
+  IF current_user_id IS NOT NULL THEN
+    -- Tentar encontrar projeto do usuário autenticado
+    SELECT id INTO test_project_id
+    FROM projects
+    WHERE user_id = current_user_id
+    ORDER BY CASE WHEN name LIKE '[TESTE]%' THEN 0 ELSE 1 END, created_at DESC
+    LIMIT 1;
 
+    IF test_project_id IS NOT NULL THEN
+      RAISE NOTICE '✅ Usando projeto do usuário autenticado: %', test_project_id;
+    END IF;
+  ELSE
+    RAISE NOTICE '⚠️ Não autenticado (auth.uid() é NULL)';
+  END IF;
+
+  -- Se não encontrou projeto do usuário ou não está autenticado, usar qualquer projeto
   IF test_project_id IS NULL THEN
-    RAISE EXCEPTION 'Nenhum projeto encontrado. Execute a Parte 3 primeiro.';
+    SELECT id INTO test_project_id
+    FROM projects
+    ORDER BY CASE WHEN name LIKE '[TESTE]%' THEN 0 ELSE 1 END, created_at DESC
+    LIMIT 1;
+
+    IF test_project_id IS NOT NULL THEN
+      RAISE NOTICE '✅ Usando primeiro projeto disponível: %', test_project_id;
+    ELSE
+      RAISE EXCEPTION 'Nenhum projeto encontrado na tabela projects. Execute a Parte 3 primeiro ou crie um projeto manualmente.';
+    END IF;
   END IF;
 
   INSERT INTO sources (
