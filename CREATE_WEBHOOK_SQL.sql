@@ -23,6 +23,15 @@ DECLARE
   webhook_url TEXT := 'https://bwgglfforazywrjhbxsa.supabase.co/functions/v1/process-embeddings-queue';
   request_id BIGINT;
 BEGIN
+  -- Verificação adicional: só processar se for INSERT ou se o conteúdo é novo
+  IF TG_OP = 'UPDATE' THEN
+    -- Em UPDATE, só dispara se o conteúdo mudou de vazio para preenchido
+    IF OLD.extracted_content IS NOT NULL AND OLD.extracted_content != '' THEN
+      -- Conteúdo já existia antes, não processar novamente
+      RETURN NEW;
+    END IF;
+  END IF;
+
   -- Faz a chamada HTTP com o payload dinâmico
   SELECT net.http_post(
     url := webhook_url,
@@ -39,16 +48,15 @@ BEGIN
 END;
 $$;
 
--- Passo 3: Criar o trigger com condição
+-- Passo 3: Criar o trigger com condição (sem referência a OLD no WHEN)
 CREATE TRIGGER auto_process_embeddings_webhook
   AFTER INSERT OR UPDATE ON public.sources
   FOR EACH ROW
   WHEN (
     -- Só dispara quando:
-    NEW.embeddings_status = 'pending' AND                    -- Status está pending
-    NEW.extracted_content IS NOT NULL AND                    -- Tem conteúdo extraído
-    NEW.extracted_content != '' AND                          -- Conteúdo não está vazio
-    (OLD.extracted_content IS NULL OR OLD.extracted_content = '')  -- É novo (não existia antes)
+    NEW.embeddings_status = 'pending' AND      -- Status está pending
+    NEW.extracted_content IS NOT NULL AND      -- Tem conteúdo extraído
+    NEW.extracted_content != ''                -- Conteúdo não está vazio
   )
   EXECUTE FUNCTION public.trigger_process_embeddings_webhook();
 
