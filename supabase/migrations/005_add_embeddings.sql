@@ -110,13 +110,17 @@ DROP POLICY IF EXISTS "Users can insert chunks for their sources" ON source_chun
 DROP POLICY IF EXISTS "Users can delete their own source chunks" ON source_chunks;
 
 -- RLS Policy: Users can only access chunks from their own sources
+-- (sources -> projects -> user_id)
 CREATE POLICY "Users can view their own source chunks"
 ON source_chunks
 FOR SELECT
 TO authenticated
 USING (
   source_id IN (
-    SELECT id FROM sources WHERE user_id = auth.uid()
+    SELECT s.id
+    FROM sources s
+    INNER JOIN projects p ON s.project_id = p.id
+    WHERE p.user_id = auth.uid()
   )
 );
 
@@ -127,7 +131,10 @@ FOR INSERT
 TO authenticated
 WITH CHECK (
   source_id IN (
-    SELECT id FROM sources WHERE user_id = auth.uid()
+    SELECT s.id
+    FROM sources s
+    INNER JOIN projects p ON s.project_id = p.id
+    WHERE p.user_id = auth.uid()
   )
 );
 
@@ -138,7 +145,10 @@ FOR DELETE
 TO authenticated
 USING (
   source_id IN (
-    SELECT id FROM sources WHERE user_id = auth.uid()
+    SELECT s.id
+    FROM sources s
+    INNER JOIN projects p ON s.project_id = p.id
+    WHERE p.user_id = auth.uid()
   )
 );
 
