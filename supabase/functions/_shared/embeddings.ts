@@ -264,25 +264,66 @@ export async function semanticSearch(
 }
 
 /**
+ * Check if a single source has embeddings
+ */
+export async function hasEmbeddings(
+  supabaseClient: any,
+  sourceId: string
+): Promise<boolean> {
+
+  const { data, error } = await supabaseClient
+    .from('source_chunks')
+    .select('id')
+    .eq('source_id', sourceId)
+    .limit(1);
+
+  if (error) {
+    console.error('Error checking embeddings:', error);
+    return false;
+  }
+
+  return data && data.length > 0;
+}
+
+/**
  * Check if any sources have embeddings
  */
 export async function hasAnyEmbeddings(
   supabaseClient: any,
   sourceIds: string[]
 ): Promise<boolean> {
-  
+
   const { data, error } = await supabaseClient
     .from('source_chunks')
     .select('id')
     .in('source_id', sourceIds)
     .limit(1);
-  
+
   if (error) {
     console.error('Error checking embeddings:', error);
     return false;
   }
-  
+
   return data && data.length > 0;
+}
+
+/**
+ * Delete embeddings for a source
+ */
+export async function deleteEmbeddings(
+  supabaseClient: any,
+  sourceId: string
+): Promise<void> {
+
+  const { error } = await supabaseClient
+    .from('source_chunks')
+    .delete()
+    .eq('source_id', sourceId);
+
+  if (error) {
+    console.error('Error deleting embeddings:', error);
+    throw new Error(`Failed to delete embeddings: ${error.message}`);
+  }
 }
 
 /**
