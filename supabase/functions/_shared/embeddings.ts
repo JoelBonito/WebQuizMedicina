@@ -5,7 +5,15 @@
  * and semantic search using pgvector.
  */
 
-const GEMINI_EMBEDDING_MODEL = 'text-embedding-004';
+const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
+const GEMINI_EMBEDDING_MODEL = 'gemini-embedding-001';
+
+/**
+ * Chunking configuration
+ * - 800 tokens per chunk keeps content focused and within limits
+ * - 100 token overlap preserves context between chunks
+ */
 const CHUNK_SIZE_TOKENS = 800;
 const CHUNK_OVERLAP_TOKENS = 100;
 const EMBEDDING_BATCH_SIZE = 10; // Process 10 chunks at a time
@@ -119,6 +127,11 @@ export function chunkText(
 
 /**
  * Generate embedding for a single text using Gemini API
+ *
+ * Uses gemini-embedding-001 model which produces 768-dimensional vectors.
+ *
+ * @param text - Text to embed
+ * @returns Embedding vector (768 dimensions)
  */
 export async function generateEmbedding(text: string): Promise<number[]> {
   const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');

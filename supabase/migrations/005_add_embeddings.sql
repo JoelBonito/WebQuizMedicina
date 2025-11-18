@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS source_chunks (
   source_id UUID NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
   chunk_index INT NOT NULL,
   content TEXT NOT NULL,
-  embedding vector(768), -- Gemini text-embedding-004 dimension
+  embedding vector(768), -- Gemini gemini-embedding-001 dimension
   token_count INT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
 
@@ -38,7 +38,7 @@ ON source_chunks(source_id, chunk_index);
 
 -- Add comment to table
 COMMENT ON TABLE source_chunks IS 'Stores chunked text from sources with embeddings for semantic search';
-COMMENT ON COLUMN source_chunks.embedding IS '768-dimensional embedding vector from Gemini text-embedding-004';
+COMMENT ON COLUMN source_chunks.embedding IS '768-dimensional embedding vector from Gemini gemini-embedding-001';
 COMMENT ON COLUMN source_chunks.chunk_index IS 'Sequential index of chunk within source (0-based)';
 COMMENT ON COLUMN source_chunks.token_count IS 'Estimated token count for the chunk content';
 
