@@ -146,12 +146,12 @@ serve(async (req) => {
       // Use the user's message as the query for semantic search
       const sanitizedMessage = sanitizeString(message);
 
-      // Get top 10 most relevant chunks for the user's question
+      // Get top 6 most relevant chunks for the user's question (reduced from 10 to avoid MAX_TOKENS)
       const relevantChunks = await semanticSearch(
         supabaseClient,
         sanitizedMessage,
         sourceIds,
-        10 // top K - focused on user's question
+        6 // top K - reduced to prevent prompt overflow
       );
 
       if (relevantChunks.length === 0) {
@@ -169,6 +169,13 @@ serve(async (req) => {
         const avgSimilarity = (relevantChunks.reduce((sum, c) => sum + c.similarity, 0) / relevantChunks.length * 100).toFixed(1);
         console.log(`✅ [PHASE 2] Using ${relevantChunks.length} relevant chunks (avg similarity: ${avgSimilarity}%)`);
         console.log(`📊 [PHASE 2] Total context: ${combinedContext.length} characters`);
+
+        // Safety check: truncate if content still too large
+        const MAX_CONTEXT_LENGTH = 25000; // ~6000 tokens - leaves room for conversation
+        if (combinedContext.length > MAX_CONTEXT_LENGTH) {
+          console.warn(`⚠️ [PHASE 2] Truncating context from ${combinedContext.length} to ${MAX_CONTEXT_LENGTH} characters`);
+          combinedContext = combinedContext.substring(0, MAX_CONTEXT_LENGTH) + '\n\n[Contexto truncado para evitar limite de tokens]';
+        }
       }
     }
 
