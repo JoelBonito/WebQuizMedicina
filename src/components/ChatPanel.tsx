@@ -24,6 +24,14 @@ export function ChatPanel({ projectId }: ChatPanelProps) {
   const { sources } = useSources(projectId);
   const { difficulties } = useDifficulties(projectId);
 
+  // Monitor projectId changes for debugging
+  useEffect(() => {
+    console.log('[ChatPanel] ProjectId changed:', projectId);
+    if (projectId === null || projectId === undefined) {
+      console.warn('[ChatPanel] ⚠️ ProjectId is now null/undefined - chat will not work');
+    }
+  }, [projectId]);
+
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -50,7 +58,14 @@ export function ChatPanel({ projectId }: ChatPanelProps) {
   }, []);
 
   const handleSend = async () => {
-    if (!inputValue.trim() || sending || !projectId) return;
+    // Debug logging to catch state issues
+    if (!projectId) {
+      console.error('[ChatPanel] Cannot send - projectId is null/undefined:', { projectId, inputValue: inputValue.trim() });
+      toast.error("Projeto não selecionado. Por favor, selecione um projeto.");
+      return;
+    }
+
+    if (!inputValue.trim() || sending) return;
 
     const messageText = inputValue.trim();
     setInputValue("");
