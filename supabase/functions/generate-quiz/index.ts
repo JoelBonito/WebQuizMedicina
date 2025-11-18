@@ -15,6 +15,7 @@ import {
 } from "../_shared/validation.ts";
 import { AuditEventType, AuditLogger } from "../_shared/audit.ts";
 import { callGemini, parseJsonFromResponse } from "../_shared/gemini.ts";
+import { validateOutputRequest, calculateBatchSizes, formatBatchProgress, SAFE_OUTPUT_LIMIT } from "../_shared/output-limits.ts";
 
 // Lazy-initialize AuditLogger to avoid crashes if env vars are missing
 let auditLogger: AuditLogger | null = null;
@@ -153,7 +154,8 @@ serve(async (req) => {
         .from("sources")
         .select("*")
         .eq("project_id", project_id)
-        .eq("status", "ready");
+        .eq("status", "ready")
+        .order("created_at", { ascending: false }); // Most recent first
 
       if (error) throw error;
       sources = data || [];
@@ -161,6 +163,15 @@ serve(async (req) => {
 
     if (sources.length === 0) {
       throw new Error("No sources found");
+    }
+
+    // PHASE 0: Limit to 3 most recent sources to prevent token overflow
+    const MAX_SOURCES = 3;
+    const MAX_CONTENT_LENGTH = 40000; // ~10k tokens
+
+    if (sources.length > MAX_SOURCES) {
+      console.warn(`⚠️ [PHASE 0] Limiting from ${sources.length} to ${MAX_SOURCES} most recent sources to prevent token overflow`);
+      sources = sources.slice(0, MAX_SOURCES);
     }
 
     // Combine content from all sources
@@ -174,13 +185,41 @@ serve(async (req) => {
       }
     }
 
+    // PHASE 0: Truncate if content exceeds limit
+    if (combinedContent.length > MAX_CONTENT_LENGTH) {
+      console.warn(`⚠️ [PHASE 0] Truncating content from ${combinedContent.length} to ${MAX_CONTENT_LENGTH} characters to prevent token overflow`);
+      combinedContent = combinedContent.substring(0, MAX_CONTENT_LENGTH) + '\n\n[Conteúdo truncado para evitar limite de tokens]';
+    }
+
     if (!combinedContent.trim()) {
       throw new Error("No content available to generate quiz");
     }
 
-    // Generate quiz with Gemini
-    const prompt =
-      `Você é um professor especialista em medicina. Analise o conteúdo abaixo e gere ${count} perguntas de múltipla escolha de alta qualidade para estudantes de medicina.
+    // PHASE 1: Validate output request and calculate batches
+    const validation = validateOutputRequest('QUIZ_MULTIPLE_CHOICE', count);
+
+    console.log(`📊 [PHASE 1] Quiz generation request: ${count} questions, estimated ${validation.estimatedTokens} tokens`);
+
+    if (validation.needsBatching) {
+      console.warn(`⚠️ [PHASE 1] ${validation.warning}`);
+    }
+
+    const batchSizes = calculateBatchSizes('QUIZ_MULTIPLE_CHOICE', count);
+    const totalBatches = batchSizes.length;
+
+    console.log(`🔄 [PHASE 1] Processing in ${totalBatches} batch(es): ${batchSizes.join(', ')} questions each`);
+
+    // Generate quiz questions in batches
+    const allQuestions: any[] = [];
+
+    for (let i = 0; i < batchSizes.length; i++) {
+      const batchCount = batchSizes[i];
+      const batchNum = i + 1;
+
+      console.log(`${formatBatchProgress(batchNum, totalBatches)} Generating ${batchCount} questions...`);
+
+      const prompt =
+        `Você é um professor especialista em medicina. Analise o conteúdo abaixo e gere ${batchCount} perguntas de múltipla escolha de alta qualidade para estudantes de medicina.
 
 CONTEÚDO:
 ${combinedContent}
@@ -193,6 +232,7 @@ INSTRUÇÕES:
 5. Classifique a dificuldade como: "fácil", "médio" ou "difícil"
 6. Identifique o tópico principal da pergunta
 7. Quando apropriado, forneça uma dica que ajude sem revelar a resposta
+${totalBatches > 1 ? `8. Este é o lote ${batchNum} de ${totalBatches}. Varie os tópicos em relação aos lotes anteriores.` : ''}
 
 FORMATO DE SAÍDA (JSON estrito):
 {
@@ -211,16 +251,21 @@ FORMATO DE SAÍDA (JSON estrito):
 
 Retorne APENAS o JSON, sem texto adicional antes ou depois.`;
 
-    // Use higher token limit for quiz to avoid truncation (quizzes can be long)
-    const response = await callGemini(prompt, 'gemini-2.5-flash', 16384);
-    const parsed = parseJsonFromResponse(response);
+      const response = await callGemini(prompt, 'gemini-2.5-flash', SAFE_OUTPUT_LIMIT);
+      const parsed = parseJsonFromResponse(response);
 
-    if (!parsed.perguntas || !Array.isArray(parsed.perguntas)) {
-      throw new Error("Invalid response format from AI");
+      if (!parsed.perguntas || !Array.isArray(parsed.perguntas)) {
+        throw new Error(`Invalid response format from AI in batch ${batchNum}`);
+      }
+
+      allQuestions.push(...parsed.perguntas);
+      console.log(`✅ ${formatBatchProgress(batchNum, totalBatches)} Generated ${parsed.perguntas.length} questions`);
     }
 
-    // Save questions to database
-    const questionsToInsert = parsed.perguntas.map((q: any) => ({
+    console.log(`✅ [PHASE 1] Total questions generated: ${allQuestions.length}`);
+
+    // Save all questions to database
+    const questionsToInsert = allQuestions.map((q: any) => ({
       project_id: project_id || sources[0].project_id,
       source_id: source_id || null,
       pergunta: sanitizeString(q.pergunta || ""),
