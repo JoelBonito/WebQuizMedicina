@@ -27,6 +27,7 @@ export enum AuditEventType {
   AI_SUMMARY_GENERATED = 'ai.summary_generated',
   AI_FOCUSED_SUMMARY_GENERATED = 'ai.focused_summary_generated',
   AI_CHAT_MESSAGE = 'ai.chat_message',
+  AI_EMBEDDINGS_GENERATED = 'ai.embeddings_generated',
 
   // Security events
   SECURITY_RATE_LIMIT_EXCEEDED = 'security.rate_limit_exceeded',
