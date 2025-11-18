@@ -10,12 +10,14 @@ export interface GeminiResponse {
         text: string;
       }[];
     };
+    finishReason?: string; // COMPLETE, MAX_TOKENS, SAFETY, RECITATION, OTHER
   }[];
 }
 
 export async function callGemini(
   prompt: string,
-  model: 'gemini-2.5-flash' | 'gemini-2.5-pro' | 'gemini-2.5-flash-lite' = 'gemini-2.5-flash'
+  model: 'gemini-2.5-flash' | 'gemini-2.5-pro' | 'gemini-2.5-flash-lite' = 'gemini-2.5-flash',
+  maxOutputTokens: number = 8192
 ): Promise<string> {
   if (!GEMINI_API_KEY) {
     throw new Error('GEMINI_API_KEY not configured');
@@ -42,7 +44,7 @@ export async function callGemini(
           temperature: 0.7,
           topK: 40,
           topP: 0.95,
-          maxOutputTokens: 8192,
+          maxOutputTokens,
         },
       }),
     }
@@ -54,7 +56,15 @@ export async function callGemini(
   }
 
   const data: GeminiResponse = await response.json();
-  return data.candidates[0].content.parts[0].text;
+  const candidate = data.candidates[0];
+  const finishReason = candidate.finishReason;
+
+  // Check if response was truncated
+  if (finishReason === 'MAX_TOKENS') {
+    console.warn('⚠️ Gemini response was truncated due to MAX_TOKENS limit. Consider requesting less content or increasing maxOutputTokens.');
+  }
+
+  return candidate.content.parts[0].text;
 }
 
 export async function callGeminiWithFile(
@@ -131,10 +141,24 @@ export function parseJsonFromResponse(text: string): any {
     cleaned = cleaned.substring(cleaned.indexOf(startMatch[1]));
   }
 
+  // Check for obvious truncation signs
+  if (cleaned.length > 100) {
+    const lastChars = cleaned.slice(-50);
+    // Check if JSON ends abruptly without proper closing
+    if (!lastChars.match(/[}\]]\s*$/)) {
+      console.warn('⚠️ JSON appears to be truncated - does not end with } or ]');
+    }
+  }
+
   // Try to parse directly
   try {
     return JSON.parse(cleaned);
   } catch (firstError) {
+    // Check if error is due to unterminated string
+    if (firstError.message.includes('Unterminated string')) {
+      console.error('❌ JSON has unterminated string - likely truncated by token limit');
+      throw new Error('Response was truncated. Please try requesting less content (e.g., fewer questions).');
+    }
     // Try to find complete JSON object/array in text
     const objMatch = cleaned.match(/(\{[\s\S]*\})/);
     if (objMatch) {

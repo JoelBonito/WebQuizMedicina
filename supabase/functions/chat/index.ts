@@ -102,12 +102,13 @@ serve(async (req) => {
     }
 
     // Get all sources for this project
-    const { data: sources, error: sourcesError } = await supabaseClient
+    let { data: sources, error: sourcesError } = await supabaseClient
       .from('sources')
-      .select('id, name, extracted_content, type')
+      .select('id, name, extracted_content, type, created_at')
       .eq('project_id', project_id)
       .eq('status', 'ready')
-      .not('extracted_content', 'is', null);
+      .not('extracted_content', 'is', null)
+      .order('created_at', { ascending: false }); // Most recent first
 
     if (sourcesError) {
       throw sourcesError;
@@ -122,6 +123,15 @@ serve(async (req) => {
       );
     }
 
+    // PHASE 0: Limit to 3 most recent sources to prevent token overflow
+    const MAX_SOURCES = 3;
+    const MAX_CONTENT_LENGTH = 40000; // ~10k tokens
+
+    if (sources.length > MAX_SOURCES) {
+      console.warn(`⚠️ [PHASE 0] Limiting from ${sources.length} to ${MAX_SOURCES} most recent sources to prevent token overflow`);
+      sources = sources.slice(0, MAX_SOURCES);
+    }
+
     // Get user's difficulties for context
     const { data: difficulties } = await supabaseClient
       .from('difficulties')
@@ -132,13 +142,19 @@ serve(async (req) => {
       .limit(5);
 
     // Simple RAG: Combine all sources (sanitize to prevent prompt injection)
-    const combinedContext = sources
+    let combinedContext = sources
       .map((source) => {
         const sanitizedName = sanitizeString(source.name || 'Unknown');
         const sanitizedContent = sanitizeString(source.extracted_content || '');
         return `[Fonte: ${sanitizedName}]\n${sanitizedContent}`;
       })
       .join('\n\n---\n\n');
+
+    // PHASE 0: Truncate if content exceeds limit
+    if (combinedContext.length > MAX_CONTENT_LENGTH) {
+      console.warn(`⚠️ [PHASE 0] Truncating chat context from ${combinedContext.length} to ${MAX_CONTENT_LENGTH} characters to prevent token overflow`);
+      combinedContext = combinedContext.substring(0, MAX_CONTENT_LENGTH) + '\n\n[Conteúdo truncado para evitar limite de tokens]';
+    }
 
     // Sanitize user message to prevent prompt injection
     const sanitizedMessage = sanitizeString(message);

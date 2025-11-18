@@ -4,6 +4,7 @@ import { securityHeaders, createErrorResponse, createSuccessResponse, RATE_LIMIT
 import { validateRequest, generateSummarySchema, sanitizeString, sanitizeHtml } from '../_shared/validation.ts';
 import { AuditLogger, AuditEventType } from '../_shared/audit.ts';
 import { callGemini, parseJsonFromResponse } from '../_shared/gemini.ts';
+import { calculateSummaryStrategy, SAFE_OUTPUT_LIMIT } from '../_shared/output-limits.ts';
 
 // Lazy-initialize AuditLogger to avoid crashes if env vars are missing
 let auditLogger: AuditLogger | null = null;
@@ -103,7 +104,8 @@ serve(async (req) => {
         .from('sources')
         .select('*')
         .eq('project_id', project_id)
-        .eq('status', 'ready');
+        .eq('status', 'ready')
+        .order('created_at', { ascending: false }); // Most recent first
 
       if (error) throw error;
       sources = data || [];
@@ -111,6 +113,15 @@ serve(async (req) => {
 
     if (sources.length === 0) {
       throw new Error('No sources found');
+    }
+
+    // PHASE 0: Limit to 3 most recent sources to prevent token overflow
+    const MAX_SOURCES = 3;
+    const MAX_CONTENT_LENGTH = 40000; // ~10k tokens
+
+    if (sources.length > MAX_SOURCES) {
+      console.warn(`⚠️ [PHASE 0] Limiting from ${sources.length} to ${MAX_SOURCES} most recent sources to prevent token overflow`);
+      sources = sources.slice(0, MAX_SOURCES);
     }
 
     // Combine content from all sources
@@ -125,12 +136,27 @@ serve(async (req) => {
       }
     }
 
+    // PHASE 0: Truncate if content exceeds limit
+    if (combinedContent.length > MAX_CONTENT_LENGTH) {
+      console.warn(`⚠️ [PHASE 0] Truncating content from ${combinedContent.length} to ${MAX_CONTENT_LENGTH} characters to prevent token overflow`);
+      combinedContent = combinedContent.substring(0, MAX_CONTENT_LENGTH) + '\n\n[Conteúdo truncado para evitar limite de tokens]';
+    }
+
     if (!combinedContent.trim()) {
       throw new Error('No content available to generate summary');
     }
 
-    // Generate summary with Gemini
-    const prompt = `Você é um professor especialista em medicina. Analise o conteúdo abaixo e crie um resumo estruturado e completo para estudantes de medicina.
+    // PHASE 1: Calculate adaptive summary strategy
+    const strategyInfo = calculateSummaryStrategy(combinedContent);
+
+    console.log(`📊 [PHASE 1] Summary strategy: ${strategyInfo.strategy}`);
+    console.log(`ℹ️  [PHASE 1] ${strategyInfo.explanation}`);
+
+    let parsed: any;
+
+    if (strategyInfo.strategy === 'SINGLE') {
+      // Strategy 1: Single complete summary
+      const prompt = `Você é um professor especialista em medicina. Analise o conteúdo abaixo e crie um resumo estruturado e completo para estudantes de medicina.
 
 CONTEÚDO:
 ${combinedContent}
@@ -158,8 +184,102 @@ FORMATO DE SAÍDA (JSON estrito):
 
 Retorne APENAS o JSON, sem texto adicional antes ou depois.`;
 
-    const response = await callGemini(prompt, 'gemini-2.5-pro');
-    const parsed = parseJsonFromResponse(response);
+      const response = await callGemini(prompt, 'gemini-2.5-pro', SAFE_OUTPUT_LIMIT);
+      parsed = parseJsonFromResponse(response);
+    } else if (strategyInfo.strategy === 'BATCHED') {
+      // Strategy 2: Batched sections summary
+      console.log(`🔄 [PHASE 1] Generating summary in sections...`);
+
+      // Split content into chunks (approximately 25k chars each)
+      const chunkSize = 25000;
+      const chunks: string[] = [];
+      for (let i = 0; i < combinedContent.length; i += chunkSize) {
+        chunks.push(combinedContent.substring(i, i + chunkSize));
+      }
+
+      console.log(`📑 [PHASE 1] Split into ${chunks.length} sections`);
+
+      const sectionSummaries: string[] = [];
+
+      for (let i = 0; i < chunks.length; i++) {
+        const chunkNum = i + 1;
+        console.log(`🔄 [PHASE 1] [Seção ${chunkNum}/${chunks.length}] Generating section summary...`);
+
+        const sectionPrompt = `Você é um professor especialista em medicina. Resuma esta seção do conteúdo de forma estruturada.
+
+SEÇÃO ${chunkNum} DE ${chunks.length}:
+${chunks[i]}
+
+INSTRUÇÕES:
+1. Crie um resumo estruturado em HTML desta seção
+2. Use <h3> para subtítulos, <p> para parágrafos, <ul>/<li> para listas
+3. Mantenha informações importantes e terminologia médica correta
+4. Seja conciso mas completo
+
+Retorne APENAS o HTML do resumo, sem texto adicional.`;
+
+        const sectionResponse = await callGemini(sectionPrompt, 'gemini-2.5-flash', 4000);
+        sectionSummaries.push(sectionResponse);
+        console.log(`✅ [PHASE 1] [Seção ${chunkNum}/${chunks.length}] Section summary generated`);
+      }
+
+      // Combine section summaries
+      console.log(`🔄 [PHASE 1] Combining section summaries...`);
+
+      const combinePrompt = `Você é um professor especialista em medicina. Combine os resumos de seções abaixo em um resumo final estruturado e coerente.
+
+RESUMOS DAS SEÇÕES:
+${sectionSummaries.map((s, i) => `\n=== SEÇÃO ${i + 1} ===\n${s}`).join('\n')}
+
+INSTRUÇÕES:
+1. Crie um título geral descritivo
+2. Organize o conteúdo em HTML bem estruturado
+3. Elimine redundâncias entre seções
+4. Mantenha a estrutura lógica
+5. Identifique os tópicos principais
+
+FORMATO DE SAÍDA (JSON estrito):
+{
+  "titulo": "Título do Resumo Completo",
+  "conteudo_html": "<h2>Seção 1</h2><p>Conteúdo combinado...</p>",
+  "topicos": ["Tópico 1", "Tópico 2", "Tópico 3"]
+}
+
+Retorne APENAS o JSON, sem texto adicional antes ou depois.`;
+
+      const combineResponse = await callGemini(combinePrompt, 'gemini-2.5-pro', SAFE_OUTPUT_LIMIT);
+      parsed = parseJsonFromResponse(combineResponse);
+      console.log(`✅ [PHASE 1] Combined summary generated`);
+    } else {
+      // Strategy 3: Executive summary (ultra-compressed)
+      console.log(`🔄 [PHASE 1] Generating executive summary (ultra-compressed)...`);
+
+      const executivePrompt = `Você é um professor especialista em medicina. Crie um RESUMO EXECUTIVO ultra-comprimido do conteúdo extenso abaixo.
+
+CONTEÚDO (${combinedContent.length} caracteres):
+${combinedContent.substring(0, 50000)}... [conteúdo extenso]
+
+INSTRUÇÕES:
+1. Crie um título descritivo
+2. Foque APENAS nos conceitos mais importantes e essenciais
+3. Organize em HTML usando <h2>, <p>, <ul>/<li>
+4. Máximo de 3-4 seções principais
+5. Seja extremamente conciso - este é um resumo executivo
+6. Liste os tópicos principais cobertos
+
+FORMATO DE SAÍDA (JSON estrito):
+{
+  "titulo": "Resumo Executivo: [Título]",
+  "conteudo_html": "<h2>Conceitos Essenciais</h2><p>...</p>",
+  "topicos": ["Tópico 1", "Tópico 2", "Tópico 3"]
+}
+
+Retorne APENAS o JSON, sem texto adicional antes ou depois.`;
+
+      const response = await callGemini(executivePrompt, 'gemini-2.5-flash', 2500);
+      parsed = parseJsonFromResponse(response);
+      console.log(`✅ [PHASE 1] Executive summary generated`);
+    }
 
     if (!parsed.titulo || !parsed.conteudo_html) {
       throw new Error('Invalid response format from AI');
