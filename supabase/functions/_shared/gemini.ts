@@ -110,21 +110,81 @@ export async function callGeminiWithFile(
 }
 
 export function parseJsonFromResponse(text: string): any {
-  // Try to extract JSON from markdown code blocks
-  const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/);
+  // Remove leading/trailing whitespace
+  let cleaned = text.trim();
+
+  // Try to extract JSON from markdown code blocks first
+  const jsonMatch = cleaned.match(/```json\s*\n([\s\S]*?)\n```/);
   if (jsonMatch) {
-    return JSON.parse(jsonMatch[1]);
+    cleaned = jsonMatch[1].trim();
+  }
+
+  // Try to extract JSON from plain code blocks
+  const codeMatch = cleaned.match(/```\s*\n([\s\S]*?)\n```/);
+  if (codeMatch) {
+    cleaned = codeMatch[1].trim();
+  }
+
+  // Remove any text before the first { or [
+  const startMatch = cleaned.match(/^[^{[]*([{[])/);
+  if (startMatch) {
+    cleaned = cleaned.substring(cleaned.indexOf(startMatch[1]));
   }
 
   // Try to parse directly
   try {
-    return JSON.parse(text);
-  } catch {
-    // Try to find JSON object in text
-    const objMatch = text.match(/\{[\s\S]*\}/);
+    return JSON.parse(cleaned);
+  } catch (firstError) {
+    // Try to find complete JSON object/array in text
+    const objMatch = cleaned.match(/(\{[\s\S]*\})/);
     if (objMatch) {
-      return JSON.parse(objMatch[0]);
+      try {
+        return JSON.parse(objMatch[1]);
+      } catch {
+        // Try to fix common issues
+        let fixed = objMatch[1];
+
+        // Remove trailing commas before } or ]
+        fixed = fixed.replace(/,(\s*[}\]])/g, '$1');
+
+        // Fix unescaped quotes in strings (basic attempt)
+        // This is risky, so only try if nothing else worked
+
+        try {
+          return JSON.parse(fixed);
+        } catch (fixError) {
+          console.error('Failed to parse JSON after fixes:', {
+            originalError: firstError,
+            fixError,
+            sample: fixed.substring(0, 200)
+          });
+          throw new Error(`Could not parse JSON from response. Sample: ${cleaned.substring(0, 200)}...`);
+        }
+      }
     }
-    throw new Error('Could not parse JSON from response');
+
+    const arrMatch = cleaned.match(/(\[[\s\S]*\])/);
+    if (arrMatch) {
+      try {
+        return JSON.parse(arrMatch[1]);
+      } catch {
+        // Try to fix trailing commas
+        let fixed = arrMatch[1].replace(/,(\s*\])/g, '$1');
+        try {
+          return JSON.parse(fixed);
+        } catch (arrError) {
+          console.error('Failed to parse JSON array:', {
+            error: arrError,
+            sample: fixed.substring(0, 200)
+          });
+        }
+      }
+    }
+
+    console.error('All JSON parse attempts failed:', {
+      error: firstError,
+      textSample: cleaned.substring(0, 300)
+    });
+    throw new Error(`Could not parse JSON from response. Error: ${firstError.message}`);
   }
 }
