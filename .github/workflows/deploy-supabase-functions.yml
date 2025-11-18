@@ -36,6 +36,7 @@ jobs:
           echo "- validation.ts: $(test -f supabase/functions/_shared/validation.ts && echo '✅' || echo '❌')"
           echo "- audit.ts: $(test -f supabase/functions/_shared/audit.ts && echo '✅' || echo '❌')"
           echo "- gemini.ts: $(test -f supabase/functions/_shared/gemini.ts && echo '✅' || echo '❌')"
+          echo "- embeddings.ts: $(test -f supabase/functions/_shared/embeddings.ts && echo '✅' || echo '❌')"
           echo "- cors.ts: $(test -f supabase/functions/_shared/cors.ts && echo '✅' || echo '❌')"
 
       - name: Deploy Edge Functions with Shared Dependencies
@@ -62,6 +63,9 @@ jobs:
           
           echo "📦 Deploying generate-focused-summary function..."
           supabase functions deploy generate-focused-summary --project-ref $SUPABASE_PROJECT_ID --no-verify-jwt
+          
+          echo "📦 Deploying generate-embeddings function..."
+          supabase functions deploy generate-embeddings --project-ref $SUPABASE_PROJECT_ID --no-verify-jwt
 
       - name: Environment Variables Reminder
         run: |
@@ -84,12 +88,14 @@ jobs:
           echo "  - generate-flashcards"
           echo "  - generate-summary"
           echo "  - generate-focused-summary"
+          echo "  - generate-embeddings"
           echo ""
           echo "🔧 Shared dependencies bundled (_shared folder):"
           echo "  - security.ts (auth, rate limiting, CORS)"
           echo "  - validation.ts (input validation, sanitization)"
           echo "  - audit.ts (logging)"
           echo "  - gemini.ts (AI API client)"
+          echo "  - embeddings.ts (RAG, chunking, vector search)"
           echo "  - cors.ts (CORS headers)"
           echo ""
           echo "🔐 Next steps:"
