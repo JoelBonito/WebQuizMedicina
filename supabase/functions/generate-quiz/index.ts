@@ -179,12 +179,14 @@ serve(async (req) => {
       // Define query optimized for quiz generation
       const query = `Gerar questões de múltipla escolha sobre conceitos médicos, casos clínicos, diagnósticos diferenciais, tratamentos, mecanismos de ação, anatomia, fisiologia e farmacologia. Incluir situações clínicas práticas e raciocínio diagnóstico.`;
 
-      // Get top 15 most relevant chunks (limit to fit in prompt)
+      // Get top 8 most relevant chunks (reduced from 15 to avoid MAX_TOKENS on input)
+      // Each chunk can be ~600-800 tokens, so 8 chunks = ~5000-6000 tokens
+      // This leaves room for instructions (~500 tokens) and output (~6400 tokens)
       const relevantChunks = await semanticSearch(
         supabaseClient,
         query,
         sourceIds,
-        15 // top K
+        8 // top K - reduced to prevent prompt overflow
       );
 
       if (relevantChunks.length === 0) {
@@ -202,6 +204,13 @@ serve(async (req) => {
         const avgSimilarity = (relevantChunks.reduce((sum, c) => sum + c.similarity, 0) / relevantChunks.length * 100).toFixed(1);
         console.log(`✅ [PHASE 2] Using ${relevantChunks.length} relevant chunks (avg similarity: ${avgSimilarity}%)`);
         console.log(`📊 [PHASE 2] Total content: ${combinedContent.length} characters`);
+
+        // Safety check: truncate if content still too large (should not happen with 8 chunks)
+        const MAX_CONTENT_LENGTH = 30000; // ~7500 tokens - leaves room for instructions and output
+        if (combinedContent.length > MAX_CONTENT_LENGTH) {
+          console.warn(`⚠️ [PHASE 2] Truncating content from ${combinedContent.length} to ${MAX_CONTENT_LENGTH} characters`);
+          combinedContent = combinedContent.substring(0, MAX_CONTENT_LENGTH) + '\n\n[Conteúdo truncado para evitar limite de tokens]';
+        }
       }
     }
 
