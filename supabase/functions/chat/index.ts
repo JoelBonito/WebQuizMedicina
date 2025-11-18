@@ -5,8 +5,19 @@ import { validateRequest, chatMessageSchema, sanitizeString } from '../_shared/v
 import { AuditLogger, AuditEventType } from '../_shared/audit.ts';
 import { callGemini } from '../_shared/gemini.ts';
 
-const auditLogger = new AuditLogger();
-// Force re-deploy: CORS fixes in _shared/security.ts (2025-11-17)
+// Lazy-initialize AuditLogger to avoid crashes if env vars are missing
+let auditLogger: AuditLogger | null = null;
+function getAuditLogger(): AuditLogger {
+  if (!auditLogger) {
+    auditLogger = new AuditLogger(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+    );
+  }
+  return auditLogger;
+}
+
+// Force re-deploy: Fix AuditLogger lazy initialization with params (2025-11-18)
 
 serve(async (req) => {
   // Handle CORS preflight - MUST return 200 OK immediately
@@ -21,7 +32,7 @@ serve(async (req) => {
     // 1. Rate limiting (30 requests per minute for chat)
     const rateLimitResult = await checkRateLimit(req, RATE_LIMITS.CHAT);
     if (!rateLimitResult.allowed) {
-      await auditLogger.logSecurity(
+      await getAuditLogger().logSecurity(
         AuditEventType.SECURITY_RATE_LIMIT_EXCEEDED,
         req,
         null,
@@ -45,7 +56,7 @@ serve(async (req) => {
     // 2. Authentication
     const authResult = await authenticateRequest(req);
     if (!authResult.authenticated || !authResult.user) {
-      await auditLogger.logAuth(
+      await getAuditLogger().logAuth(
         AuditEventType.AUTH_FAILED_LOGIN,
         null,
         req,
@@ -191,7 +202,7 @@ Resposta:`;
       : [];
 
     // Audit log: AI chat message
-    await auditLogger.logAIGeneration(
+    await getAuditLogger().logAIGeneration(
       AuditEventType.AI_CHAT_MESSAGE,
       user.id,
       project_id,
