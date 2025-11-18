@@ -211,7 +211,8 @@ FORMATO DE SAÍDA (JSON estrito):
 
 Retorne APENAS o JSON, sem texto adicional antes ou depois.`;
 
-    const response = await callGemini(prompt);
+    // Use higher token limit for quiz to avoid truncation (quizzes can be long)
+    const response = await callGemini(prompt, 'gemini-2.5-flash', 16384);
     const parsed = parseJsonFromResponse(response);
 
     if (!parsed.perguntas || !Array.isArray(parsed.perguntas)) {
