@@ -83,19 +83,23 @@ export function Navbar({ onBackClick, projectName }: NavbarProps) {
         <div className="flex items-center gap-3">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-xl hover:bg-gray-100"
-              >
+              <button className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-gray-50 transition-colors">
                 <Avatar className="w-10 h-10 ring-2 ring-purple-500 ring-offset-2 ring-offset-white">
                   <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white font-semibold">
                     {getUserInitials()}
                   </AvatarFallback>
                 </Avatar>
-              </Button>
+                <div className="text-left hidden sm:block">
+                  <p className="text-sm font-medium text-gray-900">
+                    {getUserName()}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {user?.email}
+                  </p>
+                </div>
+              </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64">
+            <DropdownMenuContent align="end" className="w-64 rounded-xl">
               {/* User Info Header */}
               <div className="flex items-center gap-3 px-3 py-3 border-b border-gray-200">
                 <Avatar className="w-12 h-12 ring-2 ring-purple-500">
@@ -114,12 +118,12 @@ export function Navbar({ onBackClick, projectName }: NavbarProps) {
               </div>
 
               {/* Menu Items */}
-              <div className="py-1">
-                <DropdownMenuItem onClick={() => toast.info("Perfil em desenvolvimento!")} className="cursor-pointer">
+              <div className="py-1 px-2">
+                <DropdownMenuItem onClick={() => toast.info("Perfil em desenvolvimento!")} className="cursor-pointer rounded-lg">
                   <User className="w-4 h-4 mr-2 text-gray-600" />
                   <span className="text-gray-700">Perfil</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => toast.info("Configurações em breve!")} className="cursor-pointer">
+                <DropdownMenuItem onClick={() => toast.info("Configurações em breve!")} className="cursor-pointer rounded-lg">
                   <Settings className="w-4 h-4 mr-2 text-gray-600" />
                   <span className="text-gray-700">Configurações</span>
                 </DropdownMenuItem>
@@ -128,8 +132,8 @@ export function Navbar({ onBackClick, projectName }: NavbarProps) {
               <DropdownMenuSeparator />
 
               {/* Logout */}
-              <div className="py-1">
-                <DropdownMenuItem onClick={handleSignOut} className="text-red-600 cursor-pointer">
+              <div className="py-1 px-2">
+                <DropdownMenuItem onClick={handleSignOut} className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer rounded-lg">
                   <LogOut className="w-4 h-4 mr-2" />
                   Sair
                 </DropdownMenuItem>
