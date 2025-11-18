@@ -1,0 +1,64 @@
+═══════════════════════════════════════════════════════════════════
+CONFIGURAÇÃO DO WEBHOOK - COPIE E COLE NO DASHBOARD
+═══════════════════════════════════════════════════════════════════
+
+Dashboard: https://supabase.com/dashboard/project/bwgglfforazywrjhbxsa/database/webhooks
+
+Clique em: "Create a new hook"
+
+───────────────────────────────────────────────────────────────────
+1. BASIC INFORMATION
+───────────────────────────────────────────────────────────────────
+Name: auto-process-embeddings
+
+Table: public.sources
+
+Events: ☑ INSERT  ☑ UPDATE
+
+Type: HTTP Request
+
+Method: POST
+
+───────────────────────────────────────────────────────────────────
+2. HTTP REQUEST
+───────────────────────────────────────────────────────────────────
+URL:
+https://bwgglfforazywrjhbxsa.supabase.co/functions/v1/process-embeddings-queue
+
+───────────────────────────────────────────────────────────────────
+3. HTTP HEADERS (Adicionar 2 headers)
+───────────────────────────────────────────────────────────────────
+
+Header 1:
+  Name: Authorization
+  Value: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ3Z2dsZmZvcmF6eXdyamhieHNhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMzMDIwMzMsImV4cCI6MjA3ODg3ODAzM30.Ngf582OBWuPXO9sshKBYcWxk8J7z3AqJ8gGjdsCyCkU
+
+Header 2:
+  Name: Content-Type
+  Value: application/json
+
+───────────────────────────────────────────────────────────────────
+4. HTTP PAYLOAD
+───────────────────────────────────────────────────────────────────
+{
+  "source_id": "{{ record.id }}",
+  "max_items": 1
+}
+
+───────────────────────────────────────────────────────────────────
+5. CONDITION (IMPORTANTE!)
+───────────────────────────────────────────────────────────────────
+new.embeddings_status = 'pending'
+AND new.extracted_content IS NOT NULL
+AND new.extracted_content != ''
+AND (old.extracted_content IS NULL OR old.extracted_content = '')
+
+───────────────────────────────────────────────────────────────────
+6. CLIQUE EM "CREATE WEBHOOK"
+───────────────────────────────────────────────────────────────────
+
+═══════════════════════════════════════════════════════════════════
+✅ PRONTO! WEBHOOK CONFIGURADO
+═══════════════════════════════════════════════════════════════════
+
+Agora teste criando um source de teste (ver COMANDOS_PRONTOS.sh)
