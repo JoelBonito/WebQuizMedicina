@@ -42,9 +42,12 @@ COMMENT ON COLUMN source_chunks.embedding IS '768-dimensional embedding vector f
 COMMENT ON COLUMN source_chunks.chunk_index IS 'Sequential index of chunk within source (0-based)';
 COMMENT ON COLUMN source_chunks.token_count IS 'Estimated token count for the chunk content';
 
+-- Drop existing function if it exists (to avoid "function name not unique" error)
+DROP FUNCTION IF EXISTS match_source_chunks(vector, UUID[], INT);
+
 -- Create RPC function for semantic search
 -- Returns chunks ranked by cosine similarity to query embedding
-CREATE OR REPLACE FUNCTION match_source_chunks(
+CREATE FUNCTION match_source_chunks(
   query_embedding vector(768),
   source_ids UUID[],
   match_count INT DEFAULT 5
@@ -86,6 +89,11 @@ GRANT DELETE ON source_chunks TO authenticated;
 -- Enable Row Level Security (RLS)
 ALTER TABLE source_chunks ENABLE ROW LEVEL SECURITY;
 
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "Users can view their own source chunks" ON source_chunks;
+DROP POLICY IF EXISTS "Users can insert chunks for their sources" ON source_chunks;
+DROP POLICY IF EXISTS "Users can delete their own source chunks" ON source_chunks;
+
 -- RLS Policy: Users can only access chunks from their own sources
 CREATE POLICY "Users can view their own source chunks"
 ON source_chunks
@@ -120,7 +128,11 @@ USING (
 );
 
 -- Add trigger to update sources.updated_at when chunks are added
-CREATE OR REPLACE FUNCTION update_source_updated_at()
+-- Drop trigger first if it exists
+DROP TRIGGER IF EXISTS source_chunks_update_source_timestamp ON source_chunks;
+DROP FUNCTION IF EXISTS update_source_updated_at();
+
+CREATE FUNCTION update_source_updated_at()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 AS $$
