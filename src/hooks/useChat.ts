@@ -2,6 +2,18 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './useAuth';
 
+// Database message format (new schema with role + content)
+interface DbChatMessage {
+  id: string;
+  project_id: string;
+  user_id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  sources_cited: string[] | null;
+  created_at: string;
+}
+
+// Legacy format for UI compatibility
 export interface ChatMessage {
   id: string;
   project_id: string;
@@ -23,6 +35,51 @@ export interface ChatResponse {
   cited_sources: CitedSource[];
   suggested_topics: string[];
   has_difficulties_context: boolean;
+}
+
+/**
+ * Converts database messages (role + content) to UI format (message + response)
+ * Groups pairs of user/assistant messages into single ChatMessage objects
+ */
+function convertDbMessagesToUiFormat(dbMessages: DbChatMessage[]): ChatMessage[] {
+  const uiMessages: ChatMessage[] = [];
+
+  for (let i = 0; i < dbMessages.length; i++) {
+    const current = dbMessages[i];
+
+    if (current.role === 'user') {
+      // Find the next assistant message
+      const assistantMsg = dbMessages[i + 1];
+
+      if (assistantMsg && assistantMsg.role === 'assistant') {
+        // Pair found - create combined message
+        uiMessages.push({
+          id: current.id,
+          project_id: current.project_id,
+          user_id: current.user_id,
+          message: current.content,
+          response: assistantMsg.content,
+          sources_cited: assistantMsg.sources_cited || [],
+          created_at: current.created_at,
+        });
+        i++; // Skip the assistant message since we already processed it
+      } else {
+        // User message without response (shouldn't happen in normal flow)
+        uiMessages.push({
+          id: current.id,
+          project_id: current.project_id,
+          user_id: current.user_id,
+          message: current.content,
+          response: 'Aguardando resposta...',
+          sources_cited: [],
+          created_at: current.created_at,
+        });
+      }
+    }
+    // Skip standalone assistant messages (shouldn't happen)
+  }
+
+  return uiMessages;
 }
 
 export const useChat = (projectId: string | null) => {
@@ -50,7 +107,10 @@ export const useChat = (projectId: string | null) => {
           .order('created_at', { ascending: true });
 
         if (error) throw error;
-        setMessages(data || []);
+
+        // Convert from DB format (role+content) to UI format (message+response)
+        const uiMessages = convertDbMessagesToUiFormat(data || []);
+        setMessages(uiMessages);
       } catch (err) {
         console.error('Error fetching messages:', err);
       } finally {
@@ -104,7 +164,9 @@ export const useChat = (projectId: string | null) => {
         .order('created_at', { ascending: true });
 
       if (newMessages) {
-        setMessages(newMessages);
+        // Convert from DB format to UI format
+        const uiMessages = convertDbMessagesToUiFormat(newMessages);
+        setMessages(uiMessages);
       }
 
       return data;
@@ -142,3 +204,4 @@ export const useChat = (projectId: string | null) => {
     clearHistory,
   };
 };
+
