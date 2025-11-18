@@ -56,7 +56,8 @@ export default function App() {
   if (view === "dashboard") {
     return (
       <>
-        <div className="min-h-screen bg-white">
+        <Navbar />
+        <div className="min-h-screen bg-white pt-16">
           <Dashboard onSelectSubject={handleSelectProject} />
         </div>
         <Toaster />
