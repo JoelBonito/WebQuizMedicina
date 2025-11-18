@@ -176,6 +176,88 @@ export async function callGeminiWithFile(
   return candidate.content.parts[0].text;
 }
 
+/**
+ * Attempts to recover valid items from a truncated JSON array
+ * Used when the API response was cut off mid-generation
+ */
+function recoverItemsFromTruncatedJson(text: string, arrayKey: string = 'perguntas'): any[] {
+  console.warn('🔧 Attempting to recover valid items from truncated JSON...');
+
+  const items: any[] = [];
+
+  // Try to find the start of the array
+  const arrayStart = text.indexOf(`"${arrayKey}"`);
+  if (arrayStart === -1) {
+    console.error(`❌ Could not find "${arrayKey}" array in response`);
+    return items;
+  }
+
+  // Find the opening bracket
+  const bracketStart = text.indexOf('[', arrayStart);
+  if (bracketStart === -1) {
+    return items;
+  }
+
+  // Extract everything after the opening bracket
+  const arrayContent = text.substring(bracketStart + 1);
+
+  // Use a simple state machine to extract complete objects
+  let depth = 0;
+  let currentObject = '';
+  let inString = false;
+  let escapeNext = false;
+
+  for (let i = 0; i < arrayContent.length; i++) {
+    const char = arrayContent[i];
+
+    if (escapeNext) {
+      currentObject += char;
+      escapeNext = false;
+      continue;
+    }
+
+    if (char === '\\') {
+      escapeNext = true;
+      currentObject += char;
+      continue;
+    }
+
+    if (char === '"' && !escapeNext) {
+      inString = !inString;
+    }
+
+    if (!inString) {
+      if (char === '{') {
+        depth++;
+      } else if (char === '}') {
+        depth--;
+      }
+    }
+
+    currentObject += char;
+
+    // Found a complete object
+    if (depth === 0 && char === '}') {
+      try {
+        const obj = JSON.parse(currentObject.trim());
+        items.push(obj);
+        console.log(`✅ Recovered item ${items.length}`);
+        currentObject = '';
+      } catch (e) {
+        console.warn(`⚠️ Failed to parse recovered object: ${e.message}`);
+      }
+
+      // Skip commas and whitespace
+      while (i + 1 < arrayContent.length && (arrayContent[i + 1] === ',' || arrayContent[i + 1].match(/\s/))) {
+        i++;
+      }
+    }
+  }
+
+  console.log(`✅ Recovered ${items.length} valid items from truncated JSON`);
+  return items;
+}
+
 export function parseJsonFromResponse(text: string): any {
   // Remove leading/trailing whitespace
   let cleaned = text.trim();
@@ -199,23 +281,33 @@ export function parseJsonFromResponse(text: string): any {
   }
 
   // Check for obvious truncation signs
-  if (cleaned.length > 100) {
-    const lastChars = cleaned.slice(-50);
-    // Check if JSON ends abruptly without proper closing
-    if (!lastChars.match(/[}\]]\s*$/)) {
-      console.warn('⚠️ JSON appears to be truncated - does not end with } or ]');
-    }
+  const isTruncated = cleaned.length > 100 && !cleaned.slice(-50).match(/[}\]]\s*$/);
+  if (isTruncated) {
+    console.warn('⚠️ JSON appears to be truncated - does not end with } or ]');
   }
 
   // Try to parse directly
   try {
     return JSON.parse(cleaned);
   } catch (firstError) {
-    // Check if error is due to unterminated string
-    if (firstError.message.includes('Unterminated string')) {
-      console.error('❌ JSON has unterminated string - likely truncated by token limit');
-      throw new Error('Response was truncated. Please try requesting less content (e.g., fewer questions).');
+    console.warn(`⚠️ Initial JSON parse failed: ${firstError.message}`);
+
+    // Check if error is due to unterminated string or unexpected end
+    if (firstError.message.includes('Unterminated string') ||
+        firstError.message.includes('Unexpected end of JSON') ||
+        firstError.message.includes('Expected') && isTruncated) {
+      console.warn('🔧 JSON truncated by token limit. Attempting recovery...');
+
+      // Try to recover partial items
+      const recoveredItems = recoverItemsFromTruncatedJson(cleaned, 'perguntas');
+      if (recoveredItems.length > 0) {
+        console.log(`✅ Recovered ${recoveredItems.length} complete items from truncated response`);
+        return { perguntas: recoveredItems };
+      }
+
+      throw new Error(`Response was truncated at ${cleaned.length} characters. Recovered 0 items. Please try requesting fewer questions.`);
     }
+
     // Try to find complete JSON object/array in text
     const objMatch = cleaned.match(/(\{[\s\S]*\})/);
     if (objMatch) {
@@ -228,12 +320,18 @@ export function parseJsonFromResponse(text: string): any {
         // Remove trailing commas before } or ]
         fixed = fixed.replace(/,(\s*[}\]])/g, '$1');
 
-        // Fix unescaped quotes in strings (basic attempt)
-        // This is risky, so only try if nothing else worked
-
         try {
           return JSON.parse(fixed);
         } catch (fixError) {
+          console.warn('⚠️ Could not fix JSON, attempting item recovery...');
+
+          // Last resort: try to recover items
+          const recoveredItems = recoverItemsFromTruncatedJson(fixed, 'perguntas');
+          if (recoveredItems.length > 0) {
+            console.log(`✅ Recovered ${recoveredItems.length} items after fix attempt`);
+            return { perguntas: recoveredItems };
+          }
+
           console.error('Failed to parse JSON after fixes:', {
             originalError: firstError,
             fixError,

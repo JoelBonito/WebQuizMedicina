@@ -13,9 +13,10 @@ export const OUTPUT_LIMITS = {
     DESCRIPTION: 'flashcard com frente, verso, tópico, dificuldade',
   },
 
-  // Quiz - Multiple Choice: ~350 tokens + JSON overhead
+  // Quiz - Multiple Choice: ~400-500 tokens + JSON overhead
+  // Increased from 400 to 500 to account for verbose justifications and prevent truncation
   QUIZ_MULTIPLE_CHOICE: {
-    TOKENS_PER_ITEM: 400,
+    TOKENS_PER_ITEM: 500,
     DESCRIPTION: 'questão múltipla escolha com 4 alternativas, justificativa, dica',
   },
 
