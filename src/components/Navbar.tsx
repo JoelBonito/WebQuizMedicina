@@ -1,4 +1,4 @@
-import { ArrowLeft, LogOut, Sparkles } from "lucide-react";
+import { ArrowLeft, LogOut, Sparkles, Settings, User } from "lucide-react";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { Button } from "./ui/button";
 import { useAuth } from "../hooks/useAuth";
@@ -33,6 +33,11 @@ export function Navbar({ onBackClick, projectName }: NavbarProps) {
     return user.email.substring(0, 2).toUpperCase();
   };
 
+  const getUserName = () => {
+    if (!user?.email) return "Usuário";
+    return user.email.split("@")[0];
+  };
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 h-16 glass border-b border-gray-200">
       <div className="h-full px-6 flex items-center justify-between">
@@ -52,9 +57,16 @@ export function Navbar({ onBackClick, projectName }: NavbarProps) {
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg">
               <Sparkles className="w-6 h-6 text-white" />
             </div>
-            <span className="text-xl font-medium text-gray-900">
-              Web Quiz Medicina
-            </span>
+            {!onBackClick ? (
+              <div>
+                <h1 className="text-xl font-semibold text-gray-900">Minhas Matérias</h1>
+                <p className="text-xs text-gray-600">Gerencie seus estudos e materiais</p>
+              </div>
+            ) : (
+              <span className="text-xl font-medium text-gray-900">
+                Web Quiz Medicina
+              </span>
+            )}
           </div>
         </div>
 
@@ -83,15 +95,45 @@ export function Navbar({ onBackClick, projectName }: NavbarProps) {
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <div className="px-2 py-1.5">
-                <p className="text-sm font-medium">{user?.email}</p>
+            <DropdownMenuContent align="end" className="w-64">
+              {/* User Info Header */}
+              <div className="flex items-center gap-3 px-3 py-3 border-b border-gray-200">
+                <Avatar className="w-12 h-12 ring-2 ring-purple-500">
+                  <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white font-semibold">
+                    {getUserInitials()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-gray-900 truncate">
+                    {getUserName()}
+                  </p>
+                  <p className="text-xs text-gray-500 truncate">
+                    {user?.email}
+                  </p>
+                </div>
               </div>
+
+              {/* Menu Items */}
+              <div className="py-1">
+                <DropdownMenuItem onClick={() => toast.info("Perfil em desenvolvimento!")} className="cursor-pointer">
+                  <User className="w-4 h-4 mr-2 text-gray-600" />
+                  <span className="text-gray-700">Perfil</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => toast.info("Configurações em breve!")} className="cursor-pointer">
+                  <Settings className="w-4 h-4 mr-2 text-gray-600" />
+                  <span className="text-gray-700">Configurações</span>
+                </DropdownMenuItem>
+              </div>
+
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleSignOut} className="text-red-600">
-                <LogOut className="w-4 h-4 mr-2" />
-                Sair
-              </DropdownMenuItem>
+
+              {/* Logout */}
+              <div className="py-1">
+                <DropdownMenuItem onClick={handleSignOut} className="text-red-600 cursor-pointer">
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Sair
+                </DropdownMenuItem>
+              </div>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
