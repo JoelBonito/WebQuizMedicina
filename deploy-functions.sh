@@ -76,7 +76,7 @@ echo -e "${YELLOW}📦 Fazendo deploy das edge functions com correções...${NC}
 echo ""
 
 # Deploy generate-quiz (com correção de JSON truncado)
-echo -e "${YELLOW}[1/2] Deploying: generate-quiz${NC}"
+echo -e "${YELLOW}[1/3] Deploying: generate-quiz${NC}"
 if supabase functions deploy generate-quiz --project-ref "$PROJECT_REF"; then
     echo -e "${GREEN}✅ generate-quiz deployed com sucesso!${NC}"
 else
@@ -86,11 +86,21 @@ fi
 echo ""
 
 # Deploy generate-flashcards (com correção de JSON truncado)
-echo -e "${YELLOW}[2/2] Deploying: generate-flashcards${NC}"
+echo -e "${YELLOW}[2/3] Deploying: generate-flashcards${NC}"
 if supabase functions deploy generate-flashcards --project-ref "$PROJECT_REF"; then
     echo -e "${GREEN}✅ generate-flashcards deployed com sucesso!${NC}"
 else
     echo -e "${RED}❌ Erro ao fazer deploy de generate-flashcards${NC}"
+    exit 1
+fi
+echo ""
+
+# Deploy chat (com correção de schema)
+echo -e "${YELLOW}[3/3] Deploying: chat${NC}"
+if supabase functions deploy chat --project-ref "$PROJECT_REF"; then
+    echo -e "${GREEN}✅ chat deployed com sucesso!${NC}"
+else
+    echo -e "${RED}❌ Erro ao fazer deploy de chat${NC}"
     exit 1
 fi
 echo ""
@@ -103,7 +113,7 @@ echo "════════════════════════�
 echo -e "${GREEN}🎉 Deploy concluído com sucesso!${NC}"
 echo "════════════════════════════════════════════════════════════════"
 echo ""
-echo "✅ Correções aplicadas em AMBAS as funções:"
+echo "✅ Correções aplicadas em TODAS as funções:"
 echo ""
 echo "   📝 generate-quiz:"
 echo "      • Auto-recuperação de JSON truncado"
@@ -115,11 +125,17 @@ echo "      • Auto-detecção de array key"
 echo "      • Batches menores (18 flashcards)"
 echo "      • Recuperação de items truncados"
 echo ""
+echo "   💬 chat:"
+echo "      • Schema correto (role + content)"
+echo "      • Salva mensagem do usuário E resposta"
+echo "      • Histórico de conversação funcional"
+echo ""
 echo "🔗 URLs das funções:"
 echo "   https://bwgglfforazywrjhbxsa.supabase.co/functions/v1/generate-quiz"
 echo "   https://bwgglfforazywrjhbxsa.supabase.co/functions/v1/generate-flashcards"
+echo "   https://bwgglfforazywrjhbxsa.supabase.co/functions/v1/chat"
 echo ""
-echo "🧪 Agora você pode testar gerando quiz e flashcards no aplicativo!"
+echo "🧪 Agora você pode testar todas as funcionalidades no aplicativo!"
 echo ""
 echo "════════════════════════════════════════════════════════════════"
 echo ""
