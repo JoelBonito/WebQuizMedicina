@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, BookOpen, Trash2, Edit, ChevronRight, Sparkles, Loader2, LogOut, Settings, X } from "lucide-react";
+import { Plus, BookOpen, Trash2, Edit, ChevronRight, Loader2, X } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { motion } from "motion/react";
@@ -32,7 +32,7 @@ interface DashboardProps {
 }
 
 export function Dashboard({ onSelectSubject }: DashboardProps) {
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const { projects, loading, createProject, updateProject, deleteProject } = useProjects();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<{ id: string; name: string } | null>(null);
@@ -42,19 +42,19 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
 
   const handleAddProject = async () => {
     if (!formData.name.trim()) {
-      toast.error("Digite um nome para o projeto");
+      toast.error("Digite um nome para a matéria");
       return;
     }
 
     try {
       setSubmitting(true);
       await createProject(formData.name.trim());
-      toast.success("Projeto criado com sucesso!");
+      toast.success("Matéria criada com sucesso!");
       setIsAddDialogOpen(false);
       setFormData({ name: "" });
     } catch (error) {
       console.error("Error creating project:", error);
-      toast.error("Erro ao criar projeto");
+      toast.error("Erro ao criar matéria");
     } finally {
       setSubmitting(false);
     }
@@ -62,19 +62,19 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
 
   const handleEditProject = async () => {
     if (!editingProject || !formData.name.trim()) {
-      toast.error("Digite um nome para o projeto");
+      toast.error("Digite um nome para a matéria");
       return;
     }
 
     try {
       setSubmitting(true);
       await updateProject(editingProject.id, formData.name.trim());
-      toast.success("Projeto atualizado!");
+      toast.success("Matéria atualizada!");
       setEditingProject(null);
       setFormData({ name: "" });
     } catch (error) {
       console.error("Error updating project:", error);
-      toast.error("Erro ao atualizar projeto");
+      toast.error("Erro ao atualizar matéria");
     } finally {
       setSubmitting(false);
     }
@@ -85,11 +85,11 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
 
     try {
       await deleteProject(deletingProject.id);
-      toast.success("Projeto excluído");
+      toast.success("Matéria excluída");
       setDeletingProject(null);
     } catch (error) {
       console.error("Error deleting project:", error);
-      toast.error("Erro ao excluir projeto");
+      toast.error("Erro ao excluir matéria");
     }
   };
 
@@ -103,62 +103,10 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
     setEditingProject(project);
   };
 
-  const handleSignOut = async () => {
-    const { error } = await signOut();
-    if (error) {
-      toast.error("Erro ao sair");
-    } else {
-      toast.success("Até logo!");
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-white">
-      {/* Welcome Section */}
+    <div className="min-h-screen bg-white relative">
+      {/* Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="glass-dark rounded-3xl p-8 border border-gray-200 mb-8">
-          <div className="flex items-center justify-between">
-            {/* Left: Icon + Text */}
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg">
-                <Sparkles className="w-8 h-8 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-semibold text-gray-900 mb-1">Meus Projetos</h1>
-                <p className="text-gray-600">
-                  Olá, {user?.email?.split("@")[0]}! Gerencie seus estudos
-                </p>
-              </div>
-            </div>
-
-            {/* Right: Actions */}
-            <div className="flex items-center gap-3">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-xl hover:bg-gray-100 w-10 h-10"
-                onClick={() => toast.info("Configurações em breve!")}
-              >
-                <Settings className="w-5 h-5 text-gray-600" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-xl hover:bg-red-50 w-10 h-10"
-                onClick={handleSignOut}
-              >
-                <LogOut className="w-5 h-5 text-red-600" />
-              </Button>
-              <Button
-                onClick={openAddDialog}
-                className="rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg px-6"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Novo Projeto
-              </Button>
-            </div>
-          </div>
-        </div>
 
         {/* Content */}
         <div>
@@ -172,17 +120,17 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
                 <BookOpen className="w-10 h-10 text-purple-500" />
               </div>
               <h3 className="text-2xl font-semibold text-gray-900 mb-3">
-                Nenhum projeto ainda
+                Nenhuma matéria ainda
               </h3>
               <p className="text-gray-500 mb-8 max-w-md mx-auto">
-                Crie seu primeiro projeto para começar a organizar seus estudos de medicina
+                Crie sua primeira matéria para começar a organizar seus estudos de medicina
               </p>
               <Button
                 onClick={openAddDialog}
                 className="rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg px-6 py-3"
               >
                 <Plus className="w-5 h-5 mr-2" />
-                Criar Primeiro Projeto
+                Criar Primeira Matéria
               </Button>
             </div>
           ) : (
@@ -256,7 +204,7 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
                       className="w-full justify-between rounded-xl hover:bg-purple-50 text-gray-700 font-medium"
                       onClick={() => onSelectSubject(project.id)}
                     >
-                      Abrir projeto
+                      Abrir matéria
                       <ChevronRight className="w-4 h-4" />
                     </Button>
                   </div>
@@ -266,6 +214,15 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
           )}
         </div>
       </div>
+
+      {/* FAB - Floating Action Button */}
+      <button
+        onClick={openAddDialog}
+        className="fixed bottom-8 right-8 w-16 h-16 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-2xl hover:shadow-purple-500/50 transition-all duration-300 flex items-center justify-center z-50 group"
+        aria-label="Nova Matéria"
+      >
+        <Plus className="w-7 h-7 group-hover:rotate-90 transition-transform duration-300" />
+      </button>
 
       {/* Add/Edit Dialog */}
         <Dialog
@@ -281,7 +238,7 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
           <DialogContent className="sm:max-w-[500px] rounded-3xl">
             <div className="flex items-center justify-between mb-2">
               <DialogTitle className="text-xl font-semibold text-gray-900">
-                {editingProject ? "Editar Projeto" : "Criar Novo Projeto"}
+                {editingProject ? "Editar Matéria" : "Criar Nova Matéria"}
               </DialogTitle>
               <button
                 onClick={() => {
@@ -296,13 +253,13 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
             </div>
             <DialogDescription className="text-sm text-gray-500 sr-only">
               {editingProject
-                ? "Atualize o nome do seu projeto de estudos."
+                ? "Atualize o nome da sua matéria de estudos."
                 : "Dê um nome descritivo para organizar seus estudos de medicina."}
             </DialogDescription>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label htmlFor="name" className="text-sm font-medium text-gray-700">
-                  Nome do Projeto
+                  Nome da Matéria
                 </Label>
                 <Input
                   id="name"
@@ -351,10 +308,10 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
           <AlertDialogContent className="rounded-3xl">
             <AlertDialogHeader>
               <AlertDialogTitle className="text-xl font-semibold text-gray-900">
-                Excluir Projeto?
+                Excluir Matéria?
               </AlertDialogTitle>
               <AlertDialogDescription className="text-sm text-gray-600">
-                Tem certeza que deseja excluir o projeto "{deletingProject?.name}"? Esta ação não pode ser desfeita.
+                Tem certeza que deseja excluir a matéria "{deletingProject?.name}"? Esta ação não pode ser desfeita.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter className="gap-3">
