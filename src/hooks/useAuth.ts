@@ -1,15 +1,17 @@
 import { useState, useEffect } from 'react';
-import { User } from '@supabase/supabase-js';
+import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
+      setSession(session);
       setLoading(false);
     });
 
@@ -18,6 +20,7 @@ export const useAuth = () => {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
+      setSession(session);
     });
 
     return () => subscription.unsubscribe();
@@ -53,6 +56,7 @@ export const useAuth = () => {
 
   return {
     user,
+    session,
     loading,
     signUp,
     signIn,
