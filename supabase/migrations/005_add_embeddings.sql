@@ -173,12 +173,3 @@ CREATE TRIGGER source_chunks_update_source_timestamp
 AFTER INSERT ON source_chunks
 FOR EACH ROW
 EXECUTE FUNCTION update_source_updated_at();
-
--- Create index on sources for embedding status (for quick filtering)
--- This will be used to check which sources have embeddings generated
-CREATE INDEX IF NOT EXISTS sources_has_embeddings_idx
-ON sources((
-  EXISTS(
-    SELECT 1 FROM source_chunks WHERE source_chunks.source_id = sources.id LIMIT 1
-  )
-));
