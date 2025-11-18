@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, BookOpen, Trash2, Edit, ChevronRight, Loader2, X } from "lucide-react";
+import { Plus, BookOpen, Trash2, Edit, ChevronRight, Loader2, X, User, Settings, LogOut, Sparkles } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { motion } from "motion/react";
@@ -21,6 +21,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "./ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "./ui/avatar";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { useProjects } from "../hooks/useProjects";
@@ -32,7 +41,7 @@ interface DashboardProps {
 }
 
 export function Dashboard({ onSelectSubject }: DashboardProps) {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { projects, loading, createProject, updateProject, deleteProject } = useProjects();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<{ id: string; name: string } | null>(null);
@@ -103,8 +112,87 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
     setEditingProject(project);
   };
 
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast.success("Logout realizado com sucesso");
+    } catch (error) {
+      console.error("Error signing out:", error);
+      toast.error("Erro ao fazer logout");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white relative">
+      {/* Header */}
+      <header className="border-b border-gray-200 bg-white sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            {/* Logo/Title */}
+            <div className="flex items-center gap-3">
+              <Sparkles className="w-6 h-6 text-purple-500" />
+              <div>
+                <h1 className="text-xl font-semibold text-gray-900">Meus Projetos</h1>
+                <p className="text-sm text-gray-600">
+                  Olá, {user?.email?.split("@")[0]}! Gerencie seus estudos
+                </p>
+              </div>
+            </div>
+
+            {/* User Menu */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center gap-3 px-4 py-2 rounded-xl hover:bg-gray-50 transition-colors">
+                  <Avatar className="h-10 w-10 bg-gradient-to-br from-purple-500 to-pink-500">
+                    <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white font-semibold">
+                      {user?.email?.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="text-left">
+                    <p className="text-sm font-medium text-gray-900">
+                      {user?.email?.split("@")[0]}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {user?.email}
+                    </p>
+                  </div>
+                </button>
+              </DropdownMenuTrigger>
+
+              <DropdownMenuContent align="end" className="w-64 rounded-xl">
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium text-gray-900">Minha Conta</p>
+                  </div>
+                </DropdownMenuLabel>
+
+                <DropdownMenuSeparator />
+
+                <DropdownMenuItem className="cursor-pointer rounded-lg">
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Perfil</span>
+                </DropdownMenuItem>
+
+                <DropdownMenuItem className="cursor-pointer rounded-lg">
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Configurações</span>
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator />
+
+                <DropdownMenuItem
+                  className="cursor-pointer rounded-lg text-red-600 focus:text-red-600 focus:bg-red-50"
+                  onClick={handleSignOut}
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Sair</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+      </header>
+
       {/* Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">
 
