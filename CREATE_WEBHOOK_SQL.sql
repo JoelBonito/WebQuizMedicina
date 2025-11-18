@@ -10,10 +10,36 @@
 --
 -- ═══════════════════════════════════════════════════════════════
 
--- Passo 1: Remover webhook antigo se existir
+-- Passo 1: Remover webhook e função antiga se existirem
 DROP TRIGGER IF EXISTS auto_process_embeddings_webhook ON public.sources;
+DROP FUNCTION IF EXISTS public.trigger_process_embeddings_webhook() CASCADE;
 
--- Passo 2: Criar o webhook com condição
+-- Passo 2: Criar função wrapper que prepara o payload dinamicamente
+CREATE OR REPLACE FUNCTION public.trigger_process_embeddings_webhook()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  webhook_url TEXT := 'https://bwgglfforazywrjhbxsa.supabase.co/functions/v1/process-embeddings-queue';
+  request_id BIGINT;
+BEGIN
+  -- Faz a chamada HTTP com o payload dinâmico
+  SELECT net.http_post(
+    url := webhook_url,
+    headers := '{"Content-Type": "application/json", "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ3Z2dsZmZvcmF6eXdyamhieHNhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMzMDIwMzMsImV4cCI6MjA3ODg3ODAzM30.Ngf582OBWuPXO9sshKBYcWxk8J7z3AqJ8gGjdsCyCkU"}'::jsonb,
+    body := json_build_object(
+      'source_id', NEW.id,
+      'max_items', 1
+    )::text
+  ) INTO request_id;
+
+  RAISE LOG 'Webhook disparado para source_id: %, request_id: %', NEW.id, request_id;
+
+  RETURN NEW;
+END;
+$$;
+
+-- Passo 3: Criar o trigger com condição
 CREATE TRIGGER auto_process_embeddings_webhook
   AFTER INSERT OR UPDATE ON public.sources
   FOR EACH ROW
@@ -24,13 +50,7 @@ CREATE TRIGGER auto_process_embeddings_webhook
     NEW.extracted_content != '' AND                          -- Conteúdo não está vazio
     (OLD.extracted_content IS NULL OR OLD.extracted_content = '')  -- É novo (não existia antes)
   )
-  EXECUTE FUNCTION supabase_functions.http_request(
-    'https://bwgglfforazywrjhbxsa.supabase.co/functions/v1/process-embeddings-queue',  -- URL da função
-    'POST',                                                   -- Método HTTP
-    '{"Content-Type":"application/json","Authorization":"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ3Z2dsZmZvcmF6eXdyamhieHNhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMzMDIwMzMsImV4cCI6MjA3ODg3ODAzM30.Ngf582OBWuPXO9sshKBYcWxk8J7z3AqJ8gGjdsCyCkU"}',  -- Headers
-    '{"source_id":"' || NEW.id || '","max_items":1}',        -- Payload com o ID do source
-    '5000'                                                    -- Timeout de 5 segundos
-  );
+  EXECUTE FUNCTION public.trigger_process_embeddings_webhook();
 
 -- ═══════════════════════════════════════════════════════════════
 -- VERIFICAR SE FOI CRIADO
