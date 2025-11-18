@@ -106,11 +106,21 @@ fi
 echo ""
 
 # Deploy chat (com correção de schema)
-echo -e "${YELLOW}[4/4] Deploying: chat${NC}"
+echo -e "${YELLOW}[4/5] Deploying: chat${NC}"
 if supabase functions deploy chat --project-ref "$PROJECT_REF"; then
     echo -e "${GREEN}✅ chat deployed com sucesso!${NC}"
 else
     echo -e "${RED}❌ Erro ao fazer deploy de chat${NC}"
+    exit 1
+fi
+echo ""
+
+# Deploy process-embeddings-queue (sistema automático de embeddings)
+echo -e "${YELLOW}[5/5] Deploying: process-embeddings-queue${NC}"
+if supabase functions deploy process-embeddings-queue --project-ref "$PROJECT_REF"; then
+    echo -e "${GREEN}✅ process-embeddings-queue deployed com sucesso!${NC}"
+else
+    echo -e "${RED}❌ Erro ao fazer deploy de process-embeddings-queue${NC}"
     exit 1
 fi
 echo ""
@@ -148,13 +158,24 @@ echo "      • Schema correto (role + content)"
 echo "      • Chunks otimizados (6 ao invés de 10)"
 echo "      • Histórico de conversação funcional"
 echo ""
+echo "   🤖 process-embeddings-queue:"
+echo "      • Processamento automático de embeddings"
+echo "      • Acionado por webhook ou cron job"
+echo "      • Processa fontes com status='pending'"
+echo ""
 echo "🔗 URLs das funções:"
 echo "   https://bwgglfforazywrjhbxsa.supabase.co/functions/v1/generate-quiz"
 echo "   https://bwgglfforazywrjhbxsa.supabase.co/functions/v1/generate-flashcards"
 echo "   https://bwgglfforazywrjhbxsa.supabase.co/functions/v1/generate-summary"
 echo "   https://bwgglfforazywrjhbxsa.supabase.co/functions/v1/chat"
+echo "   https://bwgglfforazywrjhbxsa.supabase.co/functions/v1/process-embeddings-queue"
 echo ""
-echo "🧪 Agora você pode testar todas as funcionalidades no aplicativo!"
+echo "⚠️  IMPORTANTE - Configure o webhook para embeddings automáticos:"
+echo "   1. Abra: https://supabase.com/dashboard/project/bwgglfforazywrjhbxsa/database/webhooks"
+echo "   2. Clique em 'Create a new hook'"
+echo "   3. Siga as instruções em: WEBHOOK_CONFIG.txt"
+echo ""
+echo "🧪 Depois de configurar o webhook, teste fazendo upload de um PDF!"
 echo ""
 echo "════════════════════════════════════════════════════════════════"
 echo ""
