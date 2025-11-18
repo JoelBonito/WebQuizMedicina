@@ -48,11 +48,11 @@ export function Navbar({ onBackClick, projectName }: NavbarProps) {
               <ArrowLeft className="w-5 h-5 text-gray-700" />
             </Button>
           )}
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg">
-              <Sparkles className="w-5 h-5 text-white" />
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg">
+              <Sparkles className="w-6 h-6 text-white" />
             </div>
-            <span className="text-gray-900 tracking-tight">
+            <span className="text-xl font-medium text-gray-900">
               Web Quiz Medicina
             </span>
           </div>
@@ -76,8 +76,8 @@ export function Navbar({ onBackClick, projectName }: NavbarProps) {
                 size="icon"
                 className="rounded-xl hover:bg-gray-100"
               >
-                <Avatar className="w-9 h-9 ring-2 ring-purple-200 ring-offset-2 ring-offset-white">
-                  <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-500 text-white">
+                <Avatar className="w-10 h-10 ring-2 ring-purple-500 ring-offset-2 ring-offset-white">
+                  <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white font-semibold">
                     {getUserInitials()}
                   </AvatarFallback>
                 </Avatar>
