@@ -1,85 +1,107 @@
 #!/bin/bash
+# ============================================================================
+# DEPLOY EDGE FUNCTIONS - WebQuizMedicina
+# ============================================================================
+# Este script faz deploy das edge functions atualizadas para o Supabase
+# ============================================================================
 
-# Script para deploy das Edge Functions com correções de CORS
-# Execute: bash deploy-functions.sh
+set -e  # Exit on error
 
-echo "🚀 Deploy de Edge Functions - Correção de CORS"
-echo "=============================================="
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+echo -e "${GREEN}🚀 Deploy Edge Functions - WebQuizMedicina${NC}"
 echo ""
 
+# Project ref
 PROJECT_REF="bwgglfforazywrjhbxsa"
 
-echo "📦 Funções a serem deployadas:"
-echo "  - generate-quiz"
-echo "  - generate-flashcards"
-echo "  - generate-summary"
-echo "  - generate-focused-summary"
-echo "  - chat"
+# ============================================================================
+# Verificar Supabase CLI
+# ============================================================================
+if ! command -v supabase &> /dev/null; then
+    echo -e "${RED}❌ Supabase CLI não encontrado!${NC}"
+    echo ""
+    echo "Instale o Supabase CLI primeiro:"
+    echo ""
+    echo "  # macOS"
+    echo "  brew install supabase/tap/supabase"
+    echo ""
+    echo "  # Linux"
+    echo "  brew install supabase/tap/supabase"
+    echo ""
+    echo "  # Windows (PowerShell)"
+    echo "  scoop install supabase"
+    echo ""
+    echo "  # Ou via npm"
+    echo "  npm install -g supabase"
+    echo ""
+    exit 1
+fi
+
+echo -e "${GREEN}✅ Supabase CLI encontrado: $(supabase --version)${NC}"
 echo ""
 
-# Verificar se está no diretório correto
+# ============================================================================
+# Verificar se está na pasta correta
+# ============================================================================
 if [ ! -d "supabase/functions" ]; then
-    echo "❌ Erro: Execute este script na raiz do projeto WebQuizMedicina"
+    echo -e "${RED}❌ Erro: Pasta supabase/functions não encontrada!${NC}"
+    echo "Execute este script na raiz do projeto WebQuizMedicina"
     exit 1
 fi
 
-echo "🔐 Fazendo login no Supabase..."
-npx supabase login
-
-if [ $? -ne 0 ]; then
-    echo "❌ Login falhou. Verifique suas credenciais."
-    exit 1
-fi
-
-echo ""
-echo "🚀 Iniciando deploy..."
+echo -e "${GREEN}✅ Pasta supabase/functions encontrada${NC}"
 echo ""
 
-# Deploy de cada função
-FUNCTIONS=(
-    "generate-quiz"
-    "generate-flashcards"
-    "generate-summary"
-    "generate-focused-summary"
-    "chat"
-)
+# ============================================================================
+# Link com projeto (se necessário)
+# ============================================================================
+echo -e "${YELLOW}🔗 Verificando link com projeto...${NC}"
 
-SUCCESS_COUNT=0
-FAILED_COUNT=0
-
-for func in "${FUNCTIONS[@]}"; do
-    echo "📤 Deployando $func..."
-    npx supabase functions deploy "$func" --project-ref "$PROJECT_REF"
-
-    if [ $? -eq 0 ]; then
-        echo "✅ $func deployado com sucesso!"
-        ((SUCCESS_COUNT++))
-    else
-        echo "❌ Falha ao deployar $func"
-        ((FAILED_COUNT++))
-    fi
-    echo ""
-done
-
-echo "=============================================="
-echo "📊 Resumo do Deploy:"
-echo "  ✅ Sucesso: $SUCCESS_COUNT"
-echo "  ❌ Falhas: $FAILED_COUNT"
-echo ""
-
-if [ $FAILED_COUNT -eq 0 ]; then
-    echo "🎉 Todas as funções foram deployadas com sucesso!"
-    echo ""
-    echo "🧪 Teste agora no console do navegador (F12):"
-    echo ""
-    echo "fetch('https://bwgglfforazywrjhbxsa.supabase.co/functions/v1/generate-quiz', {"
-    echo "  method: 'OPTIONS',"
-    echo "  headers: { 'Origin': 'https://web-quiz-medicina.vercel.app' }"
-    echo "}).then(r => console.log('Status:', r.status, 'CORS:', r.headers.get('access-control-allow-origin')))"
-    echo ""
-    echo "Resultado esperado: Status: 200 CORS: https://web-quiz-medicina.vercel.app"
+if ! supabase projects list 2>/dev/null | grep -q "$PROJECT_REF"; then
+    echo -e "${YELLOW}⚠️ Projeto não linkado. Fazendo link...${NC}"
+    supabase link --project-ref "$PROJECT_REF"
 else
-    echo "⚠️  Algumas funções falharam. Verifique os erros acima."
+    echo -e "${GREEN}✅ Projeto já linkado${NC}"
 fi
+echo ""
 
+# ============================================================================
+# Deploy Edge Functions
+# ============================================================================
+echo -e "${YELLOW}📦 Fazendo deploy das edge functions...${NC}"
+echo ""
+
+# Deploy generate-quiz (com correção de JSON truncado)
+echo -e "${YELLOW}Deploying: generate-quiz${NC}"
+if supabase functions deploy generate-quiz --project-ref "$PROJECT_REF"; then
+    echo -e "${GREEN}✅ generate-quiz deployed com sucesso!${NC}"
+else
+    echo -e "${RED}❌ Erro ao fazer deploy de generate-quiz${NC}"
+    exit 1
+fi
+echo ""
+
+# ============================================================================
+# Resumo
+# ============================================================================
+echo ""
+echo "════════════════════════════════════════════════════════════════"
+echo -e "${GREEN}🎉 Deploy concluído!${NC}"
+echo "════════════════════════════════════════════════════════════════"
+echo ""
+echo "✅ Função generate-quiz atualizada com:"
+echo "   - Parser de JSON truncado melhorado"
+echo "   - Recuperação automática de questões parciais"
+echo "   - Batches menores (12 questões ao invés de 16)"
+echo ""
+echo "🔗 URL da função:"
+echo "   https://bwgglfforazywrjhbxsa.supabase.co/functions/v1/generate-quiz"
+echo ""
+echo "🧪 Agora você pode testar gerando um quiz no seu aplicativo!"
+echo ""
+echo "════════════════════════════════════════════════════════════════"
 echo ""
