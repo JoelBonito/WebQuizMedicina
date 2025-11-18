@@ -62,7 +62,7 @@ export const useChat = (projectId: string | null) => {
   }, [projectId, user]);
 
   const sendMessage = async (message: string): Promise<ChatResponse | null> => {
-    // More detailed error checking
+    // More detailed error checking - VERCEL BUILD v2
     if (!session) {
       console.error('[useChat] Session is missing:', { session, user, projectId });
       throw new Error('Sessão expirada. Por favor, faça login novamente.');
