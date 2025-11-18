@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
 import {
   authenticateRequest,
   createSuccessResponse,
@@ -74,11 +74,15 @@ serve(async (req) => {
     );
 
     // 4. Get source and verify ownership
+    // sources -> projects -> user_id (JOIN required)
     const { data: source, error: sourceError } = await supabaseClient
       .from('sources')
-      .select('*')
+      .select(`
+        *,
+        projects!inner(user_id)
+      `)
       .eq('id', source_id)
-      .eq('user_id', user.id)
+      .eq('projects.user_id', user.id)
       .single();
 
     if (sourceError || !source) {

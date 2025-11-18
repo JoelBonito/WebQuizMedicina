@@ -1,7 +1,7 @@
 // Security middleware and utilities for Edge Functions
 // Implements rate limiting, security headers, CORS, and request validation
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
 
 // ============================================
 // CORS CONFIGURATION
