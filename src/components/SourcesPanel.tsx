@@ -342,22 +342,23 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange }: SourcesPane
       </div>
 
       {/* Sources List */}
-      <ScrollArea className="flex-1">
-        {loading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
-          </div>
-        ) : sources.length === 0 ? (
-          <div className="text-center py-8">
-            <FileText className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-            <p className="text-gray-500 text-sm">Nenhuma fonte adicionada</p>
-            <p className="text-gray-400 text-xs mt-1">
-              Envie arquivos para começar
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-3 pr-2">
-            {sources.map((source, index) => (
+      <div className="flex-1 min-h-0 overflow-hidden">
+        <ScrollArea className="h-full">
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
+            </div>
+          ) : sources.length === 0 ? (
+            <div className="text-center py-8">
+              <FileText className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+              <p className="text-gray-500 text-sm">Nenhuma fonte adicionada</p>
+              <p className="text-gray-400 text-xs mt-1">
+                Envie arquivos para começar
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3 pr-2 pb-2">
+              {sources.map((source, index) => (
               <motion.div
                 key={source.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -433,7 +434,8 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange }: SourcesPane
             ))}
           </div>
         )}
-      </ScrollArea>
+        </ScrollArea>
+      </div>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deletingSource !== null} onOpenChange={(open) => !open && setDeletingSource(null)}>

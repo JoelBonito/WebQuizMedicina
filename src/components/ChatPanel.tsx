@@ -179,9 +179,10 @@ export function ChatPanel({ projectId }: ChatPanelProps) {
       ) : (
         <>
           {/* Messages */}
-          <ScrollArea className="flex-1 mb-4" ref={scrollAreaRef}>
-            <div className="space-y-4 pr-2">
-              {loading && messages.length === 0 ? (
+          <div className="flex-1 min-h-0 overflow-hidden mb-4">
+            <ScrollArea className="h-full" ref={scrollAreaRef}>
+              <div className="space-y-4 pr-2 pb-2">
+                {loading && messages.length === 0 ? (
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
                 </div>
@@ -281,8 +282,9 @@ export function ChatPanel({ projectId }: ChatPanelProps) {
                 </>
               )}
               <div ref={messagesEndRef} />
-            </div>
-          </ScrollArea>
+              </div>
+            </ScrollArea>
+          </div>
 
           {/* Suggestions */}
           {messages.length === 0 && suggestions.length > 0 && (
