@@ -133,6 +133,30 @@ export const useChat = (projectId: string | null) => {
     };
 
     fetchMessages();
+
+    // Setup realtime subscription for chat messages
+    const channel = supabase
+      .channel(`chat_messages:${projectId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'chat_messages',
+          filter: `project_id=eq.${projectId}`,
+        },
+        (payload) => {
+          console.log('[useChat] Realtime update:', payload);
+
+          // Refetch all messages to maintain correct pairing
+          fetchMessages();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [projectId, user]);
 
   const sendMessage = async (message: string): Promise<ChatResponse | null> => {
