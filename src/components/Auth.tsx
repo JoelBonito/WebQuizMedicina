@@ -74,43 +74,43 @@ export function Auth() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#F0F9FF] via-white to-[#F1F8E9] p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#F0F9FF] via-white to-[#F1F8E9] p-4 py-6">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
         className="w-full max-w-md"
       >
-        <div className="text-center mb-8">
-          <div className="mx-auto mb-6 flex justify-center">
-            <Logo className="w-auto h-32" variant="full" />
+        <div className="text-center mb-5">
+          <div className="mx-auto mb-4 flex justify-center">
+            <Logo className="w-auto h-20" variant="full" />
           </div>
-          <h1 className="text-2xl font-semibold text-gray-900 mb-2">
+          <h1 className="text-xl font-semibold text-gray-900 mb-1">
             Bem-vindo ao QuizMed
           </h1>
-          <p className="text-gray-600">
+          <p className="text-sm text-gray-600">
             Potencialize seus estudos de medicina com inteligência artificial
           </p>
         </div>
 
         <Card className="glass-dark border-gray-200 shadow-2xl">
-          <CardHeader>
-            <CardTitle>Bem-vindo</CardTitle>
-            <CardDescription>
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg">Bem-vindo</CardTitle>
+            <CardDescription className="text-sm">
               Entre ou crie sua conta para começar
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-0">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsList className="grid w-full grid-cols-2 mb-4">
                 <TabsTrigger value="signin">Entrar</TabsTrigger>
                 <TabsTrigger value="signup">Cadastrar</TabsTrigger>
               </TabsList>
 
               <TabsContent value="signin">
-                <form onSubmit={handleSignIn} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email-signin">Email</Label>
+                <form onSubmit={handleSignIn} className="space-y-3">
+                  <div className="space-y-1">
+                    <Label htmlFor="email-signin" className="text-sm">Email</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <Input
@@ -120,12 +120,12 @@ export function Auth() {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         required
-                        className="rounded-xl pl-10"
+                        className="rounded-xl pl-10 h-10"
                       />
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="password-signin">Senha</Label>
+                  <div className="space-y-1">
+                    <Label htmlFor="password-signin" className="text-sm">Senha</Label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <Input
@@ -135,28 +135,28 @@ export function Auth() {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
-                        className="rounded-xl pl-10"
+                        className="rounded-xl pl-10 h-10"
                       />
                     </div>
                   </div>
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-2">
                       <Checkbox
                         id="remember"
                         checked={rememberMe}
                         onCheckedChange={(checked) => setRememberMe(checked as boolean)}
                       />
-                      <Label htmlFor="remember" className="text-sm cursor-pointer font-normal">
+                      <Label htmlFor="remember" className="text-xs cursor-pointer font-normal">
                         Lembrar-me
                       </Label>
                     </div>
-                    <a href="#" className="text-sm text-[#0891B2] hover:text-[#2B3E6F] hover:underline">
+                    <a href="#" className="text-xs text-[#0891B2] hover:text-[#2B3E6F] hover:underline">
                       Esqueceu a senha?
                     </a>
                   </div>
                   <Button
                     type="submit"
-                    className="w-full rounded-xl bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white"
+                    className="w-full rounded-xl bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white h-10"
                     disabled={loading}
                   >
                     {loading ? (
@@ -171,9 +171,9 @@ export function Auth() {
               </TabsContent>
 
               <TabsContent value="signup">
-                <form onSubmit={handleSignUp} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email-signup">Email</Label>
+                <form onSubmit={handleSignUp} className="space-y-3">
+                  <div className="space-y-1">
+                    <Label htmlFor="email-signup" className="text-sm">Email</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <Input
@@ -183,12 +183,12 @@ export function Auth() {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         required
-                        className="rounded-xl pl-10"
+                        className="rounded-xl pl-10 h-10"
                       />
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="password-signup">Senha</Label>
+                  <div className="space-y-1">
+                    <Label htmlFor="password-signup" className="text-sm">Senha</Label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <Input
@@ -199,13 +199,13 @@ export function Auth() {
                         onChange={(e) => setPassword(e.target.value)}
                         required
                         minLength={6}
-                        className="rounded-xl pl-10"
+                        className="rounded-xl pl-10 h-10"
                       />
                     </div>
                   </div>
                   <Button
                     type="submit"
-                    className="w-full rounded-xl bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white"
+                    className="w-full rounded-xl bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white h-10"
                     disabled={loading}
                   >
                     {loading ? (
@@ -220,7 +220,7 @@ export function Auth() {
               </TabsContent>
             </Tabs>
 
-            <div className="relative my-6">
+            <div className="relative my-4">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-gray-300" />
               </div>
@@ -232,7 +232,7 @@ export function Auth() {
             <div className="grid grid-cols-2 gap-3">
               <Button
                 variant="outline"
-                className="rounded-xl"
+                className="rounded-xl h-10 text-sm"
                 onClick={handleGoogleSignIn}
                 disabled={loading}
               >
@@ -259,7 +259,7 @@ export function Auth() {
 
               <Button
                 variant="outline"
-                className="rounded-xl"
+                className="rounded-xl h-10 text-sm"
                 onClick={handleGitHubSignIn}
                 disabled={loading}
               >
@@ -270,7 +270,7 @@ export function Auth() {
           </CardContent>
         </Card>
 
-        <p className="text-center text-sm text-gray-600 mt-6">
+        <p className="text-center text-xs text-gray-600 mt-4">
           Desenvolvido com ❤️ para potencializar seus estudos
         </p>
       </motion.div>
