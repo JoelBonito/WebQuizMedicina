@@ -10,6 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
+import { Logo } from "./Logo";
 
 interface NavbarProps {
   onBackClick?: () => void;
@@ -54,20 +55,15 @@ export function Navbar({ onBackClick, projectName }: NavbarProps) {
             </Button>
           )}
           <div className="flex items-center gap-3">
-            <img 
-              src="/logo.png" 
-              alt="QuizMed Logo" 
-              className="w-10 h-10 object-contain"
+            <Logo
+              variant={onBackClick ? "full" : "icon"}
+              className={onBackClick ? "w-28 h-8" : "w-10 h-10"}
             />
-            {!onBackClick ? (
+            {!onBackClick && (
               <div>
                 <h1 className="text-xl font-semibold text-gray-900">Minhas Matérias</h1>
                 <p className="text-xs text-gray-600">Gerencie seus estudos e materiais</p>
               </div>
-            ) : (
-              <span className="text-xl font-medium bg-gradient-to-r from-[#2B3E6F] to-[#0891B2] bg-clip-text text-transparent">
-                QuizMed
-              </span>
             )}
           </div>
         </div>
