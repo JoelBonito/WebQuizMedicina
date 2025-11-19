@@ -222,7 +222,7 @@ export function QuizSession({
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="p-8"
+              className="p-8 overflow-y-auto max-h-[90vh]"
             >
               {/* Summary */}
               <div className="text-center mb-8">
