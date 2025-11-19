@@ -4,9 +4,11 @@ import { SourcesPanel } from "./components/SourcesPanel";
 import { ContentPanel } from "./components/ContentPanel";
 import { RightPanel } from "./components/RightPanel";
 import { ResizableLayout } from "./components/ResizableLayout";
+import { MobileView } from "./components/MobileView";
 import { Dashboard } from "./components/Dashboard";
 import { Auth } from "./components/Auth";
 import { useAuth } from "./hooks/useAuth";
+import { useIsMobile } from "./hooks/useMediaQuery";
 import { Loader2 } from "lucide-react";
 import { Toaster } from "./components/ui/sonner";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -14,6 +16,7 @@ import { LanguageProvider } from "./contexts/LanguageContext";
 
 export default function App() {
   const { user, loading } = useAuth();
+  const isMobile = useIsMobile();
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [selectedSourceIds, setSelectedSourceIds] = useState<string[]>([]);
   const [view, setView] = useState<"dashboard" | "project">("dashboard");
@@ -83,27 +86,39 @@ export default function App() {
           <Navbar onBackClick={handleBackToDashboard} />
 
           {/* Main Content */}
-          <div className="pt-20 px-6 pb-6 h-screen overflow-hidden">
-            <div className="h-full overflow-hidden gap-4">
-              <ResizableLayout
-                leftPanel={
-                  <SourcesPanel
-                    projectId={selectedProjectId}
-                    onSelectedSourcesChange={handleSelectedSourcesChange}
-                  />
-                }
-                centerPanel={
-                  <ContentPanel
-                    projectId={selectedProjectId}
-                    selectedSourceIds={selectedSourceIds}
-                  />
-                }
-                rightPanel={
-                  <RightPanel projectId={selectedProjectId} />
-                }
+          {isMobile ? (
+            // Mobile View with Bottom Navigation
+            <div className="pt-16 h-screen overflow-hidden">
+              <MobileView
+                projectId={selectedProjectId}
+                selectedSourceIds={selectedSourceIds}
+                onSelectedSourcesChange={handleSelectedSourcesChange}
               />
             </div>
-          </div>
+          ) : (
+            // Desktop View with Resizable Panels
+            <div className="pt-20 px-6 pb-6 h-screen overflow-hidden">
+              <div className="h-full overflow-hidden gap-4">
+                <ResizableLayout
+                  leftPanel={
+                    <SourcesPanel
+                      projectId={selectedProjectId}
+                      onSelectedSourcesChange={handleSelectedSourcesChange}
+                    />
+                  }
+                  centerPanel={
+                    <ContentPanel
+                      projectId={selectedProjectId}
+                      selectedSourceIds={selectedSourceIds}
+                    />
+                  }
+                  rightPanel={
+                    <RightPanel projectId={selectedProjectId} />
+                  }
+                />
+              </div>
+            </div>
+          )}
         </div>
         <Toaster />
       </LanguageProvider>
