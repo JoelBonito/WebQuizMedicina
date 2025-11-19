@@ -8,6 +8,7 @@ import {
   Loader2,
   AlertCircle,
   CheckCircle2,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
@@ -27,6 +28,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "./ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "./ui/dialog";
+import { supabase } from "../lib/supabase";
 
 interface SourcesPanelProps {
   projectId: string | null;
@@ -94,6 +104,9 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange }: SourcesPane
   const [generatedCounts, setGeneratedCounts] = useState<
     Record<string, { quiz: number; flashcards: number; summaries: number }>
   >({});
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [uploadedSourceIds, setUploadedSourceIds] = useState<string[]>([]);
+  const [processingEmbeddings, setProcessingEmbeddings] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch generated counts for all sources
@@ -182,6 +195,9 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange }: SourcesPane
       "image/png",
     ];
 
+    const uploadedIds: string[] = [];
+    let successCount = 0;
+
     for (const file of files) {
       if (!allowedTypes.includes(file.type) && !file.name.match(/\.(pdf|txt|md|mp3|wav|m4a|jpg|jpeg|png)$/i)) {
         toast.error(`Tipo de arquivo não suportado: ${file.name}`);
@@ -189,12 +205,53 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange }: SourcesPane
       }
 
       try {
-        await uploadSource(file);
+        const source = await uploadSource(file);
+        if (source) {
+          uploadedIds.push(source.id);
+          successCount++;
+        }
         toast.success(`${file.name} enviado com sucesso!`);
       } catch (error) {
         console.error("Upload error:", error);
         toast.error(`Erro ao enviar ${file.name}`);
       }
+    }
+
+    // Se pelo menos um arquivo foi enviado com sucesso, mostrar modal
+    if (successCount > 0) {
+      setUploadedSourceIds(uploadedIds);
+      setShowSuccessModal(true);
+    }
+  };
+
+  const processEmbeddings = async () => {
+    setProcessingEmbeddings(true);
+
+    try {
+      // Chamar a Edge Function para processar embeddings
+      const { data, error } = await supabase.functions.invoke('process-embeddings-queue', {
+        body: { max_items: 10 }
+      });
+
+      if (error) {
+        console.error('Error processing embeddings:', error);
+        toast.error('Erro ao processar embeddings. Tente novamente.');
+        return;
+      }
+
+      console.log('Embeddings processing result:', data);
+
+      // Fechar modal e mostrar sucesso
+      setShowSuccessModal(false);
+      toast.success('Processamento de embeddings iniciado com sucesso!');
+
+      // Limpar IDs
+      setUploadedSourceIds([]);
+    } catch (error) {
+      console.error('Error calling process-embeddings-queue:', error);
+      toast.error('Erro ao iniciar processamento. Tente novamente.');
+    } finally {
+      setProcessingEmbeddings(false);
     }
   };
 
@@ -395,6 +452,48 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange }: SourcesPane
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Upload Success Modal */}
+      <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
+        <DialogContent className="rounded-3xl sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center justify-center mb-4">
+              <div className="rounded-full bg-gradient-to-r from-purple-500 to-pink-500 p-3">
+                <CheckCircle2 className="w-8 h-8 text-white" />
+              </div>
+            </div>
+            <DialogTitle className="text-xl font-semibold text-gray-900 text-center">
+              Upload Concluído com Sucesso!
+            </DialogTitle>
+            <DialogDescription className="text-center text-gray-600">
+              {uploadedSourceIds.length === 1
+                ? "Seu arquivo foi enviado com sucesso."
+                : `${uploadedSourceIds.length} arquivos foram enviados com sucesso.`}
+              {" "}
+              Clique no botão abaixo para processar os arquivos e habilitar a busca semântica.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="sm:justify-center gap-3">
+            <Button
+              onClick={processEmbeddings}
+              disabled={processingEmbeddings}
+              className="rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 px-6"
+            >
+              {processingEmbeddings ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Processando...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Processar Arquivos
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
