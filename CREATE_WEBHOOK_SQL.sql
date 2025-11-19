@@ -36,12 +36,12 @@ BEGIN
     END IF;
   END IF;
 
-  -- Faz a chamada HTTP usando net.http_post (pg_net extension)
+  -- Faz a chamada HTTP usando SERVICE_ROLE_KEY (bypassa RLS)
   SELECT net.http_post(
     url := webhook_url,
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
-      'Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ3Z2dsZmZvcmF6eXdyamhieHNhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMzMDIwMzMsImV4cCI6MjA3ODg3ODAzM30.Ngf582OBWuPXO9sshKBYcWxk8J7z3AqJ8gGjdsCyCkU'
+      'Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ3Z2dsZmZvcmF6eXdyamhieHNhIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MzMwMjAzMywiZXhwIjoyMDc4ODc4MDMzfQ.v4vkSjjYtJI0nRQvCVYR_3a3RbAMXN2mQ-j6UcqwcHw'
     ),
     body := jsonb_build_object(
       'source_id', NEW.id,
