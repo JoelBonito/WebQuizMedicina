@@ -88,7 +88,7 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
   const [startTime] = useState<number>(Date.now());
 
   const { saveFlashcardProgress } = useProgress();
-  const { addDifficulty } = useDifficulties();
+  const { addDifficulty } = useDifficulties(projectId);
 
   const currentCard = flashcards[currentIndex];
   const progressPercentage = ((currentIndex + 1) / flashcards.length) * 100;
@@ -196,7 +196,7 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
             : "Estude os flashcards virando as cartas e avalie seu conhecimento"}
         </DialogDescription>
         {sessionState === "studying" ? (
-          <div className="flex flex-col h-full">
+          <div className="flex flex-col h-full overflow-hidden">
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <div className="flex items-center gap-4">
@@ -226,7 +226,7 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
             </div>
 
             {/* Flashcard */}
-            <div className="flex-1 flex items-center justify-center p-8">
+            <div className="flex-1 flex items-center justify-center p-8 overflow-y-auto">
               <motion.div
                 className="relative w-full max-w-2xl"
                 style={{ perspective: 1000 }}
@@ -321,7 +321,7 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
           </div>
         ) : (
           // Summary Screen
-          <div className="flex flex-col items-center justify-center p-12">
+          <div className="flex flex-col items-center justify-center p-12 overflow-y-auto max-h-[90vh]">
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
