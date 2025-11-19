@@ -228,27 +228,34 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange }: SourcesPane
     setProcessingEmbeddings(true);
 
     try {
+      console.log(`🚀 Iniciando processamento de embeddings para ${uploadedSourceIds.length} arquivos`);
+
       // Chamar a Edge Function para processar embeddings
       const { data, error } = await supabase.functions.invoke('process-embeddings-queue', {
         body: { max_items: 10 }
       });
 
       if (error) {
-        console.error('Error processing embeddings:', error);
+        console.error('❌ Error processing embeddings:', error);
         toast.error('Erro ao processar embeddings. Tente novamente.');
         return;
       }
 
-      console.log('Embeddings processing result:', data);
+      console.log('✅ Embeddings processing result:', data);
 
       // Fechar modal e mostrar sucesso
       setShowSuccessModal(false);
-      toast.success('Processamento de embeddings iniciado com sucesso!');
+
+      if (data?.processed > 0) {
+        toast.success(`Processamento iniciado! ${data.processed} arquivo(s) sendo processado(s).`);
+      } else {
+        toast.success('Processamento de embeddings iniciado com sucesso!');
+      }
 
       // Limpar IDs
       setUploadedSourceIds([]);
     } catch (error) {
-      console.error('Error calling process-embeddings-queue:', error);
+      console.error('❌ Error calling process-embeddings-queue:', error);
       toast.error('Erro ao iniciar processamento. Tente novamente.');
     } finally {
       setProcessingEmbeddings(false);

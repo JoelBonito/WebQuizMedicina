@@ -17,7 +17,7 @@ export interface GeminiResponse {
 export async function callGemini(
   prompt: string,
   model: 'gemini-2.5-flash' | 'gemini-2.5-pro' | 'gemini-2.5-flash-lite' = 'gemini-2.5-flash',
-  maxOutputTokens: number = 8192
+  maxOutputTokens: number = 16384 // Increased from 8192 - Gemini 2.5 supports up to 16k output tokens
 ): Promise<string> {
   if (!GEMINI_API_KEY) {
     throw new Error('GEMINI_API_KEY not configured');
@@ -79,26 +79,46 @@ export async function callGemini(
   }
 
   const candidate = data.candidates[0];
-
-  if (!candidate.content || !candidate.content.parts || candidate.content.parts.length === 0) {
-    console.error('❌ Invalid candidate structure:', JSON.stringify(candidate, null, 2));
-    throw new Error(`Gemini candidate has no content. Response: ${JSON.stringify(candidate).substring(0, 500)}`);
-  }
-
   const finishReason = candidate.finishReason;
 
-  // Check if response was truncated
-  if (finishReason === 'MAX_TOKENS') {
-    console.warn('⚠️ Gemini response was truncated due to MAX_TOKENS limit. Consider requesting less content or increasing maxOutputTokens.');
-  }
-
-  // Check for other problematic finish reasons
+  // Check for problematic finish reasons FIRST (before validating content)
   if (finishReason === 'SAFETY') {
     throw new Error('Response blocked by safety filters. Content may contain sensitive medical information.');
   }
 
+  if (finishReason === 'MAX_TOKENS') {
+    console.error('❌ Gemini response was truncated due to MAX_TOKENS limit');
+    console.error('Candidate:', JSON.stringify(candidate, null, 2));
+
+    // Check if there's any partial content we can recover
+    if (candidate.content && candidate.content.parts && candidate.content.parts.length > 0) {
+      const partialText = candidate.content.parts[0].text;
+      console.warn(`⚠️ MAX_TOKENS hit, but recovered ${partialText.length} characters of partial content`);
+      console.warn('This will likely cause JSON parsing errors. Consider:');
+      console.warn('  1. Reducing the number of items requested');
+      console.warn('  2. Increasing maxOutputTokens parameter');
+      console.warn('  3. Using batched processing for large requests');
+      return partialText; // Return partial content, let parseJsonFromResponse handle recovery
+    }
+
+    // No partial content available
+    throw new Error(
+      'Resposta truncada: O modelo atingiu o limite de tokens antes de completar. ' +
+      'Por favor, tente:\n' +
+      '  • Reduzir o número de questões solicitadas\n' +
+      '  • Selecionar menos conteúdo/fontes\n' +
+      'Candidato: ' + JSON.stringify(candidate).substring(0, 200)
+    );
+  }
+
   if (finishReason === 'RECITATION') {
     console.warn('⚠️ Response flagged for recitation. Content may be too similar to training data.');
+  }
+
+  // Now validate content structure
+  if (!candidate.content || !candidate.content.parts || candidate.content.parts.length === 0) {
+    console.error('❌ Invalid candidate structure:', JSON.stringify(candidate, null, 2));
+    throw new Error(`Gemini candidate has no content. Response: ${JSON.stringify(candidate).substring(0, 500)}`);
   }
 
   return candidate.content.parts[0].text;
@@ -141,7 +161,7 @@ export async function callGeminiWithFile(
           temperature: 0.7,
           topK: 40,
           topP: 0.95,
-          maxOutputTokens: 8192,
+          maxOutputTokens: 16384, // Gemini 2.5 supports up to 16k output tokens
         },
       }),
     }
