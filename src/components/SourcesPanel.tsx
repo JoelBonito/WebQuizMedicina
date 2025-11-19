@@ -97,7 +97,7 @@ const truncateFileName = (name: string, maxLength: number = 20): string => {
 };
 
 export function SourcesPanel({ projectId, onSelectedSourcesChange }: SourcesPanelProps) {
-  const { sources, loading, uploading, uploadSource, deleteSource } =
+  const { sources, loading, uploading, uploadSource, deleteSource, refetch } =
     useSources(projectId);
   const { user } = useAuth();
   const [isDragging, setIsDragging] = useState(false);
@@ -306,6 +306,10 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange }: SourcesPane
 
       if (data?.processed > 0) {
         toast.success(`Processamento iniciado! ${data.processed} arquivo(s) sendo processado(s).`);
+
+        // Refetch sources para garantir que o status está atualizado
+        console.log('🔄 Fazendo refetch das fontes após processamento...');
+        await refetch();
 
         // Adicionar resumo automático ao chat após processamento bem-sucedido
         await addSourcesSummaryToChat();
