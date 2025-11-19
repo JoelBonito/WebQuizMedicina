@@ -257,7 +257,6 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange }: SourcesPane
         user_id: user.id,
         role: 'system',
         content: summaryMessage,
-        is_system: true,
       });
 
       if (error) {
