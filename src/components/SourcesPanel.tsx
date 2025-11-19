@@ -224,6 +224,35 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange }: SourcesPane
     }
   };
 
+  const addSourcesSummaryToChat = async () => {
+    if (!projectId) return;
+
+    try {
+      // Buscar fontes processadas
+      const processedSources = sources.filter(s => uploadedSourceIds.includes(s.id));
+
+      if (processedSources.length === 0) return;
+
+      // Gerar resumo das fontes
+      const sourcesText = processedSources.map(s => `📄 **${s.name}**`).join('\n');
+
+      const summaryMessage = `✨ **Novas fontes adicionadas ao seu projeto!**\n\n${sourcesText}\n\n${processedSources.length} ${processedSources.length === 1 ? 'fonte processada' : 'fontes processadas'} e ${processedSources.length === 1 ? 'pronta' : 'prontas'} para consulta. Você pode fazer perguntas sobre ${processedSources.length === 1 ? 'este conteúdo' : 'estes conteúdos'} agora!`;
+
+      // Inserir mensagem de sistema no chat
+      await supabase.from('chat_messages').insert({
+        project_id: projectId,
+        message: 'system_sources_summary',
+        response: summaryMessage,
+        is_system: true,
+      });
+
+      console.log('✅ Resumo das fontes adicionado ao chat');
+    } catch (error) {
+      console.error('❌ Error adding sources summary to chat:', error);
+      // Não mostrar erro ao usuário, é uma feature nice-to-have
+    }
+  };
+
   const processEmbeddings = async () => {
     setProcessingEmbeddings(true);
 
@@ -248,6 +277,9 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange }: SourcesPane
 
       if (data?.processed > 0) {
         toast.success(`Processamento iniciado! ${data.processed} arquivo(s) sendo processado(s).`);
+
+        // Adicionar resumo automático ao chat após processamento bem-sucedido
+        await addSourcesSummaryToChat();
       } else {
         toast.success('Processamento de embeddings iniciado com sucesso!');
       }

@@ -7,9 +7,10 @@ interface DbChatMessage {
   id: string;
   project_id: string;
   user_id: string;
-  role: 'user' | 'assistant';
+  role: 'user' | 'assistant' | 'system';
   content: string;
   sources_cited: string[] | null;
+  is_system?: boolean;
   created_at: string;
 }
 
@@ -21,6 +22,7 @@ export interface ChatMessage {
   message: string;
   response: string;
   sources_cited: string[];
+  is_system?: boolean;
   created_at: string;
 }
 
@@ -47,7 +49,19 @@ function convertDbMessagesToUiFormat(dbMessages: DbChatMessage[]): ChatMessage[]
   for (let i = 0; i < dbMessages.length; i++) {
     const current = dbMessages[i];
 
-    if (current.role === 'user') {
+    if (current.role === 'system' || current.is_system) {
+      // System message - show as standalone notification
+      uiMessages.push({
+        id: current.id,
+        project_id: current.project_id,
+        user_id: current.user_id,
+        message: '',
+        response: current.content,
+        sources_cited: [],
+        is_system: true,
+        created_at: current.created_at,
+      });
+    } else if (current.role === 'user') {
       // Find the next assistant message
       const assistantMsg = dbMessages[i + 1];
 
