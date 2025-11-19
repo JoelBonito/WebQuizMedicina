@@ -79,11 +79,27 @@ export default function App() {
     );
   }
 
+  // Busca o projeto atual
+  const currentProject = projects.find(p => p.id === selectedProjectId);
+  const projectName = currentProject?.name || 'Matéria';
+
   return (
     <ThemeProvider>
       <LanguageProvider>
-        <div className="min-h-screen bg-white">
-          <Navbar onBackClick={handleBackToDashboard} />
+        {isMobile ? (
+          // Layout mobile com tabs em tela inteira
+          <>
+            <Navbar onBackClick={handleBackToDashboard} />
+            <MobileProjectLayout
+              projectId={selectedProjectId!}
+              projectName={projectName}
+              onBack={handleBackToDashboard}
+            />
+          </>
+        ) : (
+          // Layout desktop com 3 colunas
+          <div className="min-h-screen bg-white">
+            <Navbar onBackClick={handleBackToDashboard} />
 
           {/* Main Content */}
           {isMobile ? (
