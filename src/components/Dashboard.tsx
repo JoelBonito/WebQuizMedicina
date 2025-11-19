@@ -48,10 +48,15 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
 
     try {
       setSubmitting(true);
-      await createProject(formData.name.trim());
+      const newProject = await createProject(formData.name.trim());
       toast.success("Matéria criada com sucesso!");
       setIsAddDialogOpen(false);
       setFormData({ name: "" });
+
+      // Abrir o projeto recém-criado automaticamente
+      if (newProject?.id) {
+        onSelectSubject(newProject.id);
+      }
     } catch (error) {
       console.error("Error creating project:", error);
       toast.error("Erro ao criar matéria");

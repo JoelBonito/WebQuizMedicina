@@ -129,11 +129,22 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange }: SourcesPane
   // Initialize all sources as selected by default
   useEffect(() => {
     if (sources.length > 0) {
-      const allSourceIds = new Set(sources.filter(s => s.status === 'ready').map(s => s.id));
-      setSelectedSources(allSourceIds);
-      onSelectedSourcesChange?.(Array.from(allSourceIds));
+      const readySources = sources.filter(s => s.status === 'ready');
+      const readyIds = readySources.map(s => s.id);
+
+      // Add any new ready sources to the selection (keep existing selections)
+      setSelectedSources(prev => {
+        const newSelected = new Set(prev);
+        readyIds.forEach(id => newSelected.add(id));
+        return newSelected;
+      });
+
+      // Notify parent of all selected sources
+      const allSelected = new Set(selectedSources);
+      readyIds.forEach(id => allSelected.add(id));
+      onSelectedSourcesChange?.(Array.from(allSelected));
     }
-  }, [sources.length]);
+  }, [sources]);
 
   const handleSourceToggle = (sourceId: string, checked: boolean) => {
     const newSelected = new Set(selectedSources);
