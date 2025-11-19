@@ -17,6 +17,7 @@ import { Checkbox } from "./ui/checkbox";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { motion } from "motion/react";
 import { useSources } from "../hooks/useSources";
+import { useAuth } from "../hooks/useAuth";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -98,6 +99,7 @@ const truncateFileName = (name: string, maxLength: number = 20): string => {
 export function SourcesPanel({ projectId, onSelectedSourcesChange }: SourcesPanelProps) {
   const { sources, loading, uploading, uploadSource, deleteSource } =
     useSources(projectId);
+  const { user } = useAuth();
   const [isDragging, setIsDragging] = useState(false);
   const [selectedSources, setSelectedSources] = useState<Set<string>>(new Set());
   const [deletingSource, setDeletingSource] = useState<{ id: string; name: string } | null>(null);
@@ -236,7 +238,7 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange }: SourcesPane
   };
 
   const addSourcesSummaryToChat = async () => {
-    if (!projectId) return;
+    if (!projectId || !user) return;
 
     try {
       // Buscar fontes processadas
@@ -249,13 +251,19 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange }: SourcesPane
 
       const summaryMessage = `✨ **Novas fontes adicionadas ao seu projeto!**\n\n${sourcesText}\n\n${processedSources.length} ${processedSources.length === 1 ? 'fonte processada' : 'fontes processadas'} e ${processedSources.length === 1 ? 'pronta' : 'prontas'} para consulta. Você pode fazer perguntas sobre ${processedSources.length === 1 ? 'este conteúdo' : 'estes conteúdos'} agora!`;
 
-      // Inserir mensagem de sistema no chat
-      await supabase.from('chat_messages').insert({
+      // Inserir mensagem de sistema no chat (usando estrutura correta: role + content)
+      const { error } = await supabase.from('chat_messages').insert({
         project_id: projectId,
-        message: 'system_sources_summary',
-        response: summaryMessage,
+        user_id: user.id,
+        role: 'system',
+        content: summaryMessage,
         is_system: true,
       });
+
+      if (error) {
+        console.error('❌ Supabase error inserting summary:', error);
+        throw error;
+      }
 
       console.log('✅ Resumo das fontes adicionado ao chat');
     } catch (error) {
