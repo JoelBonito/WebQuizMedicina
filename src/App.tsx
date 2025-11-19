@@ -3,6 +3,7 @@ import { Navbar } from "./components/Navbar";
 import { SourcesPanel } from "./components/SourcesPanel";
 import { ContentPanel } from "./components/ContentPanel";
 import { RightPanel } from "./components/RightPanel";
+import { ResizableLayout } from "./components/ResizableLayout";
 import { Dashboard } from "./components/Dashboard";
 import { Auth } from "./components/Auth";
 import { useAuth } from "./hooks/useAuth";
@@ -72,27 +73,24 @@ export default function App() {
 
         {/* Main Content */}
         <div className="pt-20 px-6 pb-6 h-screen overflow-hidden">
-          <div className="h-full grid grid-cols-1 lg:grid-cols-12 gap-4 overflow-hidden">
-            {/* Left Panel - Sources (25%) */}
-            <div className="lg:col-span-3 h-full flex items-stretch overflow-hidden">
-              <SourcesPanel
-                projectId={selectedProjectId}
-                onSelectedSourcesChange={handleSelectedSourcesChange}
-              />
-            </div>
-
-            {/* Center Panel - Content (50%) */}
-            <div className="lg:col-span-6 h-full flex items-stretch overflow-hidden">
-              <ContentPanel
-                projectId={selectedProjectId}
-                selectedSourceIds={selectedSourceIds}
-              />
-            </div>
-
-            {/* Right Panel - Chat & Difficulties (25%) */}
-            <div className="lg:col-span-3 h-full flex items-stretch overflow-hidden">
-              <RightPanel projectId={selectedProjectId} />
-            </div>
+          <div className="h-full overflow-hidden gap-4">
+            <ResizableLayout
+              leftPanel={
+                <SourcesPanel
+                  projectId={selectedProjectId}
+                  onSelectedSourcesChange={handleSelectedSourcesChange}
+                />
+              }
+              centerPanel={
+                <ContentPanel
+                  projectId={selectedProjectId}
+                  selectedSourceIds={selectedSourceIds}
+                />
+              }
+              rightPanel={
+                <RightPanel projectId={selectedProjectId} />
+              }
+            />
           </div>
         </div>
       </div>
