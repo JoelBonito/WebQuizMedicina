@@ -142,11 +142,11 @@ export function ContentPanel({ projectId, selectedSourceIds = [] }: ContentPanel
           <TabsContent value="quiz" className="flex-1 overflow-auto space-y-4 pr-2">
             {loadingQuiz ? (
               <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
+                <Loader2 className="w-8 h-8 animate-spin text-[#0891B2]" />
               </div>
             ) : questions.length === 0 ? (
               <div className="text-center py-12">
-                <Sparkles className="w-12 h-12 mx-auto mb-4 text-purple-300" />
+                <Sparkles className="w-12 h-12 mx-auto mb-4 text-[#0891B2]" />
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">
                   Nenhum quiz ainda
                 </h3>
@@ -156,7 +156,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [] }: ContentPanel
                 <Button
                   onClick={handleGenerateQuiz}
                   disabled={generatingQuiz}
-                  className="rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+                  className="rounded-xl bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white"
                 >
                   {generatingQuiz ? (
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -181,7 +181,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [] }: ContentPanel
                     </div>
                     <Button
                       onClick={() => setQuizSessionOpen(true)}
-                      className="rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white shadow-lg"
+                      className="rounded-xl bg-gradient-to-r from-[#0891B2] to-[#2B3E6F] hover:from-[#0891B2] hover:to-[#2B3E6F] text-white shadow-lg"
                     >
                       <Play className="w-4 h-4 mr-2" />
                       Iniciar Quiz
@@ -225,7 +225,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [] }: ContentPanel
                 <Button
                   onClick={handleGenerateQuiz}
                   disabled={generatingQuiz}
-                  className="w-full rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg"
+                  className="w-full rounded-xl bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white shadow-lg"
                 >
                   {generatingQuiz ? (
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -242,11 +242,11 @@ export function ContentPanel({ projectId, selectedSourceIds = [] }: ContentPanel
           <TabsContent value="flashcards" className="flex-1 overflow-auto space-y-4 pr-2">
             {loadingFlashcards ? (
               <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
+                <Loader2 className="w-8 h-8 animate-spin text-[#0891B2]" />
               </div>
             ) : flashcards.length === 0 ? (
               <div className="text-center py-12">
-                <Sparkles className="w-12 h-12 mx-auto mb-4 text-purple-300" />
+                <Sparkles className="w-12 h-12 mx-auto mb-4 text-[#0891B2]" />
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">
                   Nenhum flashcard ainda
                 </h3>
@@ -256,7 +256,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [] }: ContentPanel
                 <Button
                   onClick={handleGenerateFlashcards}
                   disabled={generatingFlashcards}
-                  className="rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+                  className="rounded-xl bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white"
                 >
                   {generatingFlashcards ? (
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -321,7 +321,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [] }: ContentPanel
                 <Button
                   onClick={handleGenerateFlashcards}
                   disabled={generatingFlashcards}
-                  className="w-full rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg"
+                  className="w-full rounded-xl bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white shadow-lg"
                 >
                   {generatingFlashcards ? (
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -338,11 +338,11 @@ export function ContentPanel({ projectId, selectedSourceIds = [] }: ContentPanel
           <TabsContent value="summaries" className="flex-1 overflow-auto space-y-4 pr-2">
             {loadingSummaries ? (
               <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
+                <Loader2 className="w-8 h-8 animate-spin text-[#0891B2]" />
               </div>
             ) : summaries.length === 0 ? (
               <div className="text-center py-12">
-                <Sparkles className="w-12 h-12 mx-auto mb-4 text-purple-300" />
+                <Sparkles className="w-12 h-12 mx-auto mb-4 text-[#0891B2]" />
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">
                   Nenhum resumo ainda
                 </h3>
@@ -352,7 +352,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [] }: ContentPanel
                 <Button
                   onClick={handleGenerateSummary}
                   disabled={generatingSummary}
-                  className="rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+                  className="rounded-xl bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white"
                 >
                   {generatingSummary ? (
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -403,7 +403,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [] }: ContentPanel
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="rounded-lg hover:bg-gray-100 text-purple-600"
+                      className="rounded-lg hover:bg-gray-100 text-[#0891B2]"
                       onClick={() => setSelectedSummary(summary)}
                     >
                       Ler Completo
@@ -415,7 +415,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [] }: ContentPanel
                 <Button
                   onClick={handleGenerateSummary}
                   disabled={generatingSummary}
-                  className="w-full rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg"
+                  className="w-full rounded-xl bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white shadow-lg"
                 >
                   {generatingSummary ? (
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />

@@ -46,7 +46,7 @@ interface SourcesPanelProps {
 const getFileIcon = (type: string) => {
   if (type === "pdf") return <FileText className="w-5 h-5 text-red-500" />;
   if (["mp3", "wav", "m4a"].includes(type))
-    return <Music className="w-5 h-5 text-purple-500" />;
+    return <Music className="w-5 h-5 text-[#0891B2]" />;
   if (["jpg", "jpeg", "png"].includes(type))
     return <ImageIcon className="w-5 h-5 text-blue-500" />;
   return <FileText className="w-5 h-5 text-gray-500" />;
@@ -350,7 +350,7 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange }: SourcesPane
             size="sm"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
-            className="rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300"
+            className="rounded-xl bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300"
           >
             {uploading ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -370,8 +370,8 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange }: SourcesPane
           onClick={() => fileInputRef.current?.click()}
           className={`glass border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all duration-300 ${
             isDragging
-              ? "border-purple-500 bg-purple-100/50 scale-105"
-              : "border-gray-300 hover:border-purple-400 hover:bg-purple-50/30"
+              ? "border-[#0891B2] bg-[#F0F9FF]/50 scale-105"
+              : "border-gray-300 hover:border-[#0891B2] hover:bg-[#F0F9FF]/30"
           }`}
         >
           <Upload className="w-8 h-8 mx-auto mb-2 text-gray-600" />
@@ -389,7 +389,7 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange }: SourcesPane
         <ScrollArea className="h-full">
           {loading ? (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
+              <Loader2 className="w-8 h-8 animate-spin text-[#0891B2]" />
             </div>
           ) : sources.length === 0 ? (
             <div className="text-center py-8">
@@ -435,7 +435,7 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange }: SourcesPane
                       {generatedCounts[source.id]?.quiz > 0 && (
                         <Badge
                           variant="secondary"
-                          className="rounded-lg bg-purple-50 text-purple-700 border-purple-200 text-xs"
+                          className="rounded-lg bg-[#F0F9FF] text-[#0891B2] border-[#BAE6FD] text-xs"
                         >
                           <CheckCircle2 className="w-3 h-3 mr-1" />
                           {generatedCounts[source.id].quiz} Quiz
@@ -453,7 +453,7 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange }: SourcesPane
                       {generatedCounts[source.id]?.summaries > 0 && (
                         <Badge
                           variant="secondary"
-                          className="rounded-lg bg-pink-50 text-pink-700 border-pink-200 text-xs"
+                          className="rounded-lg bg-[#F1F8E9] text-[#7CB342] border-[#D4E157] text-xs"
                         >
                           <CheckCircle2 className="w-3 h-3 mr-1" />
                           {generatedCounts[source.id].summaries} Resumos
@@ -510,7 +510,7 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange }: SourcesPane
         <DialogContent className="rounded-3xl sm:max-w-md">
           <DialogHeader>
             <div className="flex items-center justify-center mb-4">
-              <div className="rounded-full bg-gradient-to-r from-purple-500 to-pink-500 p-3">
+              <div className="rounded-full bg-gradient-to-r from-[#0891B2] to-[#7CB342] p-3">
                 <CheckCircle2 className="w-8 h-8 text-white" />
               </div>
             </div>
@@ -529,7 +529,7 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange }: SourcesPane
             <Button
               onClick={processEmbeddings}
               disabled={processingEmbeddings}
-              className="rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 px-6"
+              className="rounded-xl bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white shadow-lg hover:shadow-xl transition-all duration-300 px-6"
             >
               {processingEmbeddings ? (
                 <>

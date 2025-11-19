@@ -243,7 +243,7 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
                     style={{ transformStyle: "preserve-3d" }}
                   >
                     <div className="text-center">
-                      <p className="text-xs font-semibold text-purple-600 mb-4 uppercase tracking-wider">
+                      <p className="text-xs font-semibold text-[#0891B2] mb-4 uppercase tracking-wider">
                         {isFlipped ? "VERSO" : "FRENTE"}
                       </p>
                       <p className="text-2xl text-gray-900 leading-relaxed">
@@ -328,7 +328,7 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
               transition={{ type: "spring", duration: 0.6 }}
               className="mb-8"
             >
-              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#0891B2] to-[#7CB342] flex items-center justify-center">
                 <Trophy className="w-12 h-12 text-white" />
               </div>
             </motion.div>
@@ -403,7 +403,7 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
               </Button>
               <Button
                 onClick={handleClose}
-                className="rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg"
+                className="rounded-xl bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white shadow-lg"
               >
                 Concluir
                 <ChevronRight className="w-4 h-4 ml-2" />

@@ -81,10 +81,10 @@ export function ResizableLayout({ leftPanel, centerPanel, rightPanel }: Resizabl
       {/* Left Divider */}
       <div
         onMouseDown={handleMouseDown('left')}
-        className="w-1 bg-gray-200 hover:bg-purple-400 cursor-col-resize flex items-center justify-center group relative transition-colors duration-200"
+        className="w-1 bg-gray-200 hover:bg-[#0891B2] cursor-col-resize flex items-center justify-center group relative transition-colors duration-200"
       >
         <div className="absolute inset-y-0 -left-1 -right-1 flex items-center justify-center">
-          <GripVertical className="w-3 h-3 text-gray-400 group-hover:text-purple-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+          <GripVertical className="w-3 h-3 text-gray-400 group-hover:text-[#0891B2] opacity-0 group-hover:opacity-100 transition-opacity" />
         </div>
       </div>
 
@@ -96,10 +96,10 @@ export function ResizableLayout({ leftPanel, centerPanel, rightPanel }: Resizabl
       {/* Right Divider */}
       <div
         onMouseDown={handleMouseDown('right')}
-        className="w-1 bg-gray-200 hover:bg-purple-400 cursor-col-resize flex items-center justify-center group relative transition-colors duration-200"
+        className="w-1 bg-gray-200 hover:bg-[#0891B2] cursor-col-resize flex items-center justify-center group relative transition-colors duration-200"
       >
         <div className="absolute inset-y-0 -left-1 -right-1 flex items-center justify-center">
-          <GripVertical className="w-3 h-3 text-gray-400 group-hover:text-purple-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+          <GripVertical className="w-3 h-3 text-gray-400 group-hover:text-[#0891B2] opacity-0 group-hover:opacity-100 transition-opacity" />
         </div>
       </div>
 

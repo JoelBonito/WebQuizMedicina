@@ -73,7 +73,7 @@ export function Auth() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 via-white to-pink-50 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#F0F9FF] via-white to-[#F1F8E9] p-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -81,10 +81,10 @@ export function Auth() {
         className="w-full max-w-md"
       >
         <div className="text-center mb-8">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-3xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-2xl">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-3xl bg-gradient-to-br from-[#0891B2] to-[#7CB342] flex items-center justify-center shadow-2xl">
             <Sparkles className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-[#0891B2] to-[#7CB342] bg-clip-text text-transparent">
             Bem-vindo ao EduAI
           </h1>
           <p className="text-gray-600 mt-2">
@@ -149,13 +149,13 @@ export function Auth() {
                         Lembrar-me
                       </Label>
                     </div>
-                    <a href="#" className="text-sm text-purple-600 hover:text-purple-700 hover:underline">
+                    <a href="#" className="text-sm text-[#0891B2] hover:text-[#2B3E6F] hover:underline">
                       Esqueceu a senha?
                     </a>
                   </div>
                   <Button
                     type="submit"
-                    className="w-full rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+                    className="w-full rounded-xl bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white"
                     disabled={loading}
                   >
                     {loading ? (
@@ -204,7 +204,7 @@ export function Auth() {
                   </div>
                   <Button
                     type="submit"
-                    className="w-full rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+                    className="w-full rounded-xl bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white"
                     disabled={loading}
                   >
                     {loading ? (

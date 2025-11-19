@@ -117,12 +117,12 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
         <div>
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
+              <Loader2 className="w-8 h-8 animate-spin text-[#0891B2]" />
             </div>
           ) : projects.length === 0 ? (
             <div className="text-center py-16">
-              <div className="w-20 h-20 mx-auto mb-6 rounded-3xl bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center">
-                <BookOpen className="w-10 h-10 text-purple-500" />
+              <div className="w-20 h-20 mx-auto mb-6 rounded-3xl bg-gradient-to-br from-[#E0F2FE] to-[#F0F9FF] flex items-center justify-center">
+                <BookOpen className="w-10 h-10 text-[#0891B2]" />
               </div>
               <h3 className="text-2xl font-semibold text-gray-900 mb-3">
                 Nenhuma matéria ainda
@@ -132,7 +132,7 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
               </p>
               <Button
                 onClick={openAddDialog}
-                className="rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg px-6 py-3"
+                className="rounded-xl bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white shadow-lg px-6 py-3"
               >
                 <Plus className="w-5 h-5 mr-2" />
                 Criar Primeira Matéria
@@ -151,7 +151,7 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
                   <div className="glass-dark rounded-2xl p-6 border border-gray-200 hover:shadow-xl transition-all duration-300 cursor-pointer h-full flex flex-col">
                     {/* Icon */}
                     <div className="flex items-center justify-between mb-4">
-                      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg">
+                      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#0891B2] to-[#7CB342] flex items-center justify-center shadow-lg">
                         <BookOpen className="w-7 h-7 text-white" />
                       </div>
 
@@ -191,13 +191,13 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
 
                       {/* Stats */}
                       <div className="flex flex-wrap gap-2 mb-4">
-                        <Badge variant="outline" className="rounded-lg text-blue-600 border-blue-300 bg-blue-50">
+                        <Badge variant="outline" className="rounded-lg text-[#0891B2] border-[#BAE6FD] bg-[#F0F9FF]">
                           0 Fontes
                         </Badge>
-                        <Badge variant="outline" className="rounded-lg text-purple-600 border-purple-300 bg-purple-50">
+                        <Badge variant="outline" className="rounded-lg text-[#0891B2] border-[#BAE6FD] bg-[#F0F9FF]">
                           0 Quiz
                         </Badge>
-                        <Badge variant="outline" className="rounded-lg text-pink-600 border-pink-300 bg-pink-50">
+                        <Badge variant="outline" className="rounded-lg text-[#7CB342] border-[#D4E157] bg-[#F1F8E9]">
                           0 Cards
                         </Badge>
                       </div>
@@ -206,7 +206,7 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
                     {/* Footer - Open button */}
                     <Button
                       variant="ghost"
-                      className="w-full justify-between rounded-xl hover:bg-purple-50 text-gray-700 font-medium"
+                      className="w-full justify-between rounded-xl hover:bg-[#F0F9FF] text-gray-700 font-medium"
                       onClick={() => onSelectSubject(project.id)}
                     >
                       Abrir matéria
@@ -223,7 +223,7 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
       {/* FAB - Floating Action Button */}
       <button
         onClick={openAddDialog}
-        className="fixed bottom-8 right-8 w-16 h-16 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-2xl hover:shadow-purple-500/50 transition-all duration-300 flex items-center justify-center z-50 group"
+        className="fixed bottom-8 right-8 w-16 h-16 rounded-full bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white shadow-2xl hover:shadow-[#0891B2]/50 transition-all duration-300 flex items-center justify-center z-50 group"
         aria-label="Nova Matéria"
       >
         <Plus className="w-7 h-7 group-hover:rotate-90 transition-transform duration-300" />
@@ -276,7 +276,7 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
                       editingProject ? handleEditProject() : handleAddProject();
                     }
                   }}
-                  className="rounded-xl border-gray-300 focus:border-purple-500"
+                  className="rounded-xl border-gray-300 focus:border-[#0891B2]"
                   autoFocus
                 />
               </div>
@@ -297,7 +297,7 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
               <Button
                 onClick={editingProject ? handleEditProject : handleAddProject}
                 disabled={!formData.name.trim() || submitting}
-                className="rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg"
+                className="rounded-xl bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white shadow-lg"
               >
                 {submitting ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
