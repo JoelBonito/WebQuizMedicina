@@ -63,8 +63,8 @@ export function Navbar({ onBackClick, projectName }: NavbarProps) {
           )}
           <div className="flex items-center gap-3">
             <Logo
-              variant={onBackClick ? "full" : "icon"}
-              className={onBackClick ? "w-28 h-8" : "w-10 h-10"}
+              variant="horizontal"
+              className="h-8 w-auto"
             />
             {!onBackClick && (
               <div>
