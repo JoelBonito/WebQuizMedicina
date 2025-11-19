@@ -73,12 +73,29 @@ export const useSources = (projectId: string | null) => {
           console.log('[useSources] Realtime update:', payload);
 
           if (payload.eventType === 'INSERT') {
-            setSources((prev) => [payload.new as Source, ...prev]);
+            const newSource = payload.new as Source;
+            console.log('[useSources] INSERT - New source:', { id: newSource.id, name: newSource.name, status: newSource.status });
+            setSources((prev) => {
+              const updated = [newSource, ...prev];
+              console.log('[useSources] After INSERT, total sources:', updated.length);
+              return updated;
+            });
           } else if (payload.eventType === 'UPDATE') {
-            setSources((prev) =>
-              prev.map((s) => (s.id === payload.new.id ? payload.new as Source : s))
-            );
+            const updatedSource = payload.new as Source;
+            console.log('[useSources] UPDATE - Updated source:', {
+              id: updatedSource.id,
+              name: updatedSource.name,
+              oldStatus: payload.old?.status,
+              newStatus: updatedSource.status,
+              embeddings_status: updatedSource.embeddings_status
+            });
+            setSources((prev) => {
+              const updated = prev.map((s) => (s.id === updatedSource.id ? updatedSource : s));
+              console.log('[useSources] After UPDATE, sources:', updated.map(s => ({ id: s.id, status: s.status })));
+              return updated;
+            });
           } else if (payload.eventType === 'DELETE') {
+            console.log('[useSources] DELETE - Deleted source ID:', payload.old?.id);
             setSources((prev) => prev.filter((s) => s.id !== payload.old.id));
           }
         }
