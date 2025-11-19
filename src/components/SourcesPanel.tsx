@@ -251,19 +251,29 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange }: SourcesPane
 
       const summaryMessage = `✨ **Novas fontes adicionadas ao seu projeto!**\n\n${sourcesText}\n\n${processedSources.length} ${processedSources.length === 1 ? 'fonte processada' : 'fontes processadas'} e ${processedSources.length === 1 ? 'pronta' : 'prontas'} para consulta. Você pode fazer perguntas sobre ${processedSources.length === 1 ? 'este conteúdo' : 'estes conteúdos'} agora!`;
 
-      // Inserir mensagem de sistema no chat (usando estrutura correta: role + content)
-      const { error } = await supabase.from('chat_messages').insert({
+      // Preparar dados para inserção
+      const insertData = {
         project_id: projectId,
         user_id: user.id,
         role: 'system',
         content: summaryMessage,
-        is_system: true,
-      });
+      };
+
+      console.log('📝 Tentando inserir mensagem de sistema:', insertData);
+      console.log('📝 User:', user);
+
+      // Inserir mensagem de sistema no chat (usando estrutura correta: role + content)
+      const { data, error } = await supabase.from('chat_messages').insert(insertData).select();
 
       if (error) {
         console.error('❌ Supabase error inserting summary:', error);
+        console.error('❌ Error details:', JSON.stringify(error, null, 2));
+        console.error('❌ Error code:', error.code);
+        console.error('❌ Error message:', error.message);
         throw error;
       }
+
+      console.log('✅ Resumo das fontes adicionado ao chat:', data);
 
       console.log('✅ Resumo das fontes adicionado ao chat');
     } catch (error) {
