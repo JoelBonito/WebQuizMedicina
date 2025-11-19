@@ -110,9 +110,25 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
 
   return (
     <div className="min-h-screen bg-white relative">
+      {/* Header Flutuante */}
+      <div className="sticky top-16 z-40 bg-white/95 backdrop-blur-sm border-b border-gray-200 shadow-sm">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Minhas Matérias</h1>
+            <p className="text-sm text-gray-600 mt-1">Gerencie seus estudos e materiais</p>
+          </div>
+          <Button
+            onClick={openAddDialog}
+            className="rounded-xl bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white shadow-lg px-5 py-2.5"
+          >
+            <Plus className="w-5 h-5 mr-2" />
+            Nova Matéria
+          </Button>
+        </div>
+      </div>
+
       {/* Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">
-
         {/* Content */}
         <div>
           {loading ? (
@@ -219,15 +235,6 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
           )}
         </div>
       </div>
-
-      {/* FAB - Floating Action Button */}
-      <button
-        onClick={openAddDialog}
-        className="fixed bottom-8 right-8 w-16 h-16 rounded-full bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white shadow-2xl hover:shadow-[#0891B2]/50 transition-all duration-300 flex items-center justify-center z-50 group"
-        aria-label="Nova Matéria"
-      >
-        <Plus className="w-7 h-7 group-hover:rotate-90 transition-transform duration-300" />
-      </button>
 
       {/* Add/Edit Dialog */}
         <Dialog
