@@ -1,40 +1,38 @@
 import { useState, useEffect } from 'react';
 
-/**
- * Hook para detectar queries de mídia CSS
- * @param query - Media query CSS (ex: "(max-width: 1024px)")
- * @returns boolean indicando se a query está ativa
- */
 export function useMediaQuery(query: string): boolean {
-  const [matches, setMatches] = useState<boolean>(false);
+  const [matches, setMatches] = useState(false);
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia(query);
+    const media = window.matchMedia(query);
 
-    // Define o valor inicial
-    setMatches(mediaQuery.matches);
+    // Set initial value
+    setMatches(media.matches);
 
-    // Handler para mudanças
-    const handler = (event: MediaQueryListEvent) => {
+    // Define listener function
+    const listener = (event: MediaQueryListEvent) => {
       setMatches(event.matches);
     };
 
-    // Adiciona listener
-    mediaQuery.addEventListener('change', handler);
+    // Add listener
+    media.addEventListener('change', listener);
 
     // Cleanup
-    return () => {
-      mediaQuery.removeEventListener('change', handler);
-    };
+    return () => media.removeEventListener('change', listener);
   }, [query]);
 
   return matches;
 }
 
-/**
- * Hook específico para detectar dispositivos mobile/tablet
- * Considera mobile: largura <= 1024px (iPad e menores)
- */
-export function useIsMobile(): boolean {
-  return useMediaQuery('(max-width: 1024px)');
+// Convenience hooks for common breakpoints
+export function useIsMobile() {
+  return useMediaQuery('(max-width: 768px)');
+}
+
+export function useIsTablet() {
+  return useMediaQuery('(min-width: 769px) and (max-width: 1024px)');
+}
+
+export function useIsDesktop() {
+  return useMediaQuery('(min-width: 1025px)');
 }
