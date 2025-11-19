@@ -81,16 +81,10 @@ export function Auth() {
         transition={{ duration: 0.5 }}
         className="w-full max-w-md"
       >
-        <div className="text-center mb-5">
-          <div className="mx-auto mb-4 flex justify-center">
-            <Logo className="w-auto h-20" variant="full" />
+        <div className="text-center mb-6">
+          <div className="mx-auto flex justify-center">
+            <Logo className="w-auto h-28" variant="full" />
           </div>
-          <h1 className="text-xl font-semibold text-gray-900 mb-1">
-            Bem-vindo ao QuizMed
-          </h1>
-          <p className="text-sm text-gray-600">
-            Potencialize seus estudos de medicina com inteligência artificial
-          </p>
         </div>
 
         <Card className="glass-dark border-gray-200 shadow-2xl">
