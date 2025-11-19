@@ -6,9 +6,10 @@ import { Label } from "./ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Checkbox } from "./ui/checkbox";
-import { Sparkles, Loader2, Mail, Lock, ArrowRight, Github } from "lucide-react";
+import { Loader2, Mail, Lock, ArrowRight, Github } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "motion/react";
+import { Logo } from "./Logo";
 
 export function Auth() {
   const { signIn, signUp, signInWithGoogle } = useAuth();
@@ -81,14 +82,14 @@ export function Auth() {
         className="w-full max-w-md"
       >
         <div className="text-center mb-8">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-3xl bg-gradient-to-br from-[#0891B2] to-[#7CB342] flex items-center justify-center shadow-2xl">
-            <Sparkles className="w-8 h-8 text-white" />
+          <div className="mx-auto mb-6 flex justify-center">
+            <Logo className="w-48 h-16" variant="full" />
           </div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-[#0891B2] to-[#7CB342] bg-clip-text text-transparent">
-            Bem-vindo ao EduAI
+          <h1 className="text-2xl font-semibold text-gray-900 mb-2">
+            Bem-vindo ao QuizMed
           </h1>
-          <p className="text-gray-600 mt-2">
-            Potencialize seus estudos com inteligência artificial
+          <p className="text-gray-600">
+            Potencialize seus estudos de medicina com inteligência artificial
           </p>
         </div>
 
