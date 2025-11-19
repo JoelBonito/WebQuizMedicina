@@ -14,10 +14,14 @@
 DROP TRIGGER IF EXISTS auto_process_embeddings_webhook ON public.sources;
 DROP FUNCTION IF EXISTS public.trigger_process_embeddings_webhook() CASCADE;
 
--- Passo 2: Criar função wrapper que prepara o payload dinamicamente
+-- Passo 2: Habilitar pg_net se ainda não estiver habilitado
+CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA extensions;
+
+-- Passo 3: Criar função wrapper que prepara o payload dinamicamente
 CREATE OR REPLACE FUNCTION public.trigger_process_embeddings_webhook()
 RETURNS TRIGGER
 LANGUAGE plpgsql
+SECURITY DEFINER
 AS $$
 DECLARE
   webhook_url TEXT := 'https://bwgglfforazywrjhbxsa.supabase.co/functions/v1/process-embeddings-queue';
@@ -32,14 +36,17 @@ BEGIN
     END IF;
   END IF;
 
-  -- Faz a chamada HTTP com o payload dinâmico
+  -- Faz a chamada HTTP usando net.http_post (pg_net extension)
   SELECT net.http_post(
     url := webhook_url,
-    headers := '{"Content-Type": "application/json", "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ3Z2dsZmZvcmF6eXdyamhieHNhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMzMDIwMzMsImV4cCI6MjA3ODg3ODAzM30.Ngf582OBWuPXO9sshKBYcWxk8J7z3AqJ8gGjdsCyCkU"}'::jsonb,
-    body := json_build_object(
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ3Z2dsZmZvcmF6eXdyamhieHNhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMzMDIwMzMsImV4cCI6MjA3ODg3ODAzM30.Ngf582OBWuPXO9sshKBYcWxk8J7z3AqJ8gGjdsCyCkU'
+    ),
+    body := jsonb_build_object(
       'source_id', NEW.id,
       'max_items', 1
-    )::text
+    )
   ) INTO request_id;
 
   RAISE LOG 'Webhook disparado para source_id: %, request_id: %', NEW.id, request_id;
@@ -48,7 +55,7 @@ BEGIN
 END;
 $$;
 
--- Passo 3: Criar o trigger com condição (sem referência a OLD no WHEN)
+-- Passo 4: Criar o trigger com condição (sem referência a OLD no WHEN)
 CREATE TRIGGER auto_process_embeddings_webhook
   AFTER INSERT OR UPDATE ON public.sources
   FOR EACH ROW
