@@ -283,11 +283,9 @@ Responda APENAS com o HTML formatado, sem explicações adicionais.`;
       .from('summaries')
       .insert({
         project_id,
-        user_id: user.id,
         titulo: `🎯 Resumo Focado nas Suas Dificuldades`,
         conteudo_html: sanitizedHtml,
         topicos: topTopics,
-        tipo: 'personalizado',
       })
       .select()
       .single();
