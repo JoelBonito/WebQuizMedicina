@@ -52,6 +52,10 @@ serve(async (req) => {
 
     // Parse request (optional parameters)
     const body = await req.json().catch(() => ({}));
+
+    // DEBUG: Log do body recebido
+    console.log(`📦 [DEBUG] Raw body:`, JSON.stringify(body));
+
     const {
       max_items = 10,        // How many sources to process in one run
       source_id = null,      // Process specific source (for webhook trigger)
