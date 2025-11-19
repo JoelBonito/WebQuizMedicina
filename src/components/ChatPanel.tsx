@@ -32,6 +32,15 @@ export function ChatPanel({ projectId }: ChatPanelProps) {
     }
   }, [projectId]);
 
+  // Debug: Monitor sources changes
+  useEffect(() => {
+    console.log('[ChatPanel] Sources updated:', {
+      total: sources.length,
+      ready: sources.filter(s => s.status === 'ready').length,
+      sources: sources.map(s => ({ id: s.id, name: s.name, status: s.status }))
+    });
+  }, [sources]);
+
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
