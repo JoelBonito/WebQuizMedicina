@@ -34,7 +34,7 @@ const getOriginColor = (origin: string) => {
     case "flashcard":
       return "bg-green-50 text-green-700 border-green-200";
     case "chat":
-      return "bg-purple-50 text-purple-700 border-purple-200";
+      return "bg-[#F0F9FF] text-[#0891B2] border-[#BAE6FD]";
     default:
       return "bg-gray-50 text-gray-700 border-gray-200";
   }
@@ -189,7 +189,7 @@ export function DifficultiesPanel({ projectId }: DifficultiesPanelProps) {
 
       {loading ? (
         <div className="flex-1 flex items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
+          <Loader2 className="w-8 h-8 animate-spin text-[#0891B2]" />
         </div>
       ) : activeDifficulties.length === 0 ? (
         <div className="flex-1 flex items-center justify-center">
@@ -233,7 +233,7 @@ export function DifficultiesPanel({ projectId }: DifficultiesPanelProps) {
                 <Button
                   onClick={handleGenerateFocusedSummary}
                   disabled={generatingContent}
-                  className="rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white shadow-lg flex flex-col items-center py-6 h-auto"
+                  className="rounded-xl bg-gradient-to-r from-[#0891B2] to-[#2B3E6F] hover:from-[#0891B2] hover:to-[#2B3E6F] text-white shadow-lg flex flex-col items-center py-6 h-auto"
                 >
                   {generatingContent ? (
                     <Loader2 className="w-5 h-5 mb-1 animate-spin" />

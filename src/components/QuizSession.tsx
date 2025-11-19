@@ -174,7 +174,7 @@ export function QuizSession({
 
   const getOptionStyle = (option: string) => {
     if (state !== "feedback") {
-      return "glass border border-gray-200 hover:border-purple-400 hover:bg-purple-50/30";
+      return "glass border border-gray-200 hover:border-[#0891B2] hover:bg-[#F0F9FF]/30";
     }
 
     const isSelected = option === selectedOption;
@@ -226,7 +226,7 @@ export function QuizSession({
             >
               {/* Summary */}
               <div className="text-center mb-8">
-                <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-br from-[#0891B2] to-[#7CB342] flex items-center justify-center">
                   <Trophy className="w-10 h-10 text-white" />
                 </div>
                 <h2 className="text-3xl font-bold text-gray-900 mb-2">
@@ -273,17 +273,17 @@ export function QuizSession({
               </div>
 
               {/* Score */}
-              <div className="glass rounded-3xl p-6 mb-6 border border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50">
+              <div className="glass rounded-3xl p-6 mb-6 border border-[#BAE6FD] bg-gradient-to-br from-[#F0F9FF] to-[#F1F8E9]">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-600 mb-1">
                       Pontuação Final
                     </p>
-                    <p className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                    <p className="text-4xl font-bold bg-gradient-to-r from-[#0891B2] to-[#7CB342] bg-clip-text text-transparent">
                       {Math.round((stats.corretas / questions.length) * 100)}%
                     </p>
                   </div>
-                  <Target className="w-12 h-12 text-purple-500" />
+                  <Target className="w-12 h-12 text-[#0891B2]" />
                 </div>
               </div>
 
@@ -302,7 +302,7 @@ export function QuizSession({
                     setAnswers([]);
                     setStartTime(Date.now());
                   }}
-                  className="flex-1 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg"
+                  className="flex-1 rounded-xl bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white shadow-lg"
                 >
                   Tentar Novamente
                 </Button>
@@ -471,11 +471,11 @@ export function QuizSession({
 
                       {/* Dica */}
                       {currentQuestion.dica && !isCorrectOption(selectedOption || "") && (
-                        <div className="glass rounded-2xl p-4 border border-purple-200 bg-purple-50/50">
-                          <p className="text-sm font-semibold text-purple-900 mb-1">
+                        <div className="glass rounded-2xl p-4 border border-[#BAE6FD] bg-[#F0F9FF]/50">
+                          <p className="text-sm font-semibold text-[#0891B2] mb-1">
                             💭 Dica:
                           </p>
-                          <p className="text-sm text-purple-700">
+                          <p className="text-sm text-[#0891B2]">
                             {currentQuestion.dica}
                           </p>
                         </div>
@@ -512,7 +512,7 @@ export function QuizSession({
                   ) : (
                     <Button
                       onClick={handleNext}
-                      className="w-full rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg"
+                      className="w-full rounded-xl bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white shadow-lg"
                     >
                       {currentIndex < questions.length - 1
                         ? "Próxima Questão"

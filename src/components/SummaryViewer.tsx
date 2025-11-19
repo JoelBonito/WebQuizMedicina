@@ -94,7 +94,7 @@ export function SummaryViewer({ html, onAskChat, onHighlight }: SummaryViewerPro
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ duration: 0.15 }}
-            className="summary-popover absolute z-50 glass-dark rounded-xl shadow-2xl border-2 border-purple-200 p-2 flex gap-2"
+            className="summary-popover absolute z-50 glass-dark rounded-xl shadow-2xl border-2 border-[#BAE6FD] p-2 flex gap-2"
             style={{
               top: `${popoverPosition.top}px`,
               left: `${popoverPosition.left}px`,
@@ -105,7 +105,7 @@ export function SummaryViewer({ html, onAskChat, onHighlight }: SummaryViewerPro
               <Button
                 size="sm"
                 onClick={handleAskChat}
-                className="rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg text-xs"
+                className="rounded-lg bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white shadow-lg text-xs"
               >
                 <MessageSquare className="w-3 h-3 mr-1" />
                 Perguntar ao Chat
@@ -125,7 +125,7 @@ export function SummaryViewer({ html, onAskChat, onHighlight }: SummaryViewerPro
             )}
 
             {/* Triangle pointer */}
-            <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-purple-200"></div>
+            <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-[#BAE6FD]"></div>
           </motion.div>
         )}
       </AnimatePresence>
