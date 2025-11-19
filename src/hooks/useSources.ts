@@ -55,6 +55,39 @@ export const useSources = (projectId: string | null) => {
 
   useEffect(() => {
     fetchSources();
+
+    // Setup realtime subscription for sources updates
+    if (!projectId) return;
+
+    const channel = supabase
+      .channel(`sources:${projectId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'sources',
+          filter: `project_id=eq.${projectId}`,
+        },
+        (payload) => {
+          console.log('[useSources] Realtime update:', payload);
+
+          if (payload.eventType === 'INSERT') {
+            setSources((prev) => [payload.new as Source, ...prev]);
+          } else if (payload.eventType === 'UPDATE') {
+            setSources((prev) =>
+              prev.map((s) => (s.id === payload.new.id ? payload.new as Source : s))
+            );
+          } else if (payload.eventType === 'DELETE') {
+            setSources((prev) => prev.filter((s) => s.id !== payload.old.id));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [projectId]);
 
   const uploadSource = async (file: File) => {

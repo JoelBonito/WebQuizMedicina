@@ -199,68 +199,93 @@ export function ChatPanel({ projectId }: ChatPanelProps) {
                   <AnimatePresence>
                     {messages.map((message, index) => (
                       <div key={message.id}>
-                        {/* User message */}
-                        <motion.div
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: index * 0.05 }}
-                          className="flex justify-end mb-4"
-                        >
-                          <div className="max-w-[85%] glass rounded-2xl rounded-tr-md p-4 bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200">
-                            <div className="flex items-start gap-2 mb-2">
-                              <User className="w-4 h-4 text-purple-600 mt-0.5" />
-                              <p className="text-sm text-gray-800 flex-1">{message.message}</p>
-                            </div>
-                            <span className="text-xs text-gray-500">
-                              {new Date(message.created_at).toLocaleTimeString('pt-BR', {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })}
-                            </span>
-                          </div>
-                        </motion.div>
-
-                        {/* AI response */}
-                        <motion.div
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: index * 0.05 + 0.1 }}
-                          className="flex justify-start mb-4"
-                        >
-                          <div className="max-w-[85%] glass-dark rounded-2xl rounded-tl-md p-4 border border-gray-200">
-                            <div className="flex items-start gap-2 mb-2">
-                              <Bot className="w-4 h-4 text-purple-600 mt-0.5" />
-                              <div className="flex-1">
-                                <p className="text-sm text-gray-800 whitespace-pre-wrap mb-3">
-                                  {message.response}
-                                </p>
-                                {message.sources_cited && message.sources_cited.length > 0 && (
-                                  <div className="flex flex-wrap gap-2 mb-2">
-                                    {message.sources_cited.map((sourceId, idx) => {
-                                      const source = sources.find((s) => s.id === sourceId);
-                                      return source ? (
-                                        <Badge
-                                          key={idx}
-                                          variant="outline"
-                                          className="rounded-md text-xs bg-blue-50 border-blue-200 text-blue-700"
-                                        >
-                                          <FileText className="w-3 h-3 mr-1" />
-                                          {source.file_name}
-                                        </Badge>
-                                      ) : null;
-                                    })}
-                                  </div>
-                                )}
+                        {message.is_system ? (
+                          /* System notification message */
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: index * 0.05 }}
+                            className="flex justify-center mb-4"
+                          >
+                            <div className="max-w-[90%] glass rounded-2xl p-4 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 border-2 border-purple-300 shadow-lg">
+                              <div className="flex items-start gap-3">
+                                <Sparkles className="w-5 h-5 text-purple-600 mt-0.5 flex-shrink-0" />
+                                <div className="flex-1">
+                                  <p className="text-sm text-gray-800 whitespace-pre-wrap">
+                                    {message.response}
+                                  </p>
+                                </div>
                               </div>
                             </div>
-                            <span className="text-xs text-gray-500">
-                              {new Date(message.created_at).toLocaleTimeString('pt-BR', {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })}
-                            </span>
-                          </div>
-                        </motion.div>
+                          </motion.div>
+                        ) : (
+                          <>
+                            {/* User message */}
+                            {message.message && (
+                              <motion.div
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: index * 0.05 }}
+                                className="flex justify-end mb-4"
+                              >
+                                <div className="max-w-[85%] glass rounded-2xl rounded-tr-md p-4 bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200">
+                                  <div className="flex items-start gap-2 mb-2">
+                                    <User className="w-4 h-4 text-purple-600 mt-0.5" />
+                                    <p className="text-sm text-gray-800 flex-1">{message.message}</p>
+                                  </div>
+                                  <span className="text-xs text-gray-500">
+                                    {new Date(message.created_at).toLocaleTimeString('pt-BR', {
+                                      hour: '2-digit',
+                                      minute: '2-digit',
+                                    })}
+                                  </span>
+                                </div>
+                              </motion.div>
+                            )}
+
+                            {/* AI response */}
+                            <motion.div
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: index * 0.05 + 0.1 }}
+                              className="flex justify-start mb-4"
+                            >
+                              <div className="max-w-[85%] glass-dark rounded-2xl rounded-tl-md p-4 border border-gray-200">
+                                <div className="flex items-start gap-2 mb-2">
+                                  <Bot className="w-4 h-4 text-purple-600 mt-0.5" />
+                                  <div className="flex-1">
+                                    <p className="text-sm text-gray-800 whitespace-pre-wrap mb-3">
+                                      {message.response}
+                                    </p>
+                                    {message.sources_cited && message.sources_cited.length > 0 && (
+                                      <div className="flex flex-wrap gap-2 mb-2">
+                                        {message.sources_cited.map((sourceId, idx) => {
+                                          const source = sources.find((s) => s.id === sourceId);
+                                          return source ? (
+                                            <Badge
+                                              key={idx}
+                                              variant="outline"
+                                              className="rounded-md text-xs bg-blue-50 border-blue-200 text-blue-700"
+                                            >
+                                              <FileText className="w-3 h-3 mr-1" />
+                                              {source.name}
+                                            </Badge>
+                                          ) : null;
+                                        })}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                                <span className="text-xs text-gray-500">
+                                  {new Date(message.created_at).toLocaleTimeString('pt-BR', {
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                  })}
+                                </span>
+                              </div>
+                            </motion.div>
+                          </>
+                        )}
                       </div>
                     ))}
                   </AnimatePresence>
