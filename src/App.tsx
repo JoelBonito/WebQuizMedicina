@@ -9,6 +9,8 @@ import { Auth } from "./components/Auth";
 import { useAuth } from "./hooks/useAuth";
 import { Loader2 } from "lucide-react";
 import { Toaster } from "./components/ui/sonner";
+import { ThemeProvider } from "./contexts/ThemeContext";
+import { LanguageProvider } from "./contexts/LanguageContext";
 
 export default function App() {
   const { user, loading } = useAuth();
@@ -39,62 +41,72 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#0891B2]" />
-      </div>
+      <ThemeProvider>
+        <LanguageProvider>
+          <div className="min-h-screen bg-white flex items-center justify-center">
+            <Loader2 className="w-8 h-8 animate-spin text-[#0891B2]" />
+          </div>
+        </LanguageProvider>
+      </ThemeProvider>
     );
   }
 
   if (!user) {
     return (
-      <>
-        <Auth />
-        <Toaster />
-      </>
+      <ThemeProvider>
+        <LanguageProvider>
+          <Auth />
+          <Toaster />
+        </LanguageProvider>
+      </ThemeProvider>
     );
   }
 
   if (view === "dashboard") {
     return (
-      <>
-        <Navbar />
-        <div className="min-h-screen bg-white pt-16">
-          <Dashboard onSelectSubject={handleSelectProject} />
-        </div>
-        <Toaster />
-      </>
+      <ThemeProvider>
+        <LanguageProvider>
+          <Navbar />
+          <div className="min-h-screen bg-white pt-16">
+            <Dashboard onSelectSubject={handleSelectProject} />
+          </div>
+          <Toaster />
+        </LanguageProvider>
+      </ThemeProvider>
     );
   }
 
   return (
-    <>
-      <div className="min-h-screen bg-white">
-        <Navbar onBackClick={handleBackToDashboard} />
+    <ThemeProvider>
+      <LanguageProvider>
+        <div className="min-h-screen bg-white">
+          <Navbar onBackClick={handleBackToDashboard} />
 
-        {/* Main Content */}
-        <div className="pt-20 px-6 pb-6 h-screen overflow-hidden">
-          <div className="h-full overflow-hidden gap-4">
-            <ResizableLayout
-              leftPanel={
-                <SourcesPanel
-                  projectId={selectedProjectId}
-                  onSelectedSourcesChange={handleSelectedSourcesChange}
-                />
-              }
-              centerPanel={
-                <ContentPanel
-                  projectId={selectedProjectId}
-                  selectedSourceIds={selectedSourceIds}
-                />
-              }
-              rightPanel={
-                <RightPanel projectId={selectedProjectId} />
-              }
-            />
+          {/* Main Content */}
+          <div className="pt-20 px-6 pb-6 h-screen overflow-hidden">
+            <div className="h-full overflow-hidden gap-4">
+              <ResizableLayout
+                leftPanel={
+                  <SourcesPanel
+                    projectId={selectedProjectId}
+                    onSelectedSourcesChange={handleSelectedSourcesChange}
+                  />
+                }
+                centerPanel={
+                  <ContentPanel
+                    projectId={selectedProjectId}
+                    selectedSourceIds={selectedSourceIds}
+                  />
+                }
+                rightPanel={
+                  <RightPanel projectId={selectedProjectId} />
+                }
+              />
+            </div>
           </div>
         </div>
-      </div>
-      <Toaster />
-    </>
+        <Toaster />
+      </LanguageProvider>
+    </ThemeProvider>
   );
 }

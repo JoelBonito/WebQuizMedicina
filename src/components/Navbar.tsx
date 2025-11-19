@@ -1,4 +1,4 @@
-import { ArrowLeft, LogOut, Settings, User } from "lucide-react";
+import { ArrowLeft, LogOut, User, Languages, Palette } from "lucide-react";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { Button } from "./ui/button";
 import { useAuth } from "../hooks/useAuth";
@@ -11,6 +11,10 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { Logo } from "./Logo";
+import { ProfileSettings } from "./ProfileSettings";
+import { LanguageSettings } from "./LanguageSettings";
+import { ThemeSettings } from "./ThemeSettings";
+import { useState } from "react";
 
 interface NavbarProps {
   onBackClick?: () => void;
@@ -19,6 +23,9 @@ interface NavbarProps {
 
 export function Navbar({ onBackClick, projectName }: NavbarProps) {
   const { user, signOut } = useAuth();
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [languageOpen, setLanguageOpen] = useState(false);
+  const [themeOpen, setThemeOpen] = useState(false);
 
   const handleSignOut = async () => {
     const { error } = await signOut();
@@ -81,20 +88,12 @@ export function Navbar({ onBackClick, projectName }: NavbarProps) {
         <div className="flex items-center gap-3">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-gray-50 transition-colors">
+              <button className="flex items-center gap-3 p-1 rounded-xl hover:bg-gray-50 transition-colors">
                 <Avatar className="w-10 h-10 ring-2 ring-primary ring-offset-2 ring-offset-white">
                   <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-white font-semibold">
                     {getUserInitials()}
                   </AvatarFallback>
                 </Avatar>
-                <div className="text-left hidden sm:block">
-                  <p className="text-sm font-medium text-gray-900">
-                    {getUserName()}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {user?.email}
-                  </p>
-                </div>
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-64 rounded-xl bg-white">
@@ -117,13 +116,17 @@ export function Navbar({ onBackClick, projectName }: NavbarProps) {
 
               {/* Menu Items */}
               <div className="py-1 px-2">
-                <DropdownMenuItem onClick={() => toast.info("Perfil em desenvolvimento!")} className="cursor-pointer rounded-lg">
+                <DropdownMenuItem onClick={() => setProfileOpen(true)} className="cursor-pointer rounded-lg">
                   <User className="w-4 h-4 mr-2 text-gray-600" />
                   <span className="text-gray-700">Perfil</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => toast.info("Configurações em breve!")} className="cursor-pointer rounded-lg">
-                  <Settings className="w-4 h-4 mr-2 text-gray-600" />
-                  <span className="text-gray-700">Configurações</span>
+                <DropdownMenuItem onClick={() => setLanguageOpen(true)} className="cursor-pointer rounded-lg">
+                  <Languages className="w-4 h-4 mr-2 text-gray-600" />
+                  <span className="text-gray-700">Idioma de Resposta</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setThemeOpen(true)} className="cursor-pointer rounded-lg">
+                  <Palette className="w-4 h-4 mr-2 text-gray-600" />
+                  <span className="text-gray-700">Aparência</span>
                 </DropdownMenuItem>
               </div>
 
@@ -140,6 +143,11 @@ export function Navbar({ onBackClick, projectName }: NavbarProps) {
           </DropdownMenu>
         </div>
       </div>
+
+      {/* Settings Dialogs */}
+      <ProfileSettings open={profileOpen} onOpenChange={setProfileOpen} />
+      <LanguageSettings open={languageOpen} onOpenChange={setLanguageOpen} />
+      <ThemeSettings open={themeOpen} onOpenChange={setThemeOpen} />
     </nav>
   );
 }
