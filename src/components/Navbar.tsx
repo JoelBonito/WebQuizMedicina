@@ -64,14 +64,8 @@ export function Navbar({ onBackClick, projectName }: NavbarProps) {
           <div className="flex items-center gap-3">
             <Logo
               variant="horizontal"
-              className="h-8 w-auto"
+              className="h-10 w-auto"
             />
-            {!onBackClick && (
-              <div>
-                <h1 className="text-xl font-semibold text-gray-900">Minhas Matérias</h1>
-                <p className="text-xs text-gray-600">Gerencie seus estudos e materiais</p>
-              </div>
-            )}
           </div>
         </div>
 
@@ -89,8 +83,8 @@ export function Navbar({ onBackClick, projectName }: NavbarProps) {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="flex items-center gap-3 p-1 rounded-xl hover:bg-gray-50 transition-colors">
-                <Avatar className="w-10 h-10 ring-2 ring-primary ring-offset-2 ring-offset-white">
-                  <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-white font-semibold">
+                <Avatar className="w-10 h-10 ring-2 ring-[#0891B2] ring-offset-2 ring-offset-white">
+                  <AvatarFallback className="bg-gradient-to-br from-[#0891B2] to-[#7CB342] text-white font-semibold">
                     {getUserInitials()}
                   </AvatarFallback>
                 </Avatar>
@@ -99,8 +93,8 @@ export function Navbar({ onBackClick, projectName }: NavbarProps) {
             <DropdownMenuContent align="end" className="w-64 rounded-xl bg-white">
               {/* User Info Header */}
               <div className="flex items-center gap-3 px-3 py-3 border-b border-gray-200">
-                <Avatar className="w-12 h-12 ring-2 ring-primary">
-                  <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-white font-semibold">
+                <Avatar className="w-12 h-12 ring-2 ring-[#0891B2]">
+                  <AvatarFallback className="bg-gradient-to-br from-[#0891B2] to-[#7CB342] text-white font-semibold">
                     {getUserInitials()}
                   </AvatarFallback>
                 </Avatar>

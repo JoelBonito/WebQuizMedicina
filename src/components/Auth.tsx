@@ -83,7 +83,7 @@ export function Auth() {
       >
         <div className="text-center mb-8">
           <div className="mx-auto mb-6 flex justify-center">
-            <Logo className="w-48 h-16" variant="full" />
+            <Logo className="w-auto h-32" variant="full" />
           </div>
           <h1 className="text-2xl font-semibold text-gray-900 mb-2">
             Bem-vindo ao QuizMed
