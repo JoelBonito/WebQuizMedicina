@@ -1,4 +1,4 @@
-import { ArrowLeft, LogOut, Sparkles, Settings, User } from "lucide-react";
+import { ArrowLeft, LogOut, Settings, User } from "lucide-react";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { Button } from "./ui/button";
 import { useAuth } from "../hooks/useAuth";
@@ -54,17 +54,19 @@ export function Navbar({ onBackClick, projectName }: NavbarProps) {
             </Button>
           )}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg">
-              <Sparkles className="w-6 h-6 text-white" />
-            </div>
+            <img 
+              src="/logo.png" 
+              alt="QuizMed Logo" 
+              className="w-10 h-10 object-contain"
+            />
             {!onBackClick ? (
               <div>
                 <h1 className="text-xl font-semibold text-gray-900">Minhas Matérias</h1>
                 <p className="text-xs text-gray-600">Gerencie seus estudos e materiais</p>
               </div>
             ) : (
-              <span className="text-xl font-medium text-gray-900">
-                Web Quiz Medicina
+              <span className="text-xl font-medium bg-gradient-to-r from-[#2B3E6F] to-[#0891B2] bg-clip-text text-transparent">
+                QuizMed
               </span>
             )}
           </div>
@@ -84,8 +86,8 @@ export function Navbar({ onBackClick, projectName }: NavbarProps) {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-gray-50 transition-colors">
-                <Avatar className="w-10 h-10 ring-2 ring-purple-500 ring-offset-2 ring-offset-white">
-                  <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white font-semibold">
+                <Avatar className="w-10 h-10 ring-2 ring-primary ring-offset-2 ring-offset-white">
+                  <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-white font-semibold">
                     {getUserInitials()}
                   </AvatarFallback>
                 </Avatar>
@@ -99,11 +101,11 @@ export function Navbar({ onBackClick, projectName }: NavbarProps) {
                 </div>
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64 rounded-xl">
+            <DropdownMenuContent align="end" className="w-64 rounded-xl bg-white">
               {/* User Info Header */}
               <div className="flex items-center gap-3 px-3 py-3 border-b border-gray-200">
-                <Avatar className="w-12 h-12 ring-2 ring-purple-500">
-                  <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white font-semibold">
+                <Avatar className="w-12 h-12 ring-2 ring-primary">
+                  <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-white font-semibold">
                     {getUserInitials()}
                   </AvatarFallback>
                 </Avatar>
