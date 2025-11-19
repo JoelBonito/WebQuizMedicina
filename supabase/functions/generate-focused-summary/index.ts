@@ -127,7 +127,7 @@ serve(async (req) => {
     // Get all sources for this project
     const { data: sources, error: sourcesError } = await supabaseClient
       .from('sources')
-      .select('id, file_name, extracted_content')
+      .select('id, name, extracted_content')
       .eq('project_id', project_id)
       .eq('status', 'ready')
       .not('extracted_content', 'is', null);
@@ -148,7 +148,7 @@ serve(async (req) => {
     // Combine all sources (sanitize to prevent prompt injection)
     const combinedContext = sources
       .map((source) => {
-        const sanitizedName = sanitizeString(source.file_name || 'Unknown');
+        const sanitizedName = sanitizeString(source.name || 'Unknown');
         const sanitizedContent = sanitizeString(source.extracted_content || '');
         return `[Fonte: ${sanitizedName}]\n${sanitizedContent}`;
       })

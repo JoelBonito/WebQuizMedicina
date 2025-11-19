@@ -88,7 +88,7 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
   const [startTime] = useState<number>(Date.now());
 
   const { saveFlashcardProgress } = useProgress();
-  const { addDifficulty } = useDifficulties();
+  const { addDifficulty } = useDifficulties(projectId);
 
   const currentCard = flashcards[currentIndex];
   const progressPercentage = ((currentIndex + 1) / flashcards.length) * 100;
