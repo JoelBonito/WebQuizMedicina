@@ -81,6 +81,7 @@ export const useSources = (projectId: string | null) => {
             storage_path: storagePath,
             metadata,
             status: 'processing',
+            embeddings_status: 'pending', // Initialize embeddings status as pending
           },
         ])
         .select()
@@ -117,11 +118,13 @@ export const useSources = (projectId: string | null) => {
         }
 
         // 5. Update source with extracted content
+        // Keep embeddings_status as 'pending' so it can be processed
         const { data: updatedSource, error: updateError } = await supabase
           .from('sources')
           .update({
             extracted_content: safeContent,
             status: 'ready',
+            embeddings_status: 'pending', // Keep as pending for embeddings processing
           })
           .eq('id', source.id)
           .select()
@@ -147,6 +150,7 @@ export const useSources = (projectId: string | null) => {
           .from('sources')
           .update({
             status: 'error',
+            embeddings_status: 'failed', // Mark embeddings as failed too
             // Store error message in metadata if possible
           })
           .eq('id', source.id)
