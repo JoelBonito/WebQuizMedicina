@@ -368,7 +368,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
         <div className="border-t border-gray-200 my-4" />
 
         {/* Lista de Conteúdo Gerado */}
-        <div className="flex-1 min-h-0 overflow-y-auto pr-2">
+        <div className="flex-1 min-h-0 overflow-y-auto pr-2 custom-scrollbar">
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-8 h-8 animate-spin text-[#0891B2]" />
