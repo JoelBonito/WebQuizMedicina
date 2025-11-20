@@ -34,6 +34,7 @@ export const generateQuizSchema = z.object({
   project_id: uuidSchema.optional(),
   source_id: uuidSchema.optional(),
   count: z.number().int().min(1).max(50).optional().default(15),
+  difficulty: z.enum(['fácil', 'médio', 'difícil']).optional(),
 }).refine(
   (data) => data.project_id || data.source_id,
   { message: 'Either project_id or source_id must be provided' }
@@ -43,6 +44,7 @@ export const generateFlashcardsSchema = z.object({
   project_id: uuidSchema.optional(),
   source_id: uuidSchema.optional(),
   count: z.number().int().min(1).max(100).optional().default(20),
+  difficulty: z.enum(['fácil', 'médio', 'difícil']).optional(),
 }).refine(
   (data) => data.project_id || data.source_id,
   { message: 'Either project_id or source_id must be provided' }

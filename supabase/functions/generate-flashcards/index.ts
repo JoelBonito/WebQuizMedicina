@@ -76,7 +76,7 @@ serve(async (req) => {
 
     // 3. Input validation
     const validatedData = await validateRequest(req, generateFlashcardsSchema);
-    const { source_id, project_id, count } = validatedData;
+    const { source_id, project_id, count, difficulty } = validatedData;
 
     // Initialize Supabase client
     const supabaseClient = createClient(
@@ -235,7 +235,7 @@ INSTRUÇÕES:
 2. Foque em conceitos-chave, definições, mecanismos e fatos importantes
 3. A frente deve ser concisa e clara (pergunta ou termo)
 4. O verso deve conter uma explicação completa mas sucinta
-5. Classifique a dificuldade como: "fácil", "médio" ou "difícil"
+5. Classifique a dificuldade como: "fácil", "médio" ou "difícil"${difficulty ? ` - IMPORTANTE: TODOS os flashcards devem ser de nível "${difficulty}"` : ''}
 6. Identifique o tópico principal
 7. Varie entre diferentes tipos: definições, mecanismos, comparações, aplicações clínicas
 ${totalBatches > 1 ? `8. Este é o lote ${batchNum} de ${totalBatches}. Varie os tópicos em relação aos lotes anteriores.` : ''}
@@ -247,7 +247,7 @@ FORMATO DE SAÍDA (JSON estrito):
       "frente": "Pergunta ou conceito aqui",
       "verso": "Resposta ou explicação detalhada aqui",
       "topico": "Nome do tópico principal",
-      "dificuldade": "médio"
+      "dificuldade": "${difficulty || 'médio'}"
     }
   ]
 }

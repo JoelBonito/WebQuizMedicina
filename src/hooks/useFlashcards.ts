@@ -47,7 +47,7 @@ export const useFlashcards = (projectId: string | null) => {
     fetchFlashcards();
   }, [projectId]);
 
-  const generateFlashcards = async (sourceIds?: string | string[], count: number = 20) => {
+  const generateFlashcards = async (sourceIds?: string | string[], count: number = 20, difficulty?: 'fácil' | 'médio' | 'difícil') => {
     if (!projectId && !sourceIds) throw new Error('Project or source required');
 
     try {
@@ -70,6 +70,7 @@ export const useFlashcards = (projectId: string | null) => {
             source_ids,
             project_id: projectId,
             count,
+            ...(difficulty && { difficulty }),
           }),
         }
       );

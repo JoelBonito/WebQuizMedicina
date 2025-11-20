@@ -125,7 +125,7 @@ serve(async (req) => {
 
     // 3. Input validation
     const validatedData = await validateRequest(req, generateQuizSchema);
-    const { source_id, project_id, count } = validatedData;
+    const { source_id, project_id, count, difficulty } = validatedData;
 
     // Initialize Supabase client
     const supabaseClient = createClient(
@@ -290,7 +290,7 @@ INSTRUÇÕES:
 2. Cada pergunta deve ter 4 alternativas (A, B, C, D)
 3. Apenas UMA alternativa deve estar correta
 4. Forneça uma justificativa clara e educativa para a resposta correta
-5. Classifique a dificuldade como: "fácil", "médio" ou "difícil"
+5. Classifique a dificuldade como: "fácil", "médio" ou "difícil"${difficulty ? ` - IMPORTANTE: TODAS as perguntas devem ser de nível "${difficulty}"` : ''}
 6. Identifique o tópico principal da pergunta
 7. Quando apropriado, forneça uma dica que ajude sem revelar a resposta
 ${totalBatches > 1 ? `8. Este é o lote ${batchNum} de ${totalBatches}. Varie os tópicos em relação aos lotes anteriores.` : ''}
@@ -305,7 +305,7 @@ FORMATO DE SAÍDA (JSON estrito):
       "justificativa": "Explicação detalhada do porquê esta é a resposta correta e por que as outras estão erradas.",
       "dica": "Uma dica útil sem revelar a resposta",
       "topico": "Nome do tópico principal",
-      "dificuldade": "médio"
+      "dificuldade": "${difficulty || 'médio'}"
     }
   ]
 }
