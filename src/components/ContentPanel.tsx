@@ -7,7 +7,7 @@ import {
   Loader2,
   BookOpen,
   MoreVertical,
-  Pencil,
+  Settings,
   Sparkles,
   X,
   TrendingUp
@@ -23,6 +23,15 @@ import { FlashcardSession } from "./FlashcardSession";
 import { SummaryViewer } from "./SummaryViewer";
 import { Badge } from "./ui/badge";
 import { DifficultiesPanel } from "./DifficultiesPanel";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 
 interface ContentPanelProps {
   projectId: string | null;
@@ -116,6 +125,8 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [selectedQuizSession, setSelectedQuizSession] = useState<string | null>(null);
   const [selectedFlashcardSession, setSelectedFlashcardSession] = useState<string | null>(null);
+  const [quizDifficulty, setQuizDifficulty] = useState<'todos' | 'fácil' | 'médio' | 'difícil'>('todos');
+  const [flashcardDifficulty, setFlashcardDifficulty] = useState<'todos' | 'fácil' | 'médio' | 'difícil'>('todos');
 
   const handleAskChat = (selectedText: string) => {
     localStorage.setItem('chat_question', `Explique melhor: "${selectedText}"`);
@@ -206,8 +217,12 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
     try {
       switch(type) {
         case 'quiz':
-          const quizResult = await generateQuiz(selectedSourceIds, 15);
-          toast.success("Quiz gerado com sucesso!");
+          const quizDiff = quizDifficulty !== 'todos' ? quizDifficulty : undefined;
+          const quizResult = await generateQuiz(selectedSourceIds, 15, quizDiff);
+          toast.success(quizDiff
+            ? `Quiz gerado com sucesso (nível ${quizDiff})!`
+            : "Quiz gerado com sucesso!"
+          );
 
           // Show warning if relevance is low
           if (quizResult?.warning) {
@@ -218,8 +233,12 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
           }
           break;
         case 'flashcards':
-          await generateFlashcards(selectedSourceIds, 20);
-          toast.success("Flashcards gerados com sucesso!");
+          const flashcardDiff = flashcardDifficulty !== 'todos' ? flashcardDifficulty : undefined;
+          await generateFlashcards(selectedSourceIds, 20, flashcardDiff);
+          toast.success(flashcardDiff
+            ? `Flashcards gerados com sucesso (nível ${flashcardDiff})!`
+            : "Flashcards gerados com sucesso!"
+          );
           break;
         case 'summary':
           await generateSummary(selectedSourceIds);
@@ -305,48 +324,77 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
           {ACTION_CARDS.map(card => {
             const CardIcon = card.icon;
+            const showSettings = card.id === 'quiz' || card.id === 'flashcards';
+            const currentDifficulty = card.id === 'quiz' ? quizDifficulty : flashcardDifficulty;
+            const setDifficulty = card.id === 'quiz' ? setQuizDifficulty : setFlashcardDifficulty;
+
             return (
-              <button
-                key={card.id}
-                onClick={() => handleGenerateContent(card.id as 'quiz' | 'flashcards' | 'summary')}
-                disabled={isGenerating || generating}
-                className={`
-                  ${card.bgColor}
-                  relative p-5 rounded-2xl
-                  flex flex-col items-start gap-2
-                  transition-all duration-200
-                  hover:shadow-md hover:scale-[1.02]
-                  active:scale-[0.98]
-                  disabled:opacity-50 disabled:cursor-not-allowed
-                  group
-                `}
-              >
-                {/* Ícone */}
-                <CardIcon className={`w-7 h-7 ${card.iconColor}`} />
-
-                {/* Título */}
-                <span className={`font-semibold text-base ${card.textColor}`}>
-                  {card.title}
-                </span>
-
-                {/* Loading indicator */}
-                {generating && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-white/80 rounded-2xl">
-                    <Loader2 className="w-6 h-6 animate-spin text-gray-600" />
-                  </div>
-                )}
-
-                {/* Botão de editar (canto superior direito) - aparece no hover */}
+              <div key={card.id} className="relative">
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    // Ação de editar configurações do card (futuro)
-                  }}
-                  className="absolute top-3 right-3 p-2 rounded-full bg-white/60 hover:bg-white/90 opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={() => handleGenerateContent(card.id as 'quiz' | 'flashcards' | 'summary')}
+                  disabled={isGenerating || generating}
+                  className={`
+                    ${card.bgColor}
+                    relative p-5 rounded-2xl w-full
+                    flex flex-col items-start gap-2
+                    transition-all duration-200
+                    hover:shadow-md hover:scale-[1.02]
+                    active:scale-[0.98]
+                    disabled:opacity-50 disabled:cursor-not-allowed
+                    group
+                  `}
                 >
-                  <Pencil className="w-4 h-4 text-gray-600" />
+                  {/* Ícone */}
+                  <CardIcon className={`w-7 h-7 ${card.iconColor}`} />
+
+                  {/* Título */}
+                  <span className={`font-semibold text-base ${card.textColor}`}>
+                    {card.title}
+                  </span>
+
+                  {/* Loading indicator */}
+                  {generating && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-white/80 rounded-2xl">
+                      <Loader2 className="w-6 h-6 animate-spin text-gray-600" />
+                    </div>
+                  )}
                 </button>
-              </button>
+
+                {/* Botão de configuração (apenas para Quiz e Flashcards) */}
+                {showSettings && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        onClick={(e) => e.stopPropagation()}
+                        className="absolute top-3 right-3 p-2 rounded-full bg-white/60 hover:bg-white/90 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                      >
+                        <Settings className="w-4 h-4 text-gray-600" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuLabel>Nível de Dificuldade</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuRadioGroup
+                        value={currentDifficulty}
+                        onValueChange={(value) => setDifficulty(value as typeof currentDifficulty)}
+                      >
+                        <DropdownMenuRadioItem value="todos">
+                          Todos os níveis
+                        </DropdownMenuRadioItem>
+                        <DropdownMenuRadioItem value="fácil">
+                          Fácil
+                        </DropdownMenuRadioItem>
+                        <DropdownMenuRadioItem value="médio">
+                          Médio
+                        </DropdownMenuRadioItem>
+                        <DropdownMenuRadioItem value="difícil">
+                          Difícil
+                        </DropdownMenuRadioItem>
+                      </DropdownMenuRadioGroup>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
             );
           })}
         </div>

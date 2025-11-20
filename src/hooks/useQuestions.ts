@@ -50,7 +50,7 @@ export const useQuestions = (projectId: string | null) => {
     fetchQuestions();
   }, [projectId]);
 
-  const generateQuiz = async (sourceIds?: string | string[], count: number = 15) => {
+  const generateQuiz = async (sourceIds?: string | string[], count: number = 15, difficulty?: 'fácil' | 'médio' | 'difícil') => {
     if (!projectId && !sourceIds) throw new Error('Project or source required');
 
     try {
@@ -73,6 +73,7 @@ export const useQuestions = (projectId: string | null) => {
             source_ids,
             project_id: projectId,
             count,
+            ...(difficulty && { difficulty }),
           }),
         }
       );
