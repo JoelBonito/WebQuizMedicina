@@ -11,11 +11,13 @@ import {
   Clock,
   Trophy,
   Target,
+  RefreshCw,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { Question } from "../hooks/useQuestions";
 import { useProgress } from "../hooks/useProgress";
 import { useDifficulties } from "../hooks/useDifficulties";
+import { useQuizPersistence } from "../hooks/useQuizPersistence";
 import { toast } from "sonner";
 
 interface QuizSessionProps {
@@ -48,12 +50,49 @@ export function QuizSession({
   const [startTime, setStartTime] = useState<number>(Date.now());
   const [elapsedTime, setElapsedTime] = useState(0);
   const [showTimer, setShowTimer] = useState(true);
+  const [hasLoadedProgress, setHasLoadedProgress] = useState(false);
 
   const { saveQuizProgress } = useProgress();
   const { addDifficulty } = useDifficulties(projectId);
+  const { loadProgress, saveProgress, clearProgress } = useQuizPersistence(projectId);
 
   const currentQuestion = questions[currentIndex];
   const progress = ((currentIndex + 1) / questions.length) * 100;
+
+  // Load saved progress on mount
+  useEffect(() => {
+    if (open && !hasLoadedProgress) {
+      const saved = loadProgress();
+      if (saved) {
+        setCurrentIndex(saved.currentIndex);
+        setAnswers(saved.answers);
+        setStartTime(saved.startTime);
+        setHasLoadedProgress(true);
+        toast.success('Progresso restaurado do último quiz!', {
+          description: `Continuando da questão ${saved.currentIndex + 1}`,
+          icon: <RefreshCw className="w-4 h-4" />,
+        });
+      } else {
+        setHasLoadedProgress(true);
+      }
+    }
+  }, [open, hasLoadedProgress, loadProgress]);
+
+  // Save progress whenever it changes (debounced)
+  useEffect(() => {
+    if (open && hasLoadedProgress && state === "question") {
+      const timeout = setTimeout(() => {
+        saveProgress({
+          currentIndex,
+          answers,
+          startTime,
+          projectId,
+        });
+      }, 500); // Debounce 500ms
+
+      return () => clearTimeout(timeout);
+    }
+  }, [currentIndex, answers, startTime, projectId, open, hasLoadedProgress, state, saveProgress]);
 
   // Timer
   useEffect(() => {
@@ -151,6 +190,7 @@ export function QuizSession({
       setElapsedTime(0);
     } else {
       setState("summary");
+      clearProgress(); // Clear progress when quiz is completed
     }
   };
 
@@ -161,6 +201,8 @@ export function QuizSession({
     setAnswers([]);
     setStartTime(Date.now());
     setElapsedTime(0);
+    setHasLoadedProgress(false);
+    clearProgress(); // Clear saved progress
     onClose();
   };
 
@@ -295,6 +337,7 @@ export function QuizSession({
                     setState("question");
                     setAnswers([]);
                     setStartTime(Date.now());
+                    clearProgress(); // Clear progress when retrying
                   }}
                   className="flex-1 rounded-xl bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white shadow-lg"
                 >

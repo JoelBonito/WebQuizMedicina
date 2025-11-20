@@ -171,6 +171,7 @@ serve(async (req) => {
     let useSemanticSearch = await hasAnyEmbeddings(supabaseClient, sourceIds);
 
     let combinedContent = "";
+    let avgSimilarity: number | null = null; // Track average similarity for warning
 
     if (useSemanticSearch) {
       // ✅ PHASE 2: Use semantic search with embeddings
@@ -201,8 +202,9 @@ serve(async (req) => {
           })
           .join('\n\n---\n\n');
 
-        const avgSimilarity = (relevantChunks.reduce((sum, c) => sum + c.similarity, 0) / relevantChunks.length * 100).toFixed(1);
-        console.log(`✅ [PHASE 2] Using ${relevantChunks.length} relevant chunks (avg similarity: ${avgSimilarity}%)`);
+        avgSimilarity = relevantChunks.reduce((sum, c) => sum + c.similarity, 0) / relevantChunks.length;
+        const avgSimilarityPercent = (avgSimilarity * 100).toFixed(1);
+        console.log(`✅ [PHASE 2] Using ${relevantChunks.length} relevant chunks (avg similarity: ${avgSimilarityPercent}%)`);
         console.log(`📊 [PHASE 2] Total content: ${combinedContent.length} characters`);
 
         // Safety check: truncate if content still too large (should not happen with 8 chunks)
@@ -353,14 +355,31 @@ Retorne APENAS o JSON, sem texto adicional antes ou depois.`;
         source_count: sources.length,
         questions_generated: insertedQuestions.length,
         count_requested: count,
+        avg_similarity: avgSimilarity,
       },
     );
+
+    // Check for low relevance and add warning
+    const LOW_RELEVANCE_THRESHOLD = 0.70; // 70% similarity threshold
+    let warning = null;
+
+    if (avgSimilarity !== null && avgSimilarity < LOW_RELEVANCE_THRESHOLD) {
+      const similarityPercent = (avgSimilarity * 100).toFixed(1);
+      warning = {
+        type: 'low_relevance',
+        message: 'A relevância do conteúdo encontrado é baixa. As questões geradas podem não ser totalmente precisas.',
+        recommendation: 'Considere refinar o material de estudo ou adicionar mais conteúdo relacionado ao tema.',
+        avgSimilarity: parseFloat(similarityPercent),
+      };
+      console.warn(`⚠️ [WARNING] Low relevance detected: ${similarityPercent}%`);
+    }
 
     return createSuccessResponse(
       {
         success: true,
         count: insertedQuestions.length,
         questions: insertedQuestions,
+        ...(warning && { warning }),
       },
       200,
       req,

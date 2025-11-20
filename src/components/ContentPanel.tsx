@@ -182,8 +182,16 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
     try {
       switch(type) {
         case 'quiz':
-          await generateQuiz(selectedSourceIds, 15);
+          const quizResult = await generateQuiz(selectedSourceIds, 15);
           toast.success("Quiz gerado com sucesso!");
+
+          // Show warning if relevance is low
+          if (quizResult?.warning) {
+            toast.warning(quizResult.warning.message, {
+              description: quizResult.warning.recommendation,
+              duration: 7000,
+            });
+          }
           break;
         case 'flashcards':
           await generateFlashcards(selectedSourceIds, 20);

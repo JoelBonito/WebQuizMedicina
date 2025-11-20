@@ -3,8 +3,10 @@
   import react from '@vitejs/plugin-react-swc';
   import path from 'path';
   import { viteStaticCopy } from 'vite-plugin-static-copy';
+  import { visualizer } from 'rollup-plugin-visualizer';
+  import { VitePWA } from 'vite-plugin-pwa';
 
-  export default defineConfig({
+  export default defineConfig(({ mode }) => ({
     plugins: [
       react(),
       viteStaticCopy({
@@ -16,7 +18,59 @@
           },
         ],
       }),
-    ],
+      // Bundle analyzer - only in analyze mode
+      mode === 'analyze' && visualizer({
+        open: true,
+        filename: 'dist/stats.html',
+        gzipSize: true,
+        brotliSize: true,
+      }),
+      // PWA Plugin for Service Worker
+      VitePWA({
+        registerType: 'autoUpdate',
+        includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
+        manifest: {
+          name: 'WebQuiz Medicina',
+          short_name: 'WebQuiz',
+          description: 'Plataforma de estudos médicos com IA',
+          theme_color: '#0891B2',
+          background_color: '#ffffff',
+          display: 'standalone',
+          icons: [
+            {
+              src: 'icon-192x192.png',
+              sizes: '192x192',
+              type: 'image/png'
+            },
+            {
+              src: 'icon-512x512.png',
+              sizes: '512x512',
+              type: 'image/png'
+            }
+          ]
+        },
+        workbox: {
+          // Cache PDFs and questions for offline access
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,json,woff,woff2}'],
+          runtimeCaching: [
+            {
+              urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
+              handler: 'NetworkFirst',
+              options: {
+                cacheName: 'supabase-cache',
+                expiration: {
+                  maxEntries: 50,
+                  maxAgeSeconds: 60 * 60 * 24 * 7 // 7 days
+                },
+                cacheableResponse: {
+                  statuses: [0, 200]
+                }
+              }
+            }
+          ]
+        }
+      })
+    ].filter(Boolean),
     resolve: {
       extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
       alias: {
@@ -64,9 +118,24 @@
     build: {
       target: 'esnext',
       outDir: 'build',
+      sourcemap: true, // Enable source maps for Sentry
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'react-vendor': ['react', 'react-dom'],
+            'ui-vendor': ['motion', 'lucide-react'],
+            'radix-vendor': [
+              '@radix-ui/react-dialog',
+              '@radix-ui/react-dropdown-menu',
+              '@radix-ui/react-tabs',
+              '@radix-ui/react-tooltip',
+            ],
+          },
+        },
+      },
     },
     server: {
       port: 3000,
       open: true,
     },
-  });
+  }));
