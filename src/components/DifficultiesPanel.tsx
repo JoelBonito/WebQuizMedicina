@@ -122,7 +122,7 @@ export function DifficultiesPanel({ projectId }: DifficultiesPanelProps) {
 
       const topicsText = topDifficulties.map((d) => d.topico).join(", ");
 
-      await toast.promise(
+      const [quizResult] = await toast.promise(
         Promise.all([
           generateQuiz(undefined, 10),
           generateFlashcards(undefined, 15),
@@ -133,6 +133,14 @@ export function DifficultiesPanel({ projectId }: DifficultiesPanelProps) {
           error: "Erro ao gerar conteúdo de prática",
         }
       );
+
+      // Show warning if quiz relevance is low
+      if (quizResult?.warning) {
+        toast.warning(quizResult.warning.message, {
+          description: quizResult.warning.recommendation,
+          duration: 7000,
+        });
+      }
     } catch (error) {
       console.error(error);
     } finally {
