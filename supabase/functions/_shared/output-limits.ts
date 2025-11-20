@@ -42,16 +42,16 @@ export const OUTPUT_LIMITS = {
 } as const;
 
 /**
- * Safe output limit: 90% of Gemini's 8k token limit
+ * Safe output limit: 75% of Gemini's 16k token limit
  * Leaves buffer for:
  * - JSON formatting variations
  * - Gemini's conservative token counting
  * - Unexpected verbosity
  *
- * Increased from 6400 to 7500 to reduce MAX_TOKENS errors
- * while still maintaining a small safety buffer
+ * Increased from 7500 to 12000 to accommodate more questions/flashcards
+ * while maintaining safety buffer of ~4k tokens below Gemini 2.5's max (16384)
  */
-export const SAFE_OUTPUT_LIMIT = 7500;
+export const SAFE_OUTPUT_LIMIT = 12000;
 
 /**
  * Maximum output tokens Gemini 2.5 can generate

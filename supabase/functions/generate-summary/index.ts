@@ -155,7 +155,7 @@ serve(async (req) => {
         console.log(`📊 [PHASE 2] Total content: ${combinedContent.length} characters`);
 
         // Safety check: truncate if content still too large
-        const MAX_SEMANTIC_CONTENT = 35000; // ~8750 tokens - leaves room for instructions and output
+        const MAX_SEMANTIC_CONTENT = 50000; // ~12500 tokens - increased to accommodate more context with new 12k output limit
         if (combinedContent.length > MAX_SEMANTIC_CONTENT) {
           console.warn(`⚠️ [PHASE 2] Truncating content from ${combinedContent.length} to ${MAX_SEMANTIC_CONTENT} characters`);
           combinedContent = combinedContent.substring(0, MAX_SEMANTIC_CONTENT) + '\n\n[Conteúdo truncado para evitar limite de tokens]';
@@ -168,7 +168,7 @@ serve(async (req) => {
       console.warn('⚠️ [PHASE 0] No embeddings found. Using fallback method (truncated concatenation)');
 
       const MAX_SOURCES = 3;
-      const MAX_CONTENT_LENGTH = 40000; // ~10k tokens
+      const MAX_CONTENT_LENGTH = 60000; // ~15k tokens - increased to accommodate more context with new 12k output limit
 
       let usedSources = sources;
       if (sources.length > MAX_SOURCES) {
