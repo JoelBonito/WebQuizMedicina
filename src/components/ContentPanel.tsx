@@ -114,6 +114,8 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
   const [flashcardSessionOpen, setFlashcardSessionOpen] = useState(false);
   const [difficultiesOpen, setDifficultiesOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [selectedQuizSession, setSelectedQuizSession] = useState<string | null>(null);
+  const [selectedFlashcardSession, setSelectedFlashcardSession] = useState<string | null>(null);
 
   const handleAskChat = (selectedText: string) => {
     localStorage.setItem('chat_question', `Explique melhor: "${selectedText}"`);
@@ -132,27 +134,49 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
 
     const newContent: GeneratedContent[] = [];
 
-    // Add quizzes
-    if (questions.length > 0) {
-      newContent.push({
-        id: `quiz-${projectId}`,
-        type: 'quiz',
-        title: `Quiz - ${questions.length} questões`,
-        sourceCount: selectedSourceIds.length,
-        createdAt: new Date(questions[0].created_at || new Date()),
-      });
-    }
+    // Group questions by session_id
+    const questionsBySession = questions.reduce((acc, question) => {
+      const sessionId = question.session_id || 'no-session';
+      if (!acc[sessionId]) {
+        acc[sessionId] = [];
+      }
+      acc[sessionId].push(question);
+      return acc;
+    }, {} as Record<string, typeof questions>);
 
-    // Add flashcards
-    if (flashcards.length > 0) {
+    // Add each quiz session as a separate entry
+    Object.entries(questionsBySession).forEach(([sessionId, sessionQuestions]) => {
+      const mostRecent = sessionQuestions[0];
       newContent.push({
-        id: `flashcards-${projectId}`,
-        type: 'flashcards',
-        title: `Flashcards - ${flashcards.length} cards`,
+        id: `quiz-${sessionId}`,
+        type: 'quiz',
+        title: `Quiz - ${sessionQuestions.length} questões`,
         sourceCount: selectedSourceIds.length,
-        createdAt: new Date(flashcards[0].created_at || new Date()),
+        createdAt: new Date(mostRecent.created_at || new Date()),
       });
-    }
+    });
+
+    // Group flashcards by session_id
+    const flashcardsBySession = flashcards.reduce((acc, flashcard) => {
+      const sessionId = flashcard.session_id || 'no-session';
+      if (!acc[sessionId]) {
+        acc[sessionId] = [];
+      }
+      acc[sessionId].push(flashcard);
+      return acc;
+    }, {} as Record<string, typeof flashcards>);
+
+    // Add each flashcard session as a separate entry
+    Object.entries(flashcardsBySession).forEach(([sessionId, sessionFlashcards]) => {
+      const mostRecent = sessionFlashcards[0];
+      newContent.push({
+        id: `flashcards-${sessionId}`,
+        type: 'flashcards',
+        title: `Flashcards - ${sessionFlashcards.length} cards`,
+        sourceCount: selectedSourceIds.length,
+        createdAt: new Date(mostRecent.created_at || new Date()),
+      });
+    });
 
     // Add summaries
     summaries.forEach(summary => {
@@ -213,9 +237,15 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
   const handleOpenContent = (content: GeneratedContent) => {
     switch(content.type) {
       case 'quiz':
+        // Extract session_id from content.id (format: "quiz-{sessionId}")
+        const quizSessionId = content.id.replace('quiz-', '');
+        setSelectedQuizSession(quizSessionId);
         setQuizSessionOpen(true);
         break;
       case 'flashcards':
+        // Extract session_id from content.id (format: "flashcards-{sessionId}")
+        const flashcardSessionId = content.id.replace('flashcards-', '');
+        setSelectedFlashcardSession(flashcardSessionId);
         setFlashcardSessionOpen(true);
         break;
       case 'summary':
@@ -441,18 +471,24 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
 
       {/* Quiz Session Modal */}
       <QuizSession
-        questions={questions}
+        questions={questions.filter(q => q.session_id === selectedQuizSession)}
         projectId={projectId || ''}
         open={quizSessionOpen}
-        onClose={() => setQuizSessionOpen(false)}
+        onClose={() => {
+          setQuizSessionOpen(false);
+          setSelectedQuizSession(null);
+        }}
       />
 
       {/* Flashcard Session Modal */}
       <FlashcardSession
-        flashcards={flashcards}
+        flashcards={flashcards.filter(f => f.session_id === selectedFlashcardSession)}
         projectId={projectId || ''}
         open={flashcardSessionOpen}
-        onClose={() => setFlashcardSessionOpen(false)}
+        onClose={() => {
+          setFlashcardSessionOpen(false);
+          setSelectedFlashcardSession(null);
+        }}
       />
 
       {/* Difficulties Dialog */}

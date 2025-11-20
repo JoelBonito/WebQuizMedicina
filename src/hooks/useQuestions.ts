@@ -6,6 +6,7 @@ export interface Question {
   id: string;
   project_id: string;
   source_id: string | null;
+  session_id: string | null;
   pergunta: string;
   opcoes: string[];
   resposta_correta: string;

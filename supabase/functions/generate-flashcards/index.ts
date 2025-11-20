@@ -210,6 +210,10 @@ serve(async (req) => {
 
     console.log(`🔄 [PHASE 1] Processing in ${totalBatches} batch(es): ${batchSizes.join(', ')} flashcards each`);
 
+    // Generate a unique session_id for this flashcard generation
+    const sessionId = crypto.randomUUID();
+    console.log(`📝 [PHASE 1] Session ID: ${sessionId}`);
+
     // Generate flashcards in batches
     const allFlashcards: any[] = [];
 
@@ -267,6 +271,7 @@ Retorne APENAS o JSON, sem texto adicional antes ou depois.`;
     const flashcardsToInsert = allFlashcards.map((f: any) => ({
       project_id: project_id || sources[0].project_id,
       source_id: source_id || null,
+      session_id: sessionId,
       frente: sanitizeString(f.frente || ''),
       verso: sanitizeString(f.verso || ''),
       topico: f.topico ? sanitizeString(f.topico) : null,
@@ -296,6 +301,7 @@ Retorne APENAS o JSON, sem texto adicional antes ou depois.`;
     return createSuccessResponse({
       success: true,
       count: insertedFlashcards.length,
+      session_id: sessionId,
       flashcards: insertedFlashcards,
     });
   } catch (error) {

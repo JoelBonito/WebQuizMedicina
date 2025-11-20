@@ -6,6 +6,7 @@ export interface Flashcard {
   id: string;
   project_id: string;
   source_id: string | null;
+  session_id: string | null;
   frente: string;
   verso: string;
   topico: string | null;
