@@ -370,10 +370,10 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
 
   return (
     <>
-      <div className={`h-full w-full flex flex-col overflow-hidden ${
+      <div className={`w-full flex flex-col ${
         isFullscreenMode
           ? "bg-gray-50/50"
-          : "bg-gray-50/50 rounded-3xl border border-gray-200"
+          : "bg-gray-50/50 rounded-3xl border border-gray-200 h-full overflow-hidden"
       }`}>
         {/* Banda colorida do topo */}
         <div className="h-1.5 w-full bg-gradient-to-r from-green-500 to-emerald-500" />
@@ -659,7 +659,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
 
       {/* Difficulties Dialog - 95% da tela */}
       <Dialog open={difficultiesOpen} onOpenChange={setDifficultiesOpen}>
-        <DialogContent className="max-w-[95vw] w-[95vw] h-[95vh] !p-0 rounded-2xl overflow-hidden">
+        <DialogContent className="max-w-[95vw] w-[95vw] h-[95vh] !p-0 rounded-2xl">
           <div className="h-full w-full flex flex-col bg-gray-50">
             <div className="flex items-center justify-between p-6 border-b bg-white flex-shrink-0">
               <h2 className="text-2xl font-bold text-gray-900">Análise das Dificuldades</h2>
@@ -676,7 +676,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
             <DialogDescription className="sr-only">
               Visualize e gerencie suas dificuldades de aprendizado identificadas durante quizzes e flashcards.
             </DialogDescription>
-            <div className="flex-1 min-h-0 overflow-auto">
+            <div className="flex-1 overflow-y-auto">
               <DifficultiesPanel projectId={projectId} isFullscreenMode={true} />
             </div>
           </div>
@@ -686,7 +686,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
       {/* Expanded Dialog - 95% da tela */}
       {!isFullscreenMode && (
         <Dialog open={isFullscreen} onOpenChange={setIsFullscreen}>
-          <DialogContent className="max-w-[95vw] w-[95vw] h-[95vh] !p-0 rounded-2xl overflow-hidden">
+          <DialogContent className="max-w-[95vw] w-[95vw] h-[95vh] !p-0 rounded-2xl">
             <div className="h-full w-full flex flex-col bg-gray-50">
               <div className="flex items-center justify-between p-6 border-b bg-white flex-shrink-0">
                 <h2 className="text-2xl font-bold text-gray-900">Estudo</h2>
@@ -699,7 +699,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
                   <X className="w-5 h-5" />
                 </Button>
               </div>
-              <div className="flex-1 min-h-0 overflow-auto">
+              <div className="flex-1 overflow-y-auto">
                 <ContentPanel projectId={projectId} selectedSourceIds={selectedSourceIds} isFullscreenMode={true} />
               </div>
             </div>
