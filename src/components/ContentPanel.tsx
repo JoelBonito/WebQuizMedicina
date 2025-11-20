@@ -218,7 +218,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
       switch(type) {
         case 'quiz':
           const quizDiff = quizDifficulty !== 'todos' ? quizDifficulty : undefined;
-          const quizResult = await generateQuiz(selectedSourceIds, 15, quizDiff);
+          const quizResult = await generateQuiz(selectedSourceIds, 20, quizDiff);
           toast.success(quizDiff
             ? `Quiz gerado com sucesso (nível ${quizDiff})!`
             : "Quiz gerado com sucesso!"
