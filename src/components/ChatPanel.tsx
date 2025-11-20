@@ -191,7 +191,7 @@ export function ChatPanel({ projectId, isFullscreenMode = false }: ChatPanelProp
       ) : (
         <>
           {/* Messages Container - CRITICAL: This is where scroll should be */}
-          <div className="flex-1 min-h-0 overflow-y-auto mb-4" style={{ scrollbarWidth: 'thin', scrollbarColor: '#cbd5e1 transparent' }}>
+          <div className={`flex-1 min-h-0 mb-4 ${!isFullscreenMode ? 'overflow-y-auto' : ''}`} style={!isFullscreenMode ? { scrollbarWidth: 'thin', scrollbarColor: '#cbd5e1 transparent' } : {}}>
             <div className="space-y-4 pr-2 pb-4">
               {loading && messages.length === 0 ? (
                 <div className="flex items-center justify-center py-12">
