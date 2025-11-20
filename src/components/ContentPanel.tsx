@@ -448,25 +448,36 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
                     ${card.bgColor}
                     relative p-5 rounded-2xl w-full
                     flex flex-col items-start gap-2
-                    shadow-lg hover:shadow-xl
+                    shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_15px_40px_rgb(0,0,0,0.2)]
                     transition-all duration-300
-                    hover:scale-[1.02]
+                    hover:scale-[1.03]
                     active:scale-[0.98]
                     disabled:opacity-50 disabled:cursor-not-allowed
                     group
+                    overflow-hidden
+                    backdrop-blur-xl
+                    border-2 border-white/30
+                    before:absolute before:inset-0
+                    before:bg-gradient-to-br before:from-white/30 before:via-white/10 before:to-transparent
+                    before:opacity-60
+                    after:absolute after:inset-0
+                    after:bg-gradient-to-tr after:from-transparent after:via-white/20 after:to-white/40
+                    after:opacity-0 hover:after:opacity-100
+                    after:transition-opacity after:duration-500
+                    after:blur-xl
                   `}
                 >
                   {/* Ícone */}
-                  <CardIcon className={`w-7 h-7 ${card.iconColor}`} />
+                  <CardIcon className={`w-7 h-7 ${card.iconColor} relative z-10 drop-shadow-lg`} />
 
                   {/* Título */}
-                  <span className={`font-semibold text-base ${card.textColor}`}>
+                  <span className={`font-semibold text-base ${card.textColor} relative z-10 drop-shadow-md`}>
                     {card.title}
                   </span>
 
                   {/* Loading indicator - only for this specific button */}
                   {isButtonGenerating && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-white/80 rounded-2xl">
+                    <div className="absolute inset-0 flex items-center justify-center bg-white/90 backdrop-blur-md rounded-2xl z-20">
                       <Loader2 className="w-6 h-6 animate-spin text-gray-600" />
                     </div>
                   )}
@@ -490,7 +501,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
                     <DropdownMenuTrigger asChild>
                       <button
                         onClick={(e) => e.stopPropagation()}
-                        className="absolute top-3 right-3 p-2 rounded-full bg-white/80 hover:bg-white/95 shadow-sm transition-all z-10"
+                        className="absolute top-3 right-3 p-2 rounded-full bg-white/90 hover:bg-white backdrop-blur-md shadow-md hover:shadow-lg transition-all z-10 border border-white/50 hover:scale-110"
                       >
                         <Settings className="w-4 h-4 text-gray-600" />
                       </button>
@@ -528,10 +539,10 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
           <Button
             onClick={() => setDifficultiesOpen(true)}
             size="sm"
-            className="rounded-xl flex items-center gap-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-md hover:shadow-lg transition-all duration-300"
+            className="rounded-xl flex items-center gap-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_15px_40px_rgba(251,146,60,0.4)] transition-all duration-300 backdrop-blur-xl border-2 border-white/30 relative overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/30 before:via-white/10 before:to-transparent before:opacity-60 after:absolute after:inset-0 after:bg-gradient-to-tr after:from-transparent after:via-white/20 after:to-white/40 after:opacity-0 hover:after:opacity-100 after:transition-opacity after:duration-500 hover:scale-[1.05]"
           >
-            <TrendingUp className="w-4 h-4" />
-            <span>Análise das Dificuldades</span>
+            <TrendingUp className="w-4 h-4 relative z-10 drop-shadow-lg" />
+            <span className="relative z-10 drop-shadow-md">Análise das Dificuldades</span>
           </Button>
         </div>
 
