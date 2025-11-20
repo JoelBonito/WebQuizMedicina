@@ -34,7 +34,7 @@ export function RightPanel({ projectId }: RightPanelProps) {
           </div>
 
           {/* Chat Panel */}
-          <div className="h-[calc(100%-3.5rem)] overflow-hidden">
+          <div className="h-[calc(100%-3.5rem)]">
             <ChatPanel projectId={projectId} />
           </div>
         </div>
@@ -55,8 +55,8 @@ export function RightPanel({ projectId }: RightPanelProps) {
                 <X className="w-5 h-5" />
               </Button>
             </div>
-            {/* CRITICAL: Use h-[calc(100%-4rem)] instead of flex-1 to give explicit height */}
-            <div className="h-[calc(100%-4rem)] overflow-hidden">
+            {/* CRITICAL: Removed overflow-hidden to allow scroll inside ChatPanel */}
+            <div className="flex-1 min-h-0">
               <ChatPanel projectId={projectId} />
             </div>
           </div>
