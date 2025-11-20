@@ -329,7 +329,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [] }: ContentPanel
         <div className="border-t border-gray-200 my-4" />
 
         {/* Lista de Conteúdo Gerado */}
-        <div className="flex-1 overflow-y-auto pr-2">
+        <div className="flex-1 min-h-0 overflow-y-auto pr-2">
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-8 h-8 animate-spin text-[#0891B2]" />
@@ -411,7 +411,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [] }: ContentPanel
             <DialogDescription className="sr-only">
               Visualização completa do resumo. Selecione texto para enviar perguntas ao chat.
             </DialogDescription>
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="flex-1 min-h-0 overflow-y-auto p-6">
               {selectedSummary?.topicos && selectedSummary.topicos.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-6">
                   {selectedSummary.topicos.map((topico: string, i: number) => (
@@ -474,7 +474,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [] }: ContentPanel
                 <X className="w-5 h-5" />
               </Button>
             </div>
-            <div className="flex-1 overflow-hidden">
+            <div className="flex-1 min-h-0 overflow-hidden">
               <ContentPanel projectId={projectId} selectedSourceIds={selectedSourceIds} />
             </div>
           </div>

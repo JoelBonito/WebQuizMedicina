@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from "react";
 import { Send, Sparkles, FileText, Loader2, Trash2, AlertCircle, Bot, User, Lightbulb } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
-import { ScrollArea } from "./ui/scroll-area";
 import { motion, AnimatePresence } from "motion/react";
 import { useChat, CitedSource } from "../hooks/useChat";
 import { useSources } from "../hooks/useSources";
@@ -17,7 +16,6 @@ export function ChatPanel({ projectId }: ChatPanelProps) {
   const [inputValue, setInputValue] = useState("");
   const [currentCitedSources, setCurrentCitedSources] = useState<CitedSource[]>([]);
   const [currentSuggestedTopics, setCurrentSuggestedTopics] = useState<string[]>([]);
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { messages, loading, sending, sendMessage, clearHistory } = useChat(projectId);
@@ -188,8 +186,7 @@ export function ChatPanel({ projectId }: ChatPanelProps) {
       ) : (
         <>
           {/* Messages */}
-          <div className="flex-1 min-h-0 overflow-hidden mb-4">
-            <ScrollArea className="h-full" ref={scrollAreaRef}>
+          <div className="flex-1 min-h-0 overflow-y-auto mb-4">
               <div className="space-y-4 pr-2 pb-2">
                 {loading && messages.length === 0 ? (
                 <div className="flex items-center justify-center py-12">
@@ -317,7 +314,6 @@ export function ChatPanel({ projectId }: ChatPanelProps) {
               )}
               <div ref={messagesEndRef} />
               </div>
-            </ScrollArea>
           </div>
 
           {/* Suggestions */}

@@ -226,7 +226,7 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
             </div>
 
             {/* Flashcard */}
-            <div className="flex-1 flex items-center justify-center p-8 overflow-y-auto">
+            <div className="flex-1 min-h-0 flex items-center justify-center p-8 overflow-y-auto">
               <motion.div
                 className="relative w-full max-w-2xl"
                 style={{ perspective: 1000 }}
@@ -321,7 +321,7 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
           </div>
         ) : (
           // Summary Screen
-          <div className="flex flex-col items-center justify-center p-12 overflow-y-auto max-h-[90vh]">
+          <div className="flex flex-col items-center justify-center p-12 overflow-y-auto h-full max-h-screen">
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
