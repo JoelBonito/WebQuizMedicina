@@ -264,6 +264,10 @@ serve(async (req) => {
 
     console.log(`🔄 [PHASE 1] Processing in ${totalBatches} batch(es): ${batchSizes.join(', ')} questions each`);
 
+    // Generate a unique session_id for this quiz generation
+    const sessionId = crypto.randomUUID();
+    console.log(`📝 [PHASE 1] Session ID: ${sessionId}`);
+
     // Generate quiz questions in batches
     const allQuestions: any[] = [];
 
@@ -325,6 +329,7 @@ Retorne APENAS o JSON, sem texto adicional antes ou depois.`;
     const questionsToInsert = allQuestions.map((q: any) => ({
       project_id: project_id || sources[0].project_id,
       source_id: source_id || null,
+      session_id: sessionId,
       pergunta: sanitizeString(q.pergunta || ""),
       opcoes: Array.isArray(q.opcoes)
         ? q.opcoes.map((opt: string) => sanitizeString(opt))
@@ -378,6 +383,7 @@ Retorne APENAS o JSON, sem texto adicional antes ou depois.`;
       {
         success: true,
         count: insertedQuestions.length,
+        session_id: sessionId,
         questions: insertedQuestions,
         ...(warning && { warning }),
       },
