@@ -1,4 +1,4 @@
-import { ArrowLeft, LogOut, User, Languages, Palette, BarChart3 } from "lucide-react";
+import { ArrowLeft, LogOut, User, Languages, Palette, BarChart3, BookOpen } from "lucide-react";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { Button } from "./ui/button";
 import { useAuth } from "../hooks/useAuth";
@@ -74,8 +74,9 @@ export function Navbar({ onBackClick, projectName, projectId, onViewStats }: Nav
         {/* Project Name */}
         {projectName && (
           <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-2">
-            <div className="glass-dark px-4 py-2 rounded-2xl border border-gray-200">
-              <span className="text-gray-800">{projectName}</span>
+            <div className="px-4 py-2 rounded-2xl bg-gradient-to-r from-[#0891B2] to-[#0891B2]/80 text-white shadow-md hover:shadow-lg transition-all duration-300 flex items-center gap-2">
+              <BookOpen className="w-4 h-4" />
+              <span className="font-medium">{projectName}</span>
             </div>
             {projectId && onViewStats && (
               <Button
