@@ -110,6 +110,14 @@ export const useSources = (projectId: string | null) => {
   const uploadSource = async (file: File) => {
     if (!user || !projectId) throw new Error('User or project not found');
 
+    // Validate file size (50MB limit - Supabase default)
+    const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB in bytes
+    if (file.size > MAX_FILE_SIZE) {
+      const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+      const maxSizeMB = (MAX_FILE_SIZE / (1024 * 1024)).toFixed(0);
+      throw new Error(`Arquivo muito grande (${fileSizeMB} MB). O tamanho máximo permitido é ${maxSizeMB} MB.`);
+    }
+
     try {
       setUploading(true);
 
