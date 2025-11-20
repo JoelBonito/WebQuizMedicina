@@ -1,11 +1,13 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { useProfile } from "../hooks/useProfile";
 
-type Language = "pt-BR" | "en-US" | "es-ES";
+type Language = "pt" | "en" | "es" | "fr" | "de" | "it" | "ja" | "zh" | "ru" | "ar";
 
 interface LanguageContextType {
   language: Language;
   setLanguage: (language: Language) => void;
   getLanguageName: (lang: Language) => string;
+  isLoading: boolean;
 }
 
 const ThemeContext = createContext<LanguageContextType | undefined>(undefined);
@@ -15,19 +17,39 @@ interface LanguageProviderProps {
 }
 
 const LANGUAGE_NAMES: Record<Language, string> = {
-  "pt-BR": "Português (Brasil)",
-  "en-US": "English (US)",
-  "es-ES": "Español",
+  "pt": "Português",
+  "en": "English",
+  "es": "Español",
+  "fr": "Français",
+  "de": "Deutsch",
+  "it": "Italiano",
+  "ja": "日本語",
+  "zh": "中文",
+  "ru": "Русский",
+  "ar": "العربية",
 };
 
 export function LanguageProvider({ children }: LanguageProviderProps) {
-  const [language, setLanguageState] = useState<Language>(() => {
-    const stored = localStorage.getItem("language");
-    return (stored as Language) || "pt-BR";
-  });
+  const { profile, updateProfile, loading } = useProfile();
+  const [language, setLanguageState] = useState<Language>("pt");
 
-  const setLanguage = (newLanguage: Language) => {
+  // Sync with profile when it loads
+  useEffect(() => {
+    if (profile?.response_language) {
+      setLanguageState(profile.response_language as Language);
+    }
+  }, [profile]);
+
+  const setLanguage = async (newLanguage: Language) => {
+    // Update local state immediately for responsiveness
     setLanguageState(newLanguage);
+
+    // Save to profile (Supabase)
+    if (profile) {
+      await updateProfile({ response_language: newLanguage });
+    }
+
+    // Also save to localStorage as fallback
     localStorage.setItem("language", newLanguage);
   };
 
@@ -36,7 +58,7 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
   };
 
   return (
-    <ThemeContext.Provider value={{ language, setLanguage, getLanguageName }}>
+    <ThemeContext.Provider value={{ language, setLanguage, getLanguageName, isLoading: loading }}>
       {children}
     </ThemeContext.Provider>
   );
