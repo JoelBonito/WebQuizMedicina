@@ -9,7 +9,6 @@ import {
   AlertCircle,
   CheckCircle2,
   Sparkles,
-  Maximize,
   X,
 } from "lucide-react";
 import { Button } from "./ui/button";
@@ -349,33 +348,54 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange }: SourcesPane
 
         {/* Header */}
         <div className="glass-dark rounded-2xl mb-4 p-4 border border-gray-200">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <h3 className="text-lg font-semibold text-gray-900">Fontes</h3>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => setIsFullscreen(true)}
-                className="h-8 w-8 p-0 hidden md:flex"
-              >
-                <Maximize className="w-4 h-4" />
-              </Button>
-            </div>
-          <Button
-            size="sm"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-            className="rounded-xl bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300"
-          >
-            {uploading ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <Upload className="w-4 h-4 mr-2" />
-            )}
-            Upload
-          </Button>
+          {/* Linha 1: Título e botão expand */}
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-semibold text-gray-900">Fontes</h3>
+            <button
+              onClick={() => setIsFullscreen(true)}
+              className="hidden md:flex items-center justify-center text-gray-600 hover:text-gray-900 transition-colors"
+              aria-label="Expandir"
+            >
+              <span className="material-symbols-outlined text-[20px]">expand_content</span>
+            </button>
+          </div>
+
+          {/* Linha 2: Botões Upload e Processar Dados */}
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="rounded-xl bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300"
+            >
+              {uploading ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Upload className="w-4 h-4 mr-2" />
+              )}
+              Upload
+            </Button>
+            <Button
+              size="sm"
+              onClick={processEmbeddings}
+              disabled={processingEmbeddings || sources.filter(s => s.status !== 'ready').length === 0}
+              className="rounded-xl"
+              variant="outline"
+            >
+              {processingEmbeddings ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Processando...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Processar Dados
+                </>
+              )}
+            </Button>
+          </div>
         </div>
-      </div>
 
       {/* Sources List */}
       <div className="flex-1 min-h-0 overflow-hidden">

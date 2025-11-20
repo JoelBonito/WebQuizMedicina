@@ -23,15 +23,14 @@ export function RightPanel({ projectId }: RightPanelProps) {
             <div className="flex items-center gap-2">
               <MessageSquare className="w-5 h-5 text-purple-600" />
               <h3 className="text-lg font-semibold text-gray-900">Chat</h3>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => setIsFullscreen(true)}
-                className="h-8 w-8 p-0 hidden md:flex"
-              >
-                <Maximize className="w-4 h-4" />
-              </Button>
             </div>
+            <button
+              onClick={() => setIsFullscreen(true)}
+              className="hidden md:flex items-center justify-center text-gray-600 hover:text-gray-900 transition-colors"
+              aria-label="Expandir"
+            >
+              <span className="material-symbols-outlined text-[20px]">expand_content</span>
+            </button>
           </div>
 
           {/* Chat Panel */}
