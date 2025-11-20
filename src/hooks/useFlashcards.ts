@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { useAuth } from './useAuth';
 
 export interface Flashcard {
   id: string;
@@ -13,6 +14,7 @@ export interface Flashcard {
 }
 
 export const useFlashcards = (projectId: string | null) => {
+  const { session } = useAuth();
   const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -50,7 +52,6 @@ export const useFlashcards = (projectId: string | null) => {
     try {
       setGenerating(true);
 
-      const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
       // Support both single sourceId (string) and multiple sourceIds (array)

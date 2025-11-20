@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { useAuth } from './useAuth';
 
 export interface Summary {
   id: string;
@@ -13,6 +14,7 @@ export interface Summary {
 }
 
 export const useSummaries = (projectId: string | null) => {
+  const { session } = useAuth();
   const [summaries, setSummaries] = useState<Summary[]>([]);
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -50,7 +52,6 @@ export const useSummaries = (projectId: string | null) => {
     try {
       setGenerating(true);
 
-      const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
       // Support both single sourceId (string) and multiple sourceIds (array)
@@ -94,7 +95,6 @@ export const useSummaries = (projectId: string | null) => {
     try {
       setGenerating(true);
 
-      const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
       const response = await fetch(
