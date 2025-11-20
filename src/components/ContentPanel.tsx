@@ -120,6 +120,20 @@ const formatTimeAgo = (date: Date) => {
   return `${Math.floor(seconds / 86400)}d atrás`;
 };
 
+// Helper function to get badge color based on difficulty
+const getDifficultyBadgeStyle = (difficulty: 'fácil' | 'médio' | 'difícil' | 'misto') => {
+  switch(difficulty) {
+    case 'fácil':
+      return 'bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 text-green-700';
+    case 'médio':
+      return 'bg-gradient-to-br from-orange-50 to-amber-50 border border-orange-200 text-orange-700';
+    case 'difícil':
+      return 'bg-gradient-to-br from-red-50 to-rose-50 border border-red-200 text-red-700';
+    case 'misto':
+      return 'bg-gradient-to-br from-amber-50 to-yellow-50 border border-amber-300 text-amber-800';
+  }
+};
+
 export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMode = false }: ContentPanelProps) {
   const [generatedContent, setGeneratedContent] = useState<GeneratedContent[]>([]);
   const [selectedSummary, setSelectedSummary] = useState<any>(null);
@@ -431,13 +445,6 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
                     {card.title}
                   </span>
 
-                  {/* Badge de dificuldade selecionada */}
-                  {showSettings && currentDifficulty !== 'todos' && (
-                    <Badge className="text-xs px-2.5 py-1 bg-white/90 backdrop-blur-sm border border-gray-200 rounded-lg font-medium shadow-sm">
-                      {currentDifficulty}
-                    </Badge>
-                  )}
-
                   {/* Loading indicator - only for this specific button */}
                   {isButtonGenerating && (
                     <div className="absolute inset-0 flex items-center justify-center bg-white/80 rounded-2xl">
@@ -445,6 +452,13 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
                     </div>
                   )}
                 </button>
+
+                {/* Badge de dificuldade ao lado do settings */}
+                {showSettings && (
+                  <Badge className={`absolute top-3 right-14 text-xs px-2.5 py-1 rounded-lg font-medium shadow-sm ${getDifficultyBadgeStyle(currentDifficulty === 'todos' ? 'misto' : (currentDifficulty as 'fácil' | 'médio' | 'difícil'))}`}>
+                    {currentDifficulty === 'todos' ? 'misto' : currentDifficulty}
+                  </Badge>
+                )}
 
                 {/* Botão de configuração (apenas para Quiz e Flashcards) */}
                 {showSettings && (
@@ -535,20 +549,20 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
 
                     {/* Informações */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-medium text-gray-900 truncate">
-                          {content.title}
-                        </h3>
-                        {content.difficulty && (
-                          <Badge className="text-xs px-2.5 py-1 bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200 text-blue-700 rounded-lg font-medium shadow-sm shrink-0">
-                            {content.difficulty}
-                          </Badge>
-                        )}
-                      </div>
+                      <h3 className="font-medium text-gray-900 truncate">
+                        {content.title}
+                      </h3>
                       <p className="text-sm text-gray-500">
                         {style.label} · {content.sourceCount} fontes · {formatTimeAgo(content.createdAt)}
                       </p>
                     </div>
+
+                    {/* Badge de dificuldade */}
+                    {content.difficulty && (
+                      <Badge className={`text-xs px-2.5 py-1 rounded-lg font-medium shadow-sm shrink-0 ${getDifficultyBadgeStyle(content.difficulty)}`}>
+                        {content.difficulty}
+                      </Badge>
+                    )}
 
                     {/* Menu de ações */}
                     <DropdownMenu>
