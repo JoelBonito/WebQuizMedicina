@@ -123,7 +123,8 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
 
       const topicsText = topDifficulties.map((d) => d.topico).join(", ");
 
-      const [quizResult] = await toast.promise(
+      // FIX: Corrigir destructuring - results é um array
+      const results = await toast.promise(
         Promise.all([
           generateQuiz(undefined, 10),
           generateFlashcards(undefined, 15),
@@ -136,6 +137,7 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
       );
 
       // Show warning if quiz relevance is low
+      const quizResult = results[0];
       if (quizResult?.warning) {
         toast.warning(quizResult.warning.message, {
           description: quizResult.warning.recommendation,
