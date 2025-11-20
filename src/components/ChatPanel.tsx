@@ -126,7 +126,7 @@ export function ChatPanel({ projectId }: ChatPanelProps) {
 
   if (!projectId) {
     return (
-      <div className="flex flex-col bg-gray-50/50 rounded-3xl p-4 border border-gray-200 h-full max-h-full">
+      <div className="flex flex-col bg-gray-50/50 rounded-3xl p-4 border border-gray-200 h-full">
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <Sparkles className="w-12 h-12 mx-auto mb-4 text-gray-400" />
@@ -138,7 +138,7 @@ export function ChatPanel({ projectId }: ChatPanelProps) {
   }
 
   return (
-    <div className="flex flex-col bg-gray-50/50 rounded-3xl p-4 border border-gray-200 h-full max-h-full">
+    <div className="flex flex-col bg-gray-50/50 rounded-3xl p-4 border border-gray-200 h-full">
       {/* Header */}
       <div className="glass-dark rounded-2xl p-4 mb-4 border border-gray-200 flex-shrink-0">
         <div className="flex items-center justify-between mb-2">
@@ -186,8 +186,8 @@ export function ChatPanel({ projectId }: ChatPanelProps) {
       ) : (
         <>
           {/* Messages Container - CRITICAL: This is where scroll should be */}
-          <div className="flex-1 min-h-0 overflow-y-auto mb-4 pr-2" style={{ scrollbarWidth: 'thin', scrollbarColor: '#cbd5e1 transparent' }}>
-            <div className="space-y-4 pb-4">
+          <div className="flex-1 min-h-0 overflow-y-auto mb-4" style={{ scrollbarWidth: 'thin', scrollbarColor: '#cbd5e1 transparent' }}>
+            <div className="space-y-4 pr-2 pb-4">
               {loading && messages.length === 0 ? (
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="w-8 h-8 animate-spin text-[#0891B2]" />
