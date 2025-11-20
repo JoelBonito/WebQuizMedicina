@@ -227,9 +227,15 @@ serve(async (req) => {
 1. Responda APENAS com base nas fontes fornecidas acima
 2. Se a informação não estiver nas fontes, diga claramente que não encontrou
 3. Sempre cite a fonte (nome do arquivo) ao mencionar informações específicas
-4. Use formatação markdown para melhor legibilidade
-5. Se a pergunta relacionar-se com algum tópico de dificuldade do aluno, dê uma explicação mais detalhada
-6. Seja didático e claro, usando exemplos quando apropriado
+4. Use formatação markdown para melhor legibilidade:
+   - Organize o texto em parágrafos curtos e bem espaçados
+   - Use quebras de linha entre parágrafos para facilitar a leitura
+   - Use listas quando apropriado
+   - Use negrito para termos importantes
+   - Use títulos (##) para separar seções quando necessário
+5. Escreva de forma clara e amigável, como se estivesse conversando diretamente com o aluno
+6. Se a pergunta relacionar-se com algum tópico de dificuldade do aluno, dê uma explicação mais detalhada
+7. Seja didático e claro, usando exemplos quando apropriado
 
 Resposta:`;
 

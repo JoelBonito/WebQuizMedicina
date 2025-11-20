@@ -10,7 +10,8 @@ import {
   Pencil,
   Sparkles,
   X,
-  TrendingUp
+  TrendingUp,
+  Maximize
 } from "lucide-react";
 import { motion } from "motion/react";
 import { useQuestions } from "../hooks/useQuestions";
@@ -112,6 +113,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [] }: ContentPanel
   const [quizSessionOpen, setQuizSessionOpen] = useState(false);
   const [flashcardSessionOpen, setFlashcardSessionOpen] = useState(false);
   const [difficultiesOpen, setDifficultiesOpen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const handleAskChat = (selectedText: string) => {
     localStorage.setItem('chat_question', `Explique melhor: "${selectedText}"`);
@@ -251,7 +253,17 @@ export function ContentPanel({ projectId, selectedSourceIds = [] }: ContentPanel
         <div className="flex-1 overflow-hidden p-6 flex flex-col">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
-            <h1 className="text-lg font-semibold text-gray-900">Estudo</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-lg font-semibold text-gray-900">Estudo</h1>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setIsFullscreen(true)}
+                className="h-8 w-8 p-0 hidden md:flex"
+              >
+                <Maximize className="w-4 h-4" />
+              </Button>
+            </div>
             <Button
               onClick={() => setDifficultiesOpen(true)}
               size="sm"
@@ -381,35 +393,39 @@ export function ContentPanel({ projectId, selectedSourceIds = [] }: ContentPanel
 
       {/* Summary Dialog */}
       <Dialog open={!!selectedSummary} onOpenChange={() => setSelectedSummary(null)}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto rounded-3xl">
-          <div className="flex items-center justify-between mb-4">
-            <DialogTitle className="text-xl font-semibold text-gray-900">
-              {selectedSummary?.titulo}
-            </DialogTitle>
-            <button
-              onClick={() => setSelectedSummary(null)}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-          <DialogDescription className="sr-only">
-            Visualização completa do resumo. Selecione texto para enviar perguntas ao chat.
-          </DialogDescription>
-          <div>
-            {selectedSummary?.topicos && selectedSummary.topicos.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-6">
-                {selectedSummary.topicos.map((topico: string, i: number) => (
-                  <Badge key={i} variant="outline" className="rounded-lg">
-                    {topico}
-                  </Badge>
-                ))}
-              </div>
-            )}
-            <SummaryViewer
-              html={selectedSummary?.conteudo_html || ""}
-              onAskChat={handleAskChat}
-            />
+        <DialogContent className="max-w-full h-screen m-0 rounded-none p-0">
+          <div className="h-full flex flex-col">
+            <div className="flex items-center justify-between p-6 border-b">
+              <DialogTitle className="text-2xl font-bold text-gray-900">
+                {selectedSummary?.titulo}
+              </DialogTitle>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setSelectedSummary(null)}
+                className="h-8 w-8 p-0"
+              >
+                <X className="w-5 h-5" />
+              </Button>
+            </div>
+            <DialogDescription className="sr-only">
+              Visualização completa do resumo. Selecione texto para enviar perguntas ao chat.
+            </DialogDescription>
+            <div className="flex-1 overflow-y-auto p-6">
+              {selectedSummary?.topicos && selectedSummary.topicos.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-6">
+                  {selectedSummary.topicos.map((topico: string, i: number) => (
+                    <Badge key={i} variant="outline" className="rounded-lg">
+                      {topico}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+              <SummaryViewer
+                html={selectedSummary?.conteudo_html || ""}
+                onAskChat={handleAskChat}
+              />
+            </div>
           </div>
         </DialogContent>
       </Dialog>
@@ -439,6 +455,28 @@ export function ContentPanel({ projectId, selectedSourceIds = [] }: ContentPanel
               Visualize e gerencie suas dificuldades de aprendizado identificadas durante quizzes e flashcards.
             </DialogDescription>
             <DifficultiesPanel projectId={projectId} />
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Fullscreen Dialog */}
+      <Dialog open={isFullscreen} onOpenChange={setIsFullscreen}>
+        <DialogContent className="max-w-full h-screen m-0 rounded-none p-6">
+          <div className="h-full flex flex-col">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-bold text-gray-900">Estudo</h2>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setIsFullscreen(false)}
+                className="h-8 w-8 p-0"
+              >
+                <X className="w-5 h-5" />
+              </Button>
+            </div>
+            <div className="flex-1 overflow-hidden">
+              <ContentPanel projectId={projectId} selectedSourceIds={selectedSourceIds} />
+            </div>
           </div>
         </DialogContent>
       </Dialog>
