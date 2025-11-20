@@ -339,7 +339,7 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
       {/* Banda colorida do topo */}
       <div className="h-1.5 w-full bg-gradient-to-r from-[#0891B2] to-[#7CB342]" />
 
-      <div className="flex-1 overflow-hidden p-4">
+      <div className="flex-1 flex flex-col overflow-hidden p-4">
         <input
           ref={fileInputRef}
           type="file"
@@ -350,7 +350,7 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
         />
 
         {/* Header */}
-        <div className="glass-dark rounded-2xl mb-4 p-4 border border-gray-200">
+        <div className="glass-dark rounded-2xl mb-4 p-4 border border-gray-200 flex-shrink-0">
           {/* Linha 1: Título e botão expand */}
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-lg font-semibold text-gray-900">Fontes</h3>
@@ -405,8 +405,8 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
           </p>
         </div>
 
-      {/* Sources List */}
-      <div className="flex-1 overflow-y-auto">
+      {/* Sources List - Com altura mínima 0 para permitir scroll correto */}
+      <div className="flex-1 min-h-0 overflow-y-auto">
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="w-8 h-8 animate-spin text-[#0891B2]" />
