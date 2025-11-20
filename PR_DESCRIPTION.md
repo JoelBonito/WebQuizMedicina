@@ -12,15 +12,31 @@
 - ✅ Políticas de storage corrigidas para upload de avatar
 
 ### 2. Frontend (React + TypeScript)
+
+**PROBLEMA RAIZ RESOLVIDO**: Existiam 2 sistemas de idioma separados
+- ❌ `LanguageContext` (localStorage) com apenas 3 idiomas (pt-BR, en-US, es-ES)
+- ❌ `Profile.response_language` (Supabase) com 10 idiomas
+- ✅ **SOLUÇÃO**: Consolidado em um único sistema usando Supabase
+
+**Mudanças no `LanguageContext`**:
+- ✅ Expandido de 3 para 10 idiomas
+- ✅ Sincronização com `profile.response_language` do Supabase
+- ✅ localStorage como fallback
+- ✅ Loading state para feedback
+- ✅ Códigos atualizados: pt-BR→pt, en-US→en, es-ES→es
+
+**Mudanças no `LanguageSettings`**:
+- ✅ 10 idiomas com bandeiras (🇵🇹 🇬🇧 🇪🇸 🇫🇷 🇩🇪 🇮🇹 🇯🇵 🇨🇳 🇷🇺 🇸🇦)
+- ✅ Scroll para visualizar todos os idiomas (max-h-[400px])
+- ✅ Toast de confirmação com nome do idioma
+- ✅ Botão "Salvar" desabilitado quando não há mudanças
+- ✅ Indicador visual (ponto pulsante) quando há mudanças
+- ✅ Loading state durante salvamento
+
+**Mudanças no `ProfileSettings`**:
 - ✅ Hook `useProfile` atualizado com suporte a `response_language`
-- ✅ Componente `ProfileSettings` com seletor de idioma
-- ✅ UI/UX melhorada:
-  - Dropdown com todos os 10 idiomas e scroll
-  - Indicador visual de idioma salvo
-  - Toast com confirmação mostrando idioma selecionado
-  - Botão "Salvar" desabilitado quando não há mudanças
-  - Ponto pulsante indicando mudanças não salvas
-  - Console logs para debug
+- ✅ Seletor dropdown alternativo (não usado na UI atual)
+- ✅ Console logs para debug
 
 ### 3. Migrações
 - `007_create_profiles.sql` - Criação da tabela profiles
@@ -32,17 +48,31 @@
 ## 🎯 Como Testar
 
 1. **Faça login** na aplicação
-2. **Abra as configurações de perfil** (menu do usuário)
-3. **Clique no seletor "Idioma de resposta"**
-   - Deve mostrar todos os 10 idiomas com scroll
+2. **Abra "Idioma de Resposta"** no menu/navbar
+3. **Veja os 10 idiomas** com bandeiras e scroll:
+   - 🇵🇹 Português
+   - 🇬🇧 English
+   - 🇪🇸 Español
+   - 🇫🇷 Français
+   - 🇩🇪 Deutsch
+   - 🇮🇹 Italiano
+   - 🇯🇵 日本語
+   - 🇨🇳 中文
+   - 🇷🇺 Русский
+   - 🇸🇦 العربية
 4. **Selecione um idioma diferente** (ex: English)
    - Botão "Salvar" fica ativo
    - Aparece ponto branco pulsante no botão
-5. **Clique em "Salvar alterações"**
-   - Toast aparece: "Perfil atualizado! Idioma: English"
-   - Abaixo do seletor: "Idioma salvo: English"
+5. **Clique em "Salvar"**
+   - Toast aparece: "Idioma atualizado para English!"
+   - Dialog fecha após 500ms
 6. **Reabra as configurações**
    - Idioma selecionado deve estar persistido
+7. **Verifique no banco de dados**:
+   ```sql
+   SELECT response_language FROM profiles WHERE id = auth.uid();
+   -- Deve mostrar 'en'
+   ```
 
 ## ⚠️ Migração de Banco de Dados NECESSÁRIA
 
@@ -90,6 +120,8 @@ interface Profile {
 - `8049808` - Implementar configuração de idioma de resposta no perfil
 - `1dfd087` - Melhorar UI do seletor de idioma com feedback visual
 - `323f23c` - Adicionar scripts de verificação e correção do banco de dados
+- `de0fc61` - Add PR description for language preference feature
+- `f0fcd4b` - **Fix: Consolidar sistema de idiomas e expandir para 10 idiomas** ⭐
 
 ## 🚀 Próximos Passos
 
