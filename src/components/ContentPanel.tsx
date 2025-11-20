@@ -61,25 +61,25 @@ const ACTION_CARDS = [
     id: 'quiz',
     title: 'Teste',
     icon: HelpCircle,
-    bgColor: 'bg-blue-50',
-    textColor: 'text-blue-700',
-    iconColor: 'text-blue-600',
+    bgColor: 'bg-gradient-to-br from-blue-600 to-blue-500',
+    textColor: 'text-white',
+    iconColor: 'text-white',
   },
   {
     id: 'flashcards',
     title: 'Cartões de Estudo',
     icon: Layers,
-    bgColor: 'bg-red-50',
-    textColor: 'text-red-700',
-    iconColor: 'text-red-600',
+    bgColor: 'bg-gradient-to-br from-red-600 to-rose-500',
+    textColor: 'text-white',
+    iconColor: 'text-white',
   },
   {
     id: 'summary',
     title: 'Resumo',
     icon: FileText,
-    bgColor: 'bg-purple-50',
-    textColor: 'text-purple-700',
-    iconColor: 'text-purple-600',
+    bgColor: 'bg-gradient-to-br from-purple-600 to-purple-500',
+    textColor: 'text-white',
+    iconColor: 'text-white',
   },
 ];
 
@@ -128,13 +128,13 @@ const formatTimeAgo = (date: Date) => {
 const getDifficultyBadgeStyle = (difficulty: 'fácil' | 'médio' | 'difícil' | 'misto') => {
   switch(difficulty) {
     case 'fácil':
-      return 'bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 text-green-700';
+      return 'bg-gradient-to-br from-green-50 to-emerald-50 text-green-700';
     case 'médio':
-      return 'bg-gradient-to-br from-orange-50 to-amber-50 border border-orange-200 text-orange-700';
+      return 'bg-gradient-to-br from-orange-50 to-amber-50 text-orange-700';
     case 'difícil':
-      return 'bg-gradient-to-br from-red-50 to-rose-50 border border-red-200 text-red-700';
+      return 'bg-gradient-to-br from-red-50 to-rose-50 text-red-700';
     case 'misto':
-      return 'bg-gradient-to-br from-amber-50 to-yellow-50 border border-amber-300 text-amber-800';
+      return 'bg-gradient-to-br from-amber-50 to-yellow-50 text-amber-800';
   }
 };
 
@@ -448,8 +448,9 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
                     ${card.bgColor}
                     relative p-5 rounded-2xl w-full
                     flex flex-col items-start gap-2
-                    transition-all duration-200
-                    hover:shadow-md hover:scale-[1.02]
+                    shadow-lg hover:shadow-xl
+                    transition-all duration-300
+                    hover:scale-[1.02]
                     active:scale-[0.98]
                     disabled:opacity-50 disabled:cursor-not-allowed
                     group
