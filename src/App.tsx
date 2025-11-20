@@ -4,10 +4,11 @@ import { SourcesPanel } from "./components/SourcesPanel";
 import { ContentPanel } from "./components/ContentPanel";
 import { RightPanel } from "./components/RightPanel";
 import { ResizableLayout } from "./components/ResizableLayout";
-import { MobileView } from "./components/MobileView";
+import { MobileProjectLayout } from "./components/MobileProjectLayout";
 import { Dashboard } from "./components/Dashboard";
 import { Auth } from "./components/Auth";
 import { useAuth } from "./hooks/useAuth";
+import { useProjects } from "./hooks/useProjects";
 import { useIsMobile } from "./hooks/useMediaQuery";
 import { Loader2 } from "lucide-react";
 import { Toaster } from "./components/ui/sonner";
@@ -16,6 +17,7 @@ import { LanguageProvider } from "./contexts/LanguageContext";
 
 export default function App() {
   const { user, loading } = useAuth();
+  const { projects } = useProjects();
   const isMobile = useIsMobile();
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [selectedSourceIds, setSelectedSourceIds] = useState<string[]>([]);
@@ -79,24 +81,29 @@ export default function App() {
     );
   }
 
+  // Busca o projeto atual
+  const currentProject = projects.find(p => p.id === selectedProjectId);
+  const projectName = currentProject?.name || 'Matéria';
+
   return (
     <ThemeProvider>
       <LanguageProvider>
-        <div className="min-h-screen bg-white">
-          <Navbar onBackClick={handleBackToDashboard} />
+        {isMobile ? (
+          // Layout mobile com tabs em tela inteira
+          <>
+            <Navbar onBackClick={handleBackToDashboard} />
+            <MobileProjectLayout
+              projectId={selectedProjectId!}
+              projectName={projectName}
+              onBack={handleBackToDashboard}
+            />
+          </>
+        ) : (
+          // Layout desktop com 3 colunas
+          <div className="min-h-screen bg-white">
+            <Navbar onBackClick={handleBackToDashboard} />
 
-          {/* Main Content */}
-          {isMobile ? (
-            // Mobile View with Bottom Navigation
-            <div className="pt-16 h-screen overflow-hidden">
-              <MobileView
-                projectId={selectedProjectId}
-                selectedSourceIds={selectedSourceIds}
-                onSelectedSourcesChange={handleSelectedSourcesChange}
-              />
-            </div>
-          ) : (
-            // Desktop View with Resizable Panels
+            {/* Main Content */}
             <div className="pt-20 px-6 pb-6 h-screen overflow-hidden">
               <div className="h-full overflow-hidden gap-4">
                 <ResizableLayout
@@ -118,8 +125,8 @@ export default function App() {
                 />
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
         <Toaster />
       </LanguageProvider>
     </ThemeProvider>
