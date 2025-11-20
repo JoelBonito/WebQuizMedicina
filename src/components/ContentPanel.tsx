@@ -479,7 +479,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
           })}
         </div>
 
-        {/* Botão Dificuldades - Centralizado */}
+        {/* Botão Análise das Dificuldades - Centralizado */}
         <div className="flex justify-center mb-4">
           <Button
             onClick={() => setDifficultiesOpen(true)}
@@ -488,7 +488,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
             className="rounded-xl flex items-center gap-2 bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100 hover:text-orange-800"
           >
             <TrendingUp className="w-4 h-4" />
-            <span>Dificuldades</span>
+            <span>Análise das Dificuldades</span>
           </Button>
         </div>
 
@@ -653,13 +653,26 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
 
       {/* Difficulties Dialog */}
       <Dialog open={difficultiesOpen} onOpenChange={setDifficultiesOpen}>
-        <DialogContent className="w-full max-w-full h-screen max-h-screen rounded-none p-6 overflow-y-auto supports-[height:100dvh]:h-dvh">
-          <div className="h-full">
-            <DialogTitle className="sr-only">Painel de Dificuldades</DialogTitle>
+        <DialogContent className="!fixed !inset-0 !top-0 !left-0 !right-0 !bottom-0 !translate-x-0 !translate-y-0 !max-w-none !w-screen !h-screen !m-0 !rounded-none !p-4 md:!p-6 overflow-hidden supports-[height:100dvh]:!h-dvh">
+          <div className="h-full w-full flex flex-col pb-[env(safe-area-inset-bottom)]">
+            <div className="flex items-center justify-between mb-4 flex-shrink-0">
+              <h2 className="text-2xl font-bold text-gray-900">Análise das Dificuldades</h2>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setDifficultiesOpen(false)}
+                className="h-8 w-8 p-0"
+              >
+                <X className="w-5 h-5" />
+              </Button>
+            </div>
+            <DialogTitle className="sr-only">Análise das Dificuldades</DialogTitle>
             <DialogDescription className="sr-only">
               Visualize e gerencie suas dificuldades de aprendizado identificadas durante quizzes e flashcards.
             </DialogDescription>
-            <DifficultiesPanel projectId={projectId} />
+            <div className="flex-1 min-h-0 overflow-hidden">
+              <DifficultiesPanel projectId={projectId} isFullscreenMode={true} />
+            </div>
           </div>
         </DialogContent>
       </Dialog>
