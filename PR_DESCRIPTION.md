@@ -122,6 +122,10 @@ interface Profile {
 - `323f23c` - Adicionar scripts de verificação e correção do banco de dados
 - `de0fc61` - Add PR description for language preference feature
 - `f0fcd4b` - **Fix: Consolidar sistema de idiomas e expandir para 10 idiomas** ⭐
+- `d0efbff` - Fix: Corrigir bugs do seletor de idioma
+- `99ab057` - Fix: Adicionar validação de tamanho de arquivo (máx 50MB)
+- `aa438b8` - Fix: Botão Salvar sempre desabilitado no seletor de idioma
+- `ebf0b9e` - **Fix: Forçar Português do Brasil em todas as Edge Functions** ⭐
 
 ## 🚀 Próximos Passos
 
@@ -129,7 +133,19 @@ Após merge e deploy:
 1. Aplicar as migrações no Supabase
 2. Testar funcionalidade na produção
 3. Monitorar logs de erro
-4. (Futuro) Usar `response_language` nas Edge Functions para personalizar respostas da IA
+
+## 📌 Nota sobre Idiomas (MVP)
+
+**Para o MVP, todo conteúdo gerado está FIXO em Português do Brasil:**
+- ✅ Resumos
+- ✅ Perguntas de Quiz
+- ✅ Flashcards
+- ✅ Respostas do Chat
+
+O sistema de idioma configurável (10 idiomas) está implementado no perfil, mas **NÃO está integrado** com as Edge Functions ainda. Isso será feito em uma próxima iteração, onde:
+- O `profile.response_language` será lido pelas Edge Functions
+- O conteúdo será gerado no idioma selecionado pelo usuário
+- Tradução automática de material de origem em outros idiomas
 
 ## 📚 Documentação
 
