@@ -10,8 +10,7 @@ import {
   Pencil,
   Sparkles,
   X,
-  TrendingUp,
-  Maximize
+  TrendingUp
 } from "lucide-react";
 import { motion } from "motion/react";
 import { useQuestions } from "../hooks/useQuestions";
@@ -253,30 +252,18 @@ export function ContentPanel({ projectId, selectedSourceIds = [] }: ContentPanel
         <div className="flex-1 overflow-hidden p-6 flex flex-col">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-2">
-              <h1 className="text-lg font-semibold text-gray-900">Estudo</h1>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => setIsFullscreen(true)}
-                className="h-8 w-8 p-0 hidden md:flex"
-              >
-                <Maximize className="w-4 h-4" />
-              </Button>
-            </div>
-            <Button
-              onClick={() => setDifficultiesOpen(true)}
-              size="sm"
-              variant="outline"
-              className="rounded-xl flex items-center gap-2 bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100 hover:text-orange-800"
+            <h1 className="text-lg font-semibold text-gray-900">Estudo</h1>
+            <button
+              onClick={() => setIsFullscreen(true)}
+              className="hidden md:flex items-center justify-center text-gray-600 hover:text-gray-900 transition-colors"
+              aria-label="Expandir"
             >
-              <TrendingUp className="w-4 h-4" />
-              <span className="hidden md:inline">Dificuldades</span>
-            </Button>
+              <span className="material-symbols-outlined text-[20px]">expand_content</span>
+            </button>
           </div>
 
         {/* Grid de Botões de Ação */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
           {ACTION_CARDS.map(card => {
             const CardIcon = card.icon;
             return (
@@ -323,6 +310,19 @@ export function ContentPanel({ projectId, selectedSourceIds = [] }: ContentPanel
               </button>
             );
           })}
+        </div>
+
+        {/* Botão Dificuldades - Centralizado */}
+        <div className="flex justify-center mb-4">
+          <Button
+            onClick={() => setDifficultiesOpen(true)}
+            size="sm"
+            variant="outline"
+            className="rounded-xl flex items-center gap-2 bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100 hover:text-orange-800"
+          >
+            <TrendingUp className="w-4 h-4" />
+            <span>Dificuldades</span>
+          </Button>
         </div>
 
         {/* Divider */}

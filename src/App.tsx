@@ -91,7 +91,7 @@ export default function App() {
         {isMobile ? (
           // Layout mobile com tabs em tela inteira
           <>
-            <Navbar onBackClick={handleBackToDashboard} />
+            <Navbar onBackClick={handleBackToDashboard} projectName={projectName} />
             <MobileProjectLayout
               projectId={selectedProjectId!}
               projectName={projectName}
@@ -101,7 +101,7 @@ export default function App() {
         ) : (
           // Layout desktop com 3 colunas
           <div className="min-h-screen bg-white">
-            <Navbar onBackClick={handleBackToDashboard} />
+            <Navbar onBackClick={handleBackToDashboard} projectName={projectName} />
 
             {/* Main Content */}
             <div className="pt-20 px-6 pb-6 h-screen overflow-hidden">
