@@ -88,23 +88,23 @@ export function Auth() {
         </div>
 
         <Card className="glass-dark border-gray-200 shadow-2xl">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-lg">Bem-vindo</CardTitle>
-            <CardDescription className="text-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Bem-vindo</CardTitle>
+            <CardDescription className="text-xs">
               Entre ou crie sua conta para começar
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-0">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-2 mb-4">
+              <TabsList className="grid w-full grid-cols-2 mb-3">
                 <TabsTrigger value="signin">Entrar</TabsTrigger>
                 <TabsTrigger value="signup">Cadastrar</TabsTrigger>
               </TabsList>
 
               <TabsContent value="signin">
-                <form onSubmit={handleSignIn} className="space-y-3">
+                <form onSubmit={handleSignIn} className="space-y-2">
                   <div className="space-y-1">
-                    <Label htmlFor="email-signin" className="text-sm">Email</Label>
+                    <Label htmlFor="email-signin" className="text-xs">Email</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <Input
@@ -119,7 +119,7 @@ export function Auth() {
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <Label htmlFor="password-signin" className="text-sm">Senha</Label>
+                    <Label htmlFor="password-signin" className="text-xs">Senha</Label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <Input
@@ -165,9 +165,9 @@ export function Auth() {
               </TabsContent>
 
               <TabsContent value="signup">
-                <form onSubmit={handleSignUp} className="space-y-3">
+                <form onSubmit={handleSignUp} className="space-y-2">
                   <div className="space-y-1">
-                    <Label htmlFor="email-signup" className="text-sm">Email</Label>
+                    <Label htmlFor="email-signup" className="text-xs">Email</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <Input
@@ -182,7 +182,7 @@ export function Auth() {
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <Label htmlFor="password-signup" className="text-sm">Senha</Label>
+                    <Label htmlFor="password-signup" className="text-xs">Senha</Label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <Input
@@ -214,7 +214,7 @@ export function Auth() {
               </TabsContent>
             </Tabs>
 
-            <div className="relative my-4">
+            <div className="relative my-3">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-gray-300" />
               </div>
@@ -223,7 +223,7 @@ export function Auth() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2">
               <Button
                 variant="outline"
                 className="rounded-xl h-10 text-sm"
@@ -264,7 +264,7 @@ export function Auth() {
           </CardContent>
         </Card>
 
-        <p className="text-center text-xs text-gray-600 mt-4">
+        <p className="text-center text-[10px] text-gray-600 mt-3">
           Desenvolvido com ❤️ para potencializar seus estudos
         </p>
       </motion.div>
