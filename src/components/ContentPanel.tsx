@@ -9,7 +9,8 @@ import {
   MoreVertical,
   Pencil,
   Sparkles,
-  X
+  X,
+  TrendingUp
 } from "lucide-react";
 import { motion } from "motion/react";
 import { useQuestions } from "../hooks/useQuestions";
@@ -21,6 +22,7 @@ import { QuizSession } from "./QuizSession";
 import { FlashcardSession } from "./FlashcardSession";
 import { SummaryViewer } from "./SummaryViewer";
 import { Badge } from "./ui/badge";
+import { DifficultiesPanel } from "./DifficultiesPanel";
 
 interface ContentPanelProps {
   projectId: string | null;
@@ -109,6 +111,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [] }: ContentPanel
   const [selectedSummary, setSelectedSummary] = useState<any>(null);
   const [quizSessionOpen, setQuizSessionOpen] = useState(false);
   const [flashcardSessionOpen, setFlashcardSessionOpen] = useState(false);
+  const [difficultiesOpen, setDifficultiesOpen] = useState(false);
 
   const handleAskChat = (selectedText: string) => {
     localStorage.setItem('chat_question', `Explique melhor: "${selectedText}"`);
@@ -241,11 +244,24 @@ export function ContentPanel({ projectId, selectedSourceIds = [] }: ContentPanel
 
   return (
     <>
-      <div className="h-full w-full flex flex-col bg-gray-50/50 rounded-3xl p-6 border border-gray-200 overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-semibold text-gray-900">Estúdio</h1>
-        </div>
+      <div className="h-full w-full flex flex-col bg-gray-50/50 rounded-3xl border border-gray-200 overflow-hidden">
+        {/* Banda colorida do topo */}
+        <div className="h-1.5 w-full bg-gradient-to-r from-green-500 to-emerald-500" />
+
+        <div className="flex-1 overflow-hidden p-6 flex flex-col">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-2xl font-semibold text-gray-900">Estúdio</h1>
+            <Button
+              onClick={() => setDifficultiesOpen(true)}
+              size="sm"
+              variant="outline"
+              className="rounded-xl flex items-center gap-2 bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100 hover:text-orange-800"
+            >
+              <TrendingUp className="w-4 h-4" />
+              <span className="hidden md:inline">Dificuldades</span>
+            </Button>
+          </div>
 
         {/* Grid de Botões de Ação */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
@@ -360,6 +376,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [] }: ContentPanel
             </div>
           )}
         </div>
+        </div>
       </div>
 
       {/* Summary Dialog */}
@@ -412,6 +429,19 @@ export function ContentPanel({ projectId, selectedSourceIds = [] }: ContentPanel
         open={flashcardSessionOpen}
         onClose={() => setFlashcardSessionOpen(false)}
       />
+
+      {/* Difficulties Dialog */}
+      <Dialog open={difficultiesOpen} onOpenChange={setDifficultiesOpen}>
+        <DialogContent className="max-w-3xl max-h-[80vh] rounded-3xl p-0">
+          <div className="h-full">
+            <DialogTitle className="sr-only">Painel de Dificuldades</DialogTitle>
+            <DialogDescription className="sr-only">
+              Visualize e gerencie suas dificuldades de aprendizado identificadas durante quizzes e flashcards.
+            </DialogDescription>
+            <DifficultiesPanel projectId={projectId} />
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

@@ -4,6 +4,7 @@ import { SourcesPanel } from './SourcesPanel';
 import { ContentPanel } from './ContentPanel';
 import { RightPanel } from './RightPanel';
 import { FileText, BookOpen, MessageSquare } from 'lucide-react';
+import { motion } from 'motion/react';
 
 interface MobileProjectLayoutProps {
   projectId: string;
@@ -60,6 +61,23 @@ export function MobileProjectLayout({ projectId, projectName, onBack }: MobilePr
                 <span className="text-xs">Chat</span>
               </TabsTrigger>
             </TabsList>
+
+            {/* Banda colorida animada baseada na aba ativa */}
+            <motion.div
+              className="h-1 w-full mt-3"
+              animate={{
+                background: activeTab === 'fontes'
+                  ? 'linear-gradient(to right, #0891B2, #7CB342)'
+                  : activeTab === 'estudo'
+                  ? 'linear-gradient(to right, #10b981, #059669)'
+                  : 'linear-gradient(to right, #a855f7, #ec4899)',
+                opacity: [0.6, 1, 0.6],
+              }}
+              transition={{
+                background: { duration: 0.5, ease: 'easeInOut' },
+                opacity: { duration: 2, repeat: Infinity, ease: 'easeInOut' }
+              }}
+            />
           </div>
         </div>
 
