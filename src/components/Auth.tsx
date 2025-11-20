@@ -83,7 +83,7 @@ export function Auth() {
       >
         <div className="text-center mb-6">
           <div className="mx-auto flex justify-center">
-            <Logo className="w-auto h-28" variant="full" />
+            <Logo className="w-auto h-[117px]" variant="full" />
           </div>
         </div>
 
