@@ -12,7 +12,11 @@ import {
   X,
   TrendingUp,
   Trash2,
-  Edit
+  Edit,
+  CheckCircle,
+  AlertCircle,
+  AlertTriangle,
+  Zap
 } from "lucide-react";
 import { motion } from "motion/react";
 import { useQuestions } from "../hooks/useQuestions";
@@ -131,6 +135,20 @@ const getDifficultyBadgeStyle = (difficulty: 'fácil' | 'médio' | 'difícil' | 
       return 'bg-gradient-to-br from-red-50 to-rose-50 border border-red-200 text-red-700';
     case 'misto':
       return 'bg-gradient-to-br from-amber-50 to-yellow-50 border border-amber-300 text-amber-800';
+  }
+};
+
+// Helper function to get icon based on difficulty
+const getDifficultyIcon = (difficulty: 'fácil' | 'médio' | 'difícil' | 'misto') => {
+  switch(difficulty) {
+    case 'fácil':
+      return CheckCircle;
+    case 'médio':
+      return AlertCircle;
+    case 'difícil':
+      return AlertTriangle;
+    case 'misto':
+      return Zap;
   }
 };
 
@@ -454,11 +472,16 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
                 </button>
 
                 {/* Badge de dificuldade ao lado do settings */}
-                {showSettings && (
-                  <Badge className={`absolute top-3 right-14 text-xs px-2.5 py-1 rounded-lg font-medium shadow-sm ${getDifficultyBadgeStyle(currentDifficulty === 'todos' ? 'misto' : (currentDifficulty as 'fácil' | 'médio' | 'difícil'))}`}>
-                    {currentDifficulty === 'todos' ? 'misto' : currentDifficulty}
-                  </Badge>
-                )}
+                {showSettings && (() => {
+                  const diffLevel = currentDifficulty === 'todos' ? 'misto' : (currentDifficulty as 'fácil' | 'médio' | 'difícil');
+                  const DiffIcon = getDifficultyIcon(diffLevel);
+                  return (
+                    <Badge className={`absolute top-3 right-14 text-xs px-2.5 py-1 rounded-lg font-medium shadow-sm flex items-center gap-1 ${getDifficultyBadgeStyle(diffLevel)}`}>
+                      <DiffIcon className="w-3 h-3" />
+                      {currentDifficulty === 'todos' ? 'misto' : currentDifficulty}
+                    </Badge>
+                  );
+                })()}
 
                 {/* Botão de configuração (apenas para Quiz e Flashcards) */}
                 {showSettings && (
@@ -504,8 +527,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
           <Button
             onClick={() => setDifficultiesOpen(true)}
             size="sm"
-            variant="outline"
-            className="rounded-xl flex items-center gap-2 bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100 hover:text-orange-800"
+            className="rounded-xl flex items-center gap-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-md hover:shadow-lg transition-all duration-300"
           >
             <TrendingUp className="w-4 h-4" />
             <span>Análise das Dificuldades</span>
@@ -558,11 +580,15 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
                     </div>
 
                     {/* Badge de dificuldade */}
-                    {content.difficulty && (
-                      <Badge className={`text-xs px-2.5 py-1 rounded-lg font-medium shadow-sm shrink-0 ${getDifficultyBadgeStyle(content.difficulty)}`}>
-                        {content.difficulty}
-                      </Badge>
-                    )}
+                    {content.difficulty && (() => {
+                      const DiffIcon = getDifficultyIcon(content.difficulty);
+                      return (
+                        <Badge className={`text-xs px-2.5 py-1 rounded-lg font-medium shadow-sm shrink-0 flex items-center gap-1 ${getDifficultyBadgeStyle(content.difficulty)}`}>
+                          <DiffIcon className="w-3 h-3" />
+                          {content.difficulty}
+                        </Badge>
+                      );
+                    })()}
 
                     {/* Menu de ações */}
                     <DropdownMenu>
