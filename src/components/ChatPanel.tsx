@@ -126,7 +126,7 @@ export function ChatPanel({ projectId }: ChatPanelProps) {
 
   if (!projectId) {
     return (
-      <div className="h-full flex flex-col bg-gray-50/50 rounded-3xl p-4 border border-gray-200">
+      <div className="flex flex-col bg-gray-50/50 rounded-3xl p-4 border border-gray-200 h-full max-h-full">
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <Sparkles className="w-12 h-12 mx-auto mb-4 text-gray-400" />
@@ -138,7 +138,7 @@ export function ChatPanel({ projectId }: ChatPanelProps) {
   }
 
   return (
-    <div className="h-full flex flex-col bg-gray-50/50 rounded-3xl p-4 border border-gray-200">
+    <div className="flex flex-col bg-gray-50/50 rounded-3xl p-4 border border-gray-200 h-full max-h-full">
       {/* Header */}
       <div className="glass-dark rounded-2xl p-4 mb-4 border border-gray-200 flex-shrink-0">
         <div className="flex items-center justify-between mb-2">
@@ -174,7 +174,7 @@ export function ChatPanel({ projectId }: ChatPanelProps) {
       </div>
 
       {readySources.length === 0 ? (
-        <div className="flex-1 flex items-center justify-center">
+        <div className="flex-1 flex items-center justify-center min-h-0">
           <div className="text-center max-w-sm">
             <AlertCircle className="w-12 h-12 mx-auto mb-4 text-yellow-500" />
             <h4 className="text-gray-900 font-semibold mb-2">Nenhuma fonte disponível</h4>
@@ -185,7 +185,7 @@ export function ChatPanel({ projectId }: ChatPanelProps) {
         </div>
       ) : (
         <>
-          {/* Messages Container - CRITICAL: needs min-h-0 for flex scroll */}
+          {/* Messages Container - CRITICAL: This is where scroll should be */}
           <div className="flex-1 min-h-0 overflow-y-auto mb-4 pr-2" style={{ scrollbarWidth: 'thin', scrollbarColor: '#cbd5e1 transparent' }}>
             <div className="space-y-4 pb-4">
               {loading && messages.length === 0 ? (
