@@ -676,9 +676,9 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
       {/* Fullscreen Dialog */}
       {!isFullscreenMode && (
         <Dialog open={isFullscreen} onOpenChange={setIsFullscreen}>
-          <DialogContent className="!fixed !inset-0 !top-0 !left-0 !right-0 !bottom-0 !translate-x-0 !translate-y-0 !max-w-none !w-screen !h-screen !m-0 !rounded-none !p-6 overflow-hidden supports-[height:100dvh]:!h-dvh">
-            <div className="h-full w-full flex flex-col">
-              <div className="flex items-center justify-between mb-4">
+          <DialogContent className="!fixed !inset-0 !top-0 !left-0 !right-0 !bottom-0 !translate-x-0 !translate-y-0 !max-w-none !w-screen !h-screen !m-0 !rounded-none !p-0 overflow-hidden supports-[height:100dvh]:!h-dvh">
+            <div className="h-screen supports-[height:100dvh]:h-dvh w-full flex flex-col bg-gray-50">
+              <div className="flex items-center justify-between p-6 border-b bg-white">
                 <h2 className="text-2xl font-bold text-gray-900">Fontes</h2>
                 <Button
                   size="sm"
@@ -689,7 +689,7 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
                   <X className="w-5 h-5" />
                 </Button>
               </div>
-              <div className="flex-1 min-h-0 overflow-hidden">
+              <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 md:p-6 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-6">
                 <SourcesPanel projectId={projectId} onSelectedSourcesChange={onSelectedSourcesChange} isFullscreenMode={true} />
               </div>
             </div>
