@@ -128,13 +128,13 @@ const formatTimeAgo = (date: Date) => {
 const getDifficultyBadgeStyle = (difficulty: 'fácil' | 'médio' | 'difícil' | 'misto') => {
   switch(difficulty) {
     case 'fácil':
-      return 'bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 text-green-700';
+      return 'bg-gradient-to-br from-green-50 to-emerald-50 text-green-700';
     case 'médio':
-      return 'bg-gradient-to-br from-orange-50 to-amber-50 border border-orange-200 text-orange-700';
+      return 'bg-gradient-to-br from-orange-50 to-amber-50 text-orange-700';
     case 'difícil':
-      return 'bg-gradient-to-br from-red-50 to-rose-50 border border-red-200 text-red-700';
+      return 'bg-gradient-to-br from-red-50 to-rose-50 text-red-700';
     case 'misto':
-      return 'bg-gradient-to-br from-amber-50 to-yellow-50 border border-amber-300 text-amber-800';
+      return 'bg-gradient-to-br from-amber-50 to-yellow-50 text-amber-800';
   }
 };
 
