@@ -184,7 +184,7 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] p-0 gap-0 overflow-hidden">
+      <DialogContent className="max-w-full h-screen m-0 rounded-none p-0 gap-0 overflow-hidden">
         <DialogTitle className="sr-only">
           {sessionState === "summary"
             ? "Resumo da Sessão de Flashcards"

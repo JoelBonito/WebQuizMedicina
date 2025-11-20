@@ -9,6 +9,8 @@ import {
   AlertCircle,
   CheckCircle2,
   Sparkles,
+  Maximize,
+  X,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
@@ -108,6 +110,7 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange }: SourcesPane
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [uploadedSourceIds, setUploadedSourceIds] = useState<string[]>([]);
   const [processingEmbeddings, setProcessingEmbeddings] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch generated counts for all sources
@@ -347,7 +350,17 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange }: SourcesPane
         {/* Header */}
         <div className="glass-dark rounded-2xl mb-4 p-4 border border-gray-200">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Fontes</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-semibold text-gray-900">Fontes</h3>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setIsFullscreen(true)}
+                className="h-8 w-8 p-0 hidden md:flex"
+              >
+                <Maximize className="w-4 h-4" />
+              </Button>
+            </div>
           <Button
             size="sm"
             onClick={() => fileInputRef.current?.click()}
@@ -524,6 +537,28 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange }: SourcesPane
               )}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Fullscreen Dialog */}
+      <Dialog open={isFullscreen} onOpenChange={setIsFullscreen}>
+        <DialogContent className="max-w-full h-screen m-0 rounded-none p-6">
+          <div className="h-full flex flex-col">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-bold text-gray-900">Fontes</h2>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setIsFullscreen(false)}
+                className="h-8 w-8 p-0"
+              >
+                <X className="w-5 h-5" />
+              </Button>
+            </div>
+            <div className="flex-1 overflow-hidden">
+              <SourcesPanel projectId={projectId} onSelectedSourcesChange={onSelectedSourcesChange} />
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
       </div>

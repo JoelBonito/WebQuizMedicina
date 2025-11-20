@@ -204,7 +204,7 @@ export function QuizSession({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden p-0">
+      <DialogContent className="max-w-full h-screen m-0 rounded-none p-0">
         <DialogTitle className="sr-only">
           {state === "summary" ? "Resumo do Quiz" : `Questão ${currentIndex + 1} de ${questions.length}`}
         </DialogTitle>
@@ -222,7 +222,7 @@ export function QuizSession({
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="p-8 overflow-y-auto max-h-[90vh]"
+              className="p-8 overflow-y-auto h-full"
             >
               {/* Summary */}
               <div className="text-center mb-8">
