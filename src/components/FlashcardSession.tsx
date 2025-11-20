@@ -185,18 +185,14 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="!fixed !inset-0 !top-0 !left-0 !right-0 !bottom-0 !translate-x-0 !translate-y-0 !max-w-none !w-screen !h-screen !m-0 !rounded-none !p-0 !gap-0 overflow-hidden supports-[height:100dvh]:!h-dvh">
-        <DialogTitle className="sr-only">
-          {sessionState === "summary"
-            ? "Resumo da Sessão de Flashcards"
-            : `Flashcard ${currentIndex + 1} de ${flashcards.length}`}
-        </DialogTitle>
-        <DialogDescription className="sr-only">
-          {sessionState === "summary"
-            ? "Visualização dos resultados da sessão de flashcards com estatísticas de desempenho"
-            : "Estude os flashcards virando as cartas e avalie seu conhecimento"}
-        </DialogDescription>
         {sessionState === "studying" ? (
           <div className="flex flex-col h-screen supports-[height:100dvh]:h-dvh w-full overflow-hidden">
+            <DialogTitle className="sr-only">
+              Flashcard {currentIndex + 1} de {flashcards.length}
+            </DialogTitle>
+            <DialogDescription className="sr-only">
+              Estude os flashcards virando as cartas e avalie seu conhecimento
+            </DialogDescription>
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <div className="flex items-center gap-4">
@@ -322,6 +318,10 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
         ) : (
           // Summary Screen
           <div className="flex flex-col items-center justify-center p-4 md:p-12 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-12 overflow-y-auto overscroll-contain h-screen supports-[height:100dvh]:h-dvh w-full">
+            <DialogTitle className="sr-only">Resumo da Sessão de Flashcards</DialogTitle>
+            <DialogDescription className="sr-only">
+              Visualização dos resultados da sessão de flashcards com estatísticas de desempenho
+            </DialogDescription>
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
