@@ -562,8 +562,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
                         {content.type === 'summary' && (
                           <>
                             <DropdownMenuItem
-                              onClick={(e) => {
-                                e.stopPropagation();
+                              onClick={() => {
                                 // TODO: Implementar renomear summary
                                 toast.info("Funcionalidade de renomear em desenvolvimento");
                               }}
@@ -575,8 +574,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
                           </>
                         )}
                         <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation();
+                          onClick={() => {
                             handleDeleteContent(content);
                           }}
                           className="text-red-600 focus:text-red-600"
