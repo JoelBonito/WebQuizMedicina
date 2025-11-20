@@ -1,4 +1,4 @@
-import { useState, useRef, DragEvent, ChangeEvent, useEffect } from "react";
+import { useState, useRef, ChangeEvent, useEffect } from "react";
 import {
   FileText,
   Upload,
@@ -100,7 +100,6 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange }: SourcesPane
   const { sources, loading, uploading, uploadSource, deleteSource, refetch } =
     useSources(projectId);
   const { user } = useAuth();
-  const [isDragging, setIsDragging] = useState(false);
   const [selectedSources, setSelectedSources] = useState<Set<string>>(new Set());
   const [deletingSource, setDeletingSource] = useState<{ id: string; name: string } | null>(null);
   const [generatedCounts, setGeneratedCounts] = useState<
@@ -157,29 +156,6 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange }: SourcesPane
     }
     setSelectedSources(newSelected);
     onSelectedSourcesChange?.(Array.from(newSelected));
-  };
-
-  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setIsDragging(false);
-  };
-
-  const handleDrop = async (e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setIsDragging(false);
-
-    if (!projectId) {
-      toast.error("Selecione um projeto primeiro");
-      return;
-    }
-
-    const files = Array.from(e.dataTransfer.files);
-    await handleFiles(files);
   };
 
   const handleFileInput = async (e: ChangeEvent<HTMLInputElement>) => {
@@ -371,7 +347,7 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange }: SourcesPane
         {/* Header */}
         <div className="glass-dark rounded-2xl mb-4 p-4 border border-gray-200">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-gray-900">Fontes</h3>
+            <h3 className="text-lg font-semibold text-gray-900">Fontes</h3>
           <Button
             size="sm"
             onClick={() => fileInputRef.current?.click()}
@@ -386,28 +362,6 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange }: SourcesPane
             Upload
           </Button>
         </div>
-
-        {/* Upload Area */}
-        <motion.div
-          whileHover={{ scale: 1.02 }}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          onClick={() => fileInputRef.current?.click()}
-          className={`glass border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all duration-300 ${
-            isDragging
-              ? "border-[#0891B2] bg-[#F0F9FF]/50 scale-105"
-              : "border-gray-300 hover:border-[#0891B2] hover:bg-[#F0F9FF]/30"
-          }`}
-        >
-          <Upload className="w-8 h-8 mx-auto mb-2 text-gray-600" />
-          <p className="text-sm text-gray-700">
-            {isDragging ? "Solte os arquivos aqui" : "Arraste arquivos aqui"}
-          </p>
-          <p className="text-xs text-gray-500 mt-1">
-            PDF, áudio, texto ou imagem
-          </p>
-        </motion.div>
       </div>
 
       {/* Sources List */}

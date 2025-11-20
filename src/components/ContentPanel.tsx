@@ -251,7 +251,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [] }: ContentPanel
         <div className="flex-1 overflow-hidden p-6 flex flex-col">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
-            <h1 className="text-2xl font-semibold text-gray-900">Estúdio</h1>
+            <h1 className="text-lg font-semibold text-gray-900">Estudo</h1>
             <Button
               onClick={() => setDifficultiesOpen(true)}
               size="sm"
