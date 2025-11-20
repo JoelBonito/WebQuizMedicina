@@ -1,50 +1,120 @@
-import { useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
+import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
-import { Badge } from "./ui/badge";
-import { Sparkles, Loader2, ChevronRight, BookOpen, Trash2, Play, X } from "lucide-react";
+import {
+  HelpCircle,
+  Layers,
+  FileText,
+  Loader2,
+  BookOpen,
+  MoreVertical,
+  Pencil,
+  LayoutGrid,
+  Sparkles,
+  X
+} from "lucide-react";
 import { motion } from "motion/react";
 import { useQuestions } from "../hooks/useQuestions";
 import { useFlashcards } from "../hooks/useFlashcards";
 import { useSummaries } from "../hooks/useSummaries";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "./ui/dialog";
 import { QuizSession } from "./QuizSession";
 import { FlashcardSession } from "./FlashcardSession";
 import { SummaryViewer } from "./SummaryViewer";
+import { Badge } from "./ui/badge";
 
 interface ContentPanelProps {
   projectId: string | null;
   selectedSourceIds?: string[];
 }
 
-const getDifficultyColor = (difficulty: string) => {
-  switch (difficulty) {
-    case "fácil":
-      return "bg-green-50 text-green-700 border-green-200";
-    case "médio":
-      return "bg-yellow-50 text-yellow-700 border-yellow-200";
-    case "difícil":
-      return "bg-red-50 text-red-700 border-red-200";
+interface GeneratedContent {
+  id: string;
+  type: 'quiz' | 'flashcards' | 'summary';
+  title: string;
+  sourceCount: number;
+  createdAt: Date;
+}
+
+const ACTION_CARDS = [
+  {
+    id: 'quiz',
+    title: 'Teste',
+    icon: HelpCircle,
+    bgColor: 'bg-blue-50',
+    textColor: 'text-blue-700',
+    iconColor: 'text-blue-600',
+  },
+  {
+    id: 'flashcards',
+    title: 'Cartões de Estudo',
+    icon: Layers,
+    bgColor: 'bg-red-50',
+    textColor: 'text-red-700',
+    iconColor: 'text-red-600',
+  },
+  {
+    id: 'summary',
+    title: 'Resumo',
+    icon: FileText,
+    bgColor: 'bg-purple-50',
+    textColor: 'text-purple-700',
+    iconColor: 'text-purple-600',
+  },
+];
+
+const getContentStyle = (type: string) => {
+  switch(type) {
+    case 'quiz':
+      return {
+        icon: HelpCircle,
+        bgColor: 'bg-blue-50',
+        iconColor: 'text-blue-600',
+        label: 'Quiz'
+      };
+    case 'flashcards':
+      return {
+        icon: Layers,
+        bgColor: 'bg-red-50',
+        iconColor: 'text-red-600',
+        label: 'Flashcards'
+      };
+    case 'summary':
+      return {
+        icon: FileText,
+        bgColor: 'bg-purple-50',
+        iconColor: 'text-purple-600',
+        label: 'Resumo'
+      };
     default:
-      return "bg-gray-50 text-gray-700 border-gray-200";
+      return {
+        icon: FileText,
+        bgColor: 'bg-gray-50',
+        iconColor: 'text-gray-600',
+        label: 'Conteúdo'
+      };
   }
 };
 
+const formatTimeAgo = (date: Date) => {
+  const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+  if (seconds < 60) return 'agora';
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}min atrás`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h atrás`;
+  return `${Math.floor(seconds / 86400)}d atrás`;
+};
+
 export function ContentPanel({ projectId, selectedSourceIds = [] }: ContentPanelProps) {
-  const [activeTab, setActiveTab] = useState("quiz");
+  const [generatedContent, setGeneratedContent] = useState<GeneratedContent[]>([]);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [selectedSummary, setSelectedSummary] = useState<any>(null);
   const [quizSessionOpen, setQuizSessionOpen] = useState(false);
   const [flashcardSessionOpen, setFlashcardSessionOpen] = useState(false);
 
   const handleAskChat = (selectedText: string) => {
-    // Save selected text to localStorage for ChatPanel to pick up
     localStorage.setItem('chat_question', `Explique melhor: "${selectedText}"`);
-    // Trigger custom event to notify ChatPanel
     window.dispatchEvent(new CustomEvent('ask-chat', { detail: selectedText }));
-    // Close summary dialog
     setSelectedSummary(null);
-    // Show toast
     toast.success("Pergunta enviada para o Chat! Alterne para a aba Chat.");
   };
 
@@ -52,42 +122,96 @@ export function ContentPanel({ projectId, selectedSourceIds = [] }: ContentPanel
   const { flashcards, loading: loadingFlashcards, generating: generatingFlashcards, generateFlashcards } = useFlashcards(projectId);
   const { summaries, loading: loadingSummaries, generating: generatingSummary, generateSummary, deleteSummary } = useSummaries(projectId);
 
-  const handleGenerateQuiz = async () => {
+  // Update generated content list when data changes
+  useEffect(() => {
+    if (!projectId) return;
+
+    const newContent: GeneratedContent[] = [];
+
+    // Add quizzes
+    if (questions.length > 0) {
+      newContent.push({
+        id: `quiz-${projectId}`,
+        type: 'quiz',
+        title: `Quiz - ${questions.length} questões`,
+        sourceCount: selectedSourceIds.length,
+        createdAt: new Date(questions[0].created_at || new Date()),
+      });
+    }
+
+    // Add flashcards
+    if (flashcards.length > 0) {
+      newContent.push({
+        id: `flashcards-${projectId}`,
+        type: 'flashcards',
+        title: `Flashcards - ${flashcards.length} cards`,
+        sourceCount: selectedSourceIds.length,
+        createdAt: new Date(flashcards[0].created_at || new Date()),
+      });
+    }
+
+    // Add summaries
+    summaries.forEach(summary => {
+      newContent.push({
+        id: summary.id,
+        type: 'summary',
+        title: summary.titulo,
+        sourceCount: summary.source_ids?.length || 0,
+        createdAt: new Date(summary.created_at || new Date()),
+      });
+    });
+
+    // Sort by date (most recent first)
+    newContent.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+    setGeneratedContent(newContent);
+  }, [questions, flashcards, summaries, projectId, selectedSourceIds]);
+
+  const handleGenerateContent = async (type: 'quiz' | 'flashcards' | 'summary') => {
     if (selectedSourceIds.length === 0) {
-      toast.error("Selecione pelo menos uma fonte para gerar o quiz");
+      toast.error("Selecione pelo menos uma fonte para gerar conteúdo");
       return;
     }
+
+    setIsGenerating(true);
+
     try {
-      await generateQuiz(selectedSourceIds, 15);
-      toast.success("Quiz gerado com sucesso!");
+      switch(type) {
+        case 'quiz':
+          await generateQuiz(selectedSourceIds, 15);
+          toast.success("Quiz gerado com sucesso!");
+          break;
+        case 'flashcards':
+          await generateFlashcards(selectedSourceIds, 20);
+          toast.success("Flashcards gerados com sucesso!");
+          break;
+        case 'summary':
+          await generateSummary(selectedSourceIds);
+          toast.success("Resumo gerado com sucesso!");
+          break;
+      }
     } catch (error) {
-      toast.error("Erro ao gerar quiz. Verifique se há fontes disponíveis.");
+      toast.error("Erro ao gerar conteúdo. Verifique se há fontes disponíveis.");
+      console.error(error);
+    } finally {
+      setIsGenerating(false);
     }
   };
 
-  const handleGenerateFlashcards = async () => {
-    if (selectedSourceIds.length === 0) {
-      toast.error("Selecione pelo menos uma fonte para gerar flashcards");
-      return;
-    }
-    try {
-      await generateFlashcards(selectedSourceIds, 20);
-      toast.success("Flashcards gerados com sucesso!");
-    } catch (error) {
-      toast.error("Erro ao gerar flashcards. Verifique se há fontes disponíveis.");
-    }
-  };
-
-  const handleGenerateSummary = async () => {
-    if (selectedSourceIds.length === 0) {
-      toast.error("Selecione pelo menos uma fonte para gerar o resumo");
-      return;
-    }
-    try {
-      await generateSummary(selectedSourceIds);
-      toast.success("Resumo gerado com sucesso!");
-    } catch (error) {
-      toast.error("Erro ao gerar resumo. Verifique se há fontes disponíveis.");
+  const handleOpenContent = (content: GeneratedContent) => {
+    switch(content.type) {
+      case 'quiz':
+        setQuizSessionOpen(true);
+        break;
+      case 'flashcards':
+        setFlashcardSessionOpen(true);
+        break;
+      case 'summary':
+        const summary = summaries.find(s => s.id === content.id);
+        if (summary) {
+          setSelectedSummary(summary);
+        }
+        break;
     }
   };
 
@@ -113,321 +237,133 @@ export function ContentPanel({ projectId, selectedSourceIds = [] }: ContentPanel
     );
   }
 
+  const loading = loadingQuiz || loadingFlashcards || loadingSummaries;
+  const generating = generatingQuiz || generatingFlashcards || generatingSummary;
+
   return (
     <>
-      <div className="h-full w-full flex flex-col bg-gray-50/50 rounded-3xl p-4 border border-gray-200 overflow-hidden">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
-          <TabsList className="glass-dark border border-gray-200 p-1 mb-4 rounded-2xl h-auto">
-            <TabsTrigger
-              value="quiz"
-              className="rounded-xl data-[state=active]:glass data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-gray-200 transition-all duration-300 px-6"
-            >
-              Quiz ({questions.length})
-            </TabsTrigger>
-            <TabsTrigger
-              value="flashcards"
-              className="rounded-xl data-[state=active]:glass data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-gray-200 transition-all duration-300 px-6"
-            >
-              Flashcards ({flashcards.length})
-            </TabsTrigger>
-            <TabsTrigger
-              value="summaries"
-              className="rounded-xl data-[state=active]:glass data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-gray-200 transition-all duration-300 px-6"
-            >
-              Resumos ({summaries.length})
-            </TabsTrigger>
-          </TabsList>
+      <div className="h-full w-full flex flex-col bg-gray-50/50 rounded-3xl p-6 border border-gray-200 overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-semibold text-gray-900">Estúdio</h1>
+          <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+            <LayoutGrid className="w-5 h-5 text-gray-600" />
+          </button>
+        </div>
 
-          {/* Quiz Tab */}
-          <TabsContent value="quiz" className="flex-1 overflow-auto space-y-4 pr-2">
-            {loadingQuiz ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-8 h-8 animate-spin text-[#0891B2]" />
-              </div>
-            ) : questions.length === 0 ? (
-              <div className="text-center py-12">
-                <Sparkles className="w-12 h-12 mx-auto mb-4 text-[#0891B2]" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  Nenhum quiz ainda
-                </h3>
-                <p className="text-gray-600 mb-6">
-                  Gere perguntas a partir das suas fontes com IA
-                </p>
-                <Button
-                  onClick={handleGenerateQuiz}
-                  disabled={generatingQuiz}
-                  className="rounded-xl bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white"
+        {/* Grid de Botões de Ação */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
+          {ACTION_CARDS.map(card => {
+            const CardIcon = card.icon;
+            return (
+              <button
+                key={card.id}
+                onClick={() => handleGenerateContent(card.id as 'quiz' | 'flashcards' | 'summary')}
+                disabled={isGenerating || generating}
+                className={`
+                  ${card.bgColor}
+                  relative p-5 rounded-2xl
+                  flex flex-col items-start gap-2
+                  transition-all duration-200
+                  hover:shadow-md hover:scale-[1.02]
+                  active:scale-[0.98]
+                  disabled:opacity-50 disabled:cursor-not-allowed
+                  group
+                `}
+              >
+                {/* Ícone */}
+                <CardIcon className={`w-7 h-7 ${card.iconColor}`} />
+
+                {/* Título */}
+                <span className={`font-semibold text-base ${card.textColor}`}>
+                  {card.title}
+                </span>
+
+                {/* Loading indicator */}
+                {generating && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-white/80 rounded-2xl">
+                    <Loader2 className="w-6 h-6 animate-spin text-gray-600" />
+                  </div>
+                )}
+
+                {/* Botão de editar (canto superior direito) - aparece no hover */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // Ação de editar configurações do card (futuro)
+                  }}
+                  className="absolute top-3 right-3 p-2 rounded-full bg-white/60 hover:bg-white/90 opacity-0 group-hover:opacity-100 transition-opacity"
                 >
-                  {generatingQuiz ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Sparkles className="w-4 h-4 mr-2" />
-                  )}
-                  {generatingQuiz ? "Gerando..." : "Gerar Quiz"}
-                </Button>
-              </div>
-            ) : (
-              <>
-                {/* Start Quiz Button */}
-                <div className="glass-dark rounded-2xl p-6 border border-gray-200 mb-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="text-gray-900 font-semibold mb-1">
-                        Quiz Pronto!
-                      </h4>
-                      <p className="text-sm text-gray-600">
-                        {questions.length} questões disponíveis para testar seu conhecimento
+                  <Pencil className="w-4 h-4 text-gray-600" />
+                </button>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Divider */}
+        <div className="border-t border-gray-200 my-4" />
+
+        {/* Lista de Conteúdo Gerado */}
+        <div className="flex-1 overflow-y-auto pr-2">
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-[#0891B2]" />
+            </div>
+          ) : generatedContent.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">
+              <Sparkles className="w-12 h-12 mx-auto mb-3 text-gray-400" />
+              <p className="font-medium mb-1">Nenhum conteúdo gerado ainda</p>
+              <p className="text-sm">Clique em um dos botões acima para começar</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {generatedContent.map((content, index) => {
+                const style = getContentStyle(content.type);
+                const Icon = style.icon;
+
+                return (
+                  <motion.div
+                    key={content.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    onClick={() => handleOpenContent(content)}
+                    className="flex items-center gap-4 p-4 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer group"
+                  >
+                    {/* Ícone */}
+                    <div className={`w-12 h-12 rounded-xl ${style.bgColor} flex items-center justify-center flex-shrink-0`}>
+                      <Icon className={`w-6 h-6 ${style.iconColor}`} />
+                    </div>
+
+                    {/* Informações */}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-medium text-gray-900 truncate">
+                        {content.title}
+                      </h3>
+                      <p className="text-sm text-gray-500">
+                        {style.label} · {content.sourceCount} fontes · {formatTimeAgo(content.createdAt)}
                       </p>
                     </div>
-                    <Button
-                      onClick={() => setQuizSessionOpen(true)}
-                      className="rounded-xl bg-gradient-to-r from-[#0891B2] to-[#2B3E6F] hover:from-[#0891B2] hover:to-[#2B3E6F] text-white shadow-lg"
+
+                    {/* Menu de ações */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (content.type === 'summary') {
+                          handleDeleteSummary(content.id);
+                        }
+                      }}
+                      className="p-2 hover:bg-gray-200 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
                     >
-                      <Play className="w-4 h-4 mr-2" />
-                      Iniciar Quiz
-                    </Button>
-                  </div>
-                </div>
-
-                {questions.map((question, index) => (
-                  <motion.div
-                    key={question.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                    className="glass-hover glass-dark rounded-2xl p-6 border border-gray-200"
-                  >
-                    <div className="flex items-start justify-between mb-4">
-                      <Badge className={`rounded-lg ${getDifficultyColor(question.dificuldade)}`}>
-                        {question.dificuldade}
-                      </Badge>
-                      <span className="text-sm text-gray-500">Questão {index + 1}</span>
-                    </div>
-                    <h4 className="text-gray-900 mb-4">{question.pergunta}</h4>
-                    <div className="space-y-2">
-                      {question.opcoes.map((option, i) => (
-                        <div
-                          key={i}
-                          className="p-3 rounded-xl glass border border-gray-200 text-sm text-gray-800"
-                        >
-                          {option}
-                        </div>
-                      ))}
-                    </div>
-                    {question.topico && (
-                      <Badge variant="outline" className="mt-4 rounded-lg text-xs">
-                        {question.topico}
-                      </Badge>
-                    )}
+                      <MoreVertical className="w-5 h-5 text-gray-600" />
+                    </button>
                   </motion.div>
-                ))}
-
-                <Button
-                  onClick={handleGenerateQuiz}
-                  disabled={generatingQuiz}
-                  className="w-full rounded-xl bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white shadow-lg"
-                >
-                  {generatingQuiz ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Sparkles className="w-4 h-4 mr-2" />
-                  )}
-                  {generatingQuiz ? "Gerando..." : "Gerar Mais Questões"}
-                </Button>
-              </>
-            )}
-          </TabsContent>
-
-          {/* Flashcards Tab */}
-          <TabsContent value="flashcards" className="flex-1 overflow-auto space-y-4 pr-2">
-            {loadingFlashcards ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-8 h-8 animate-spin text-[#0891B2]" />
-              </div>
-            ) : flashcards.length === 0 ? (
-              <div className="text-center py-12">
-                <Sparkles className="w-12 h-12 mx-auto mb-4 text-[#0891B2]" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  Nenhum flashcard ainda
-                </h3>
-                <p className="text-gray-600 mb-6">
-                  Gere flashcards a partir das suas fontes com IA
-                </p>
-                <Button
-                  onClick={handleGenerateFlashcards}
-                  disabled={generatingFlashcards}
-                  className="rounded-xl bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white"
-                >
-                  {generatingFlashcards ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Sparkles className="w-4 h-4 mr-2" />
-                  )}
-                  {generatingFlashcards ? "Gerando..." : "Gerar Flashcards"}
-                </Button>
-              </div>
-            ) : (
-              <>
-                {/* Start Flashcards Button */}
-                <div className="glass-dark rounded-2xl p-6 border border-gray-200 mb-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="text-gray-900 font-semibold mb-1">
-                        Flashcards Prontos!
-                      </h4>
-                      <p className="text-sm text-gray-600">
-                        {flashcards.length} flashcards disponíveis para revisar com repetição espaçada
-                      </p>
-                    </div>
-                    <Button
-                      onClick={() => setFlashcardSessionOpen(true)}
-                      className="rounded-xl bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white shadow-lg"
-                    >
-                      <Play className="w-4 h-4 mr-2" />
-                      Iniciar Flashcards
-                    </Button>
-                  </div>
-                </div>
-
-                {flashcards.map((card, index) => (
-                  <motion.div
-                    key={card.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                    className="glass-hover glass-dark rounded-2xl p-6 border border-gray-200"
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <Badge className={`rounded-lg ${getDifficultyColor(card.dificuldade)}`}>
-                        {card.dificuldade}
-                      </Badge>
-                      {card.topico && (
-                        <Badge variant="outline" className="rounded-lg text-xs">
-                          {card.topico}
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="mb-3">
-                      <p className="text-xs text-gray-600 mb-1">FRENTE</p>
-                      <p className="text-gray-900">{card.frente}</p>
-                    </div>
-                    <div className="pt-3 border-t border-gray-200">
-                      <p className="text-xs text-gray-600 mb-1">VERSO</p>
-                      <p className="text-sm text-gray-700">{card.verso}</p>
-                    </div>
-                  </motion.div>
-                ))}
-
-                <Button
-                  onClick={handleGenerateFlashcards}
-                  disabled={generatingFlashcards}
-                  className="w-full rounded-xl bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white shadow-lg"
-                >
-                  {generatingFlashcards ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Sparkles className="w-4 h-4 mr-2" />
-                  )}
-                  {generatingFlashcards ? "Gerando..." : "Gerar Mais Flashcards"}
-                </Button>
-              </>
-            )}
-          </TabsContent>
-
-          {/* Summaries Tab */}
-          <TabsContent value="summaries" className="flex-1 overflow-auto space-y-4 pr-2">
-            {loadingSummaries ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-8 h-8 animate-spin text-[#0891B2]" />
-              </div>
-            ) : summaries.length === 0 ? (
-              <div className="text-center py-12">
-                <Sparkles className="w-12 h-12 mx-auto mb-4 text-[#0891B2]" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  Nenhum resumo ainda
-                </h3>
-                <p className="text-gray-600 mb-6">
-                  Gere resumos estruturados das suas fontes com IA
-                </p>
-                <Button
-                  onClick={handleGenerateSummary}
-                  disabled={generatingSummary}
-                  className="rounded-xl bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white"
-                >
-                  {generatingSummary ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Sparkles className="w-4 h-4 mr-2" />
-                  )}
-                  {generatingSummary ? "Gerando..." : "Gerar Resumo"}
-                </Button>
-              </div>
-            ) : (
-              <>
-                {summaries.map((summary, index) => (
-                  <motion.div
-                    key={summary.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                    className="glass-hover glass-dark rounded-2xl p-6 border border-gray-200"
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <h4 className="text-gray-900 flex-1">{summary.titulo}</h4>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 rounded-lg hover:bg-red-50"
-                        onClick={() => handleDeleteSummary(summary.id)}
-                      >
-                        <Trash2 className="w-4 h-4 text-red-600" />
-                      </Button>
-                    </div>
-                    <div className="mb-4">
-                      {summary.topicos && summary.topicos.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mb-3">
-                          {summary.topicos.map((topico, i) => (
-                            <Badge key={i} variant="outline" className="rounded-lg text-xs">
-                              {topico}
-                            </Badge>
-                          ))}
-                        </div>
-                      )}
-                      <div
-                        className="text-sm text-gray-700 line-clamp-3"
-                        dangerouslySetInnerHTML={{
-                          __html: summary.conteudo_html.substring(0, 200) + "...",
-                        }}
-                      />
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="rounded-lg hover:bg-gray-100 text-[#0891B2]"
-                      onClick={() => setSelectedSummary(summary)}
-                    >
-                      Ler Completo
-                      <ChevronRight className="w-4 h-4 ml-1" />
-                    </Button>
-                  </motion.div>
-                ))}
-
-                <Button
-                  onClick={handleGenerateSummary}
-                  disabled={generatingSummary}
-                  className="w-full rounded-xl bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white shadow-lg"
-                >
-                  {generatingSummary ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Sparkles className="w-4 h-4 mr-2" />
-                  )}
-                  {generatingSummary ? "Gerando..." : "Gerar Novo Resumo"}
-                </Button>
-              </>
-            )}
-          </TabsContent>
-        </Tabs>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Summary Dialog */}
