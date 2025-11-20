@@ -10,9 +10,10 @@ import { toast } from "sonner";
 
 interface ChatPanelProps {
   projectId: string | null;
+  isFullscreenMode?: boolean;
 }
 
-export function ChatPanel({ projectId }: ChatPanelProps) {
+export function ChatPanel({ projectId, isFullscreenMode = false }: ChatPanelProps) {
   const [inputValue, setInputValue] = useState("");
   const [currentCitedSources, setCurrentCitedSources] = useState<CitedSource[]>([]);
   const [currentSuggestedTopics, setCurrentSuggestedTopics] = useState<string[]>([]);
@@ -138,7 +139,7 @@ export function ChatPanel({ projectId }: ChatPanelProps) {
   }
 
   return (
-    <div className="flex flex-col bg-gray-50/50 rounded-3xl p-4 border border-gray-200 h-full">
+    <div className={`flex flex-col bg-gray-50/50 rounded-3xl p-4 border border-gray-200 h-full ${isFullscreenMode ? 'overflow-hidden' : ''}`}>
       {/* Header */}
       <div className="glass-dark rounded-2xl p-4 mb-4 border border-gray-200 flex-shrink-0">
         <div className="flex items-center justify-between mb-2">

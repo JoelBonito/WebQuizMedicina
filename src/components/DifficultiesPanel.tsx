@@ -12,6 +12,7 @@ import { ScrollArea } from "./ui/scroll-area";
 
 interface DifficultiesPanelProps {
   projectId: string | null;
+  isFullscreenMode?: boolean;
 }
 
 const getOriginIcon = (origin: string) => {
@@ -52,7 +53,7 @@ const getLevelBadgeColor = (level: number) => {
   return "bg-yellow-50 text-yellow-700 border-yellow-200";
 };
 
-export function DifficultiesPanel({ projectId }: DifficultiesPanelProps) {
+export function DifficultiesPanel({ projectId, isFullscreenMode = false }: DifficultiesPanelProps) {
   const [generatingContent, setGeneratingContent] = useState(false);
 
   const { difficulties, loading, markAsResolved } = useDifficulties(projectId);
@@ -150,7 +151,7 @@ export function DifficultiesPanel({ projectId }: DifficultiesPanelProps) {
 
   if (!projectId) {
     return (
-      <div className="h-full flex flex-col bg-gray-50/50 rounded-3xl p-4 border border-gray-200">
+      <div className={`h-full flex flex-col ${isFullscreenMode ? 'overflow-hidden' : 'bg-gray-50/50 rounded-3xl border border-gray-200'} p-4`}>
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <TrendingUp className="w-12 h-12 mx-auto mb-4 text-gray-400" />
@@ -162,7 +163,7 @@ export function DifficultiesPanel({ projectId }: DifficultiesPanelProps) {
   }
 
   return (
-    <div className="h-full flex flex-col bg-gray-50/50 rounded-3xl p-4 border border-gray-200">
+    <div className={`h-full flex flex-col ${isFullscreenMode ? 'overflow-hidden' : 'bg-gray-50/50 rounded-3xl border border-gray-200'} p-4`}>
       {/* Header */}
       <div className="glass-dark rounded-2xl p-4 mb-4 border border-gray-200">
         <div className="flex items-center justify-between mb-4">
