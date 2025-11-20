@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { useAuth } from './useAuth';
 
 export interface Question {
   id: string;
@@ -16,6 +17,7 @@ export interface Question {
 }
 
 export const useQuestions = (projectId: string | null) => {
+  const { session } = useAuth();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -53,7 +55,6 @@ export const useQuestions = (projectId: string | null) => {
     try {
       setGenerating(true);
 
-      const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
       // Support both single sourceId (string) and multiple sourceIds (array)
