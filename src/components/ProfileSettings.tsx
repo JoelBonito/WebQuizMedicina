@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../hooks/useAuth";
+import { useProfile } from "../hooks/useProfile";
 import {
   Dialog,
   DialogContent,
@@ -10,8 +11,8 @@ import {
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import { Avatar, AvatarFallback } from "./ui/avatar";
-import { User, Mail, Calendar } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { User, Mail, Calendar, Loader2, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 interface ProfileSettingsProps {
@@ -21,9 +22,16 @@ interface ProfileSettingsProps {
 
 export function ProfileSettings({ open, onOpenChange }: ProfileSettingsProps) {
   const { user } = useAuth();
-  const [displayName, setDisplayName] = useState(
-    user?.email?.split("@")[0] || ""
-  );
+  const { profile, loading, updating, updateProfile, uploadAvatar } = useProfile();
+  const [displayName, setDisplayName] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Update displayName when profile loads
+  useEffect(() => {
+    if (profile) {
+      setDisplayName(profile.display_name || user?.email?.split("@")[0] || "");
+    }
+  }, [profile, user?.email]);
 
   const getUserInitials = () => {
     if (!user?.email) return "US";
@@ -39,10 +47,43 @@ export function ProfileSettings({ open, onOpenChange }: ProfileSettingsProps) {
     });
   };
 
-  const handleSave = () => {
-    // TODO: Implement profile update logic with Supabase
-    toast.info("Atualização de perfil em desenvolvimento!");
-    onOpenChange(false);
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Por favor, selecione uma imagem válida');
+      return;
+    }
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('A imagem deve ter no máximo 2MB');
+      return;
+    }
+
+    const { error } = await uploadAvatar(file);
+    if (error) {
+      toast.error('Erro ao fazer upload da foto');
+    } else {
+      toast.success('Foto atualizada com sucesso!');
+    }
+  };
+
+  const handleSave = async () => {
+    if (!displayName.trim()) {
+      toast.error('Nome de exibição não pode estar vazio');
+      return;
+    }
+
+    const { error } = await updateProfile({ display_name: displayName.trim() });
+    if (error) {
+      toast.error('Erro ao atualizar perfil');
+    } else {
+      toast.success('Perfil atualizado com sucesso!');
+      onOpenChange(false);
+    }
   };
 
   return (
@@ -61,17 +102,32 @@ export function ProfileSettings({ open, onOpenChange }: ProfileSettingsProps) {
           {/* Avatar Section */}
           <div className="flex flex-col items-center gap-4">
             <Avatar className="w-24 h-24 ring-4 ring-primary ring-offset-4 ring-offset-white">
+              {profile?.avatar_url && (
+                <AvatarImage src={profile.avatar_url} alt="Avatar" />
+              )}
               <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-white font-semibold text-2xl">
                 {getUserInitials()}
               </AvatarFallback>
             </Avatar>
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept="image/*"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
             <Button
               variant="outline"
               size="sm"
               className="rounded-lg text-gray-700"
-              onClick={() => toast.info("Upload de foto em breve!")}
+              onClick={() => fileInputRef.current?.click()}
+              disabled={updating}
             >
-              <User className="w-4 h-4 mr-2" />
+              {updating ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Upload className="w-4 h-4 mr-2" />
+              )}
               Alterar foto
             </Button>
           </div>
@@ -124,14 +180,23 @@ export function ProfileSettings({ open, onOpenChange }: ProfileSettingsProps) {
               variant="outline"
               onClick={() => onOpenChange(false)}
               className="rounded-lg"
+              disabled={updating}
             >
               Cancelar
             </Button>
             <Button
               onClick={handleSave}
               className="rounded-lg bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white"
+              disabled={updating || loading}
             >
-              Salvar alterações
+              {updating ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                'Salvar alterações'
+              )}
             </Button>
           </div>
         </div>
