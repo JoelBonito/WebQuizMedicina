@@ -449,7 +449,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
 
       {/* Difficulties Dialog */}
       <Dialog open={difficultiesOpen} onOpenChange={setDifficultiesOpen}>
-        <DialogContent className="max-w-3xl max-h-[80vh] rounded-3xl p-0">
+        <DialogContent className="w-full max-w-full h-screen max-h-screen rounded-none p-6 overflow-y-auto supports-[height:100dvh]:h-dvh">
           <div className="h-full">
             <DialogTitle className="sr-only">Painel de Dificuldades</DialogTitle>
             <DialogDescription className="sr-only">
