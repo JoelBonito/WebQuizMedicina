@@ -17,7 +17,7 @@ interface LanguageProviderProps {
 }
 
 const LANGUAGE_NAMES: Record<Language, string> = {
-  "pt": "Português",
+  "pt": "Português (Brasil)",
   "en": "English",
   "es": "Español",
   "fr": "Français",
