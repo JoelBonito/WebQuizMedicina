@@ -11,7 +11,7 @@ import { Label } from "./ui/label";
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 import { Languages, BookOpen, MessageSquare, Brain, FileText, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface LanguageSettingsProps {
   open: boolean;
@@ -21,7 +21,14 @@ interface LanguageSettingsProps {
 export function LanguageSettings({ open, onOpenChange }: LanguageSettingsProps) {
   const { language, setLanguage, getLanguageName, isLoading } = useLanguage();
   const [isSaving, setIsSaving] = useState(false);
-  const [initialLanguage] = useState(language);
+  const [initialLanguage, setInitialLanguage] = useState(language);
+
+  // Update initialLanguage when dialog opens
+  useEffect(() => {
+    if (open) {
+      setInitialLanguage(language);
+    }
+  }, [open, language]);
 
   const hasChanges = language !== initialLanguage;
 
@@ -51,7 +58,7 @@ export function LanguageSettings({ open, onOpenChange }: LanguageSettingsProps) 
   };
 
   const languages = [
-    { value: "pt" as const, label: "Português", flag: "🇵🇹" },
+    { value: "pt" as const, label: "Português (Brasil)", flag: "🇧🇷" },
     { value: "en" as const, label: "English", flag: "🇬🇧" },
     { value: "es" as const, label: "Español", flag: "🇪🇸" },
     { value: "fr" as const, label: "Français", flag: "🇫🇷" },
