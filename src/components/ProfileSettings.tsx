@@ -55,6 +55,12 @@ export function ProfileSettings({ open, onOpenChange }: ProfileSettingsProps) {
     }
   }, [profile, user?.email]);
 
+  // Check if there are unsaved changes
+  const hasUnsavedChanges = profile && (
+    displayName.trim() !== (profile.display_name || user?.email?.split("@")[0] || "") ||
+    responseLanguage !== profile.response_language
+  );
+
   const getUserInitials = () => {
     if (!user?.email) return "US";
     return user.email.substring(0, 2).toUpperCase();
@@ -99,15 +105,30 @@ export function ProfileSettings({ open, onOpenChange }: ProfileSettingsProps) {
       return;
     }
 
-    const { error } = await updateProfile({
+    console.log('Salvando perfil:', {
       display_name: displayName.trim(),
       response_language: responseLanguage
     });
+
+    const { data, error } = await updateProfile({
+      display_name: displayName.trim(),
+      response_language: responseLanguage
+    });
+
+    console.log('Resultado do save:', { data, error });
+
     if (error) {
-      toast.error('Erro ao atualizar perfil');
+      toast.error('Erro ao atualizar perfil: ' + (error.message || 'Erro desconhecido'));
+      console.error('Erro detalhado:', error);
     } else {
-      toast.success('Perfil atualizado com sucesso!');
-      onOpenChange(false);
+      const selectedLang = LANGUAGES.find(l => l.value === responseLanguage)?.label;
+      toast.success(`Perfil atualizado! Idioma: ${selectedLang}`, {
+        duration: 4000,
+      });
+      // Não fechar o dialog imediatamente para mostrar o feedback visual
+      setTimeout(() => {
+        onOpenChange(false);
+      }, 500);
     }
   };
 
@@ -197,21 +218,32 @@ export function ProfileSettings({ open, onOpenChange }: ProfileSettingsProps) {
                 <SelectTrigger id="language" className="rounded-lg bg-white border-gray-200 text-gray-900">
                   <SelectValue placeholder="Selecione um idioma" />
                 </SelectTrigger>
-                <SelectContent className="bg-white rounded-lg border-gray-200">
+                <SelectContent
+                  className="bg-white rounded-lg border-gray-200 max-h-[300px] overflow-y-auto"
+                  position="popper"
+                  sideOffset={5}
+                >
                   {LANGUAGES.map((lang) => (
                     <SelectItem
                       key={lang.value}
                       value={lang.value}
-                      className="text-gray-900 focus:bg-gray-100 focus:text-gray-900"
+                      className="text-gray-900 focus:bg-gray-100 focus:text-gray-900 cursor-pointer"
                     >
                       {lang.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-gray-500">
-                Idioma usado nas respostas geradas pela IA
-              </p>
+              <div className="space-y-1">
+                <p className="text-xs text-gray-500">
+                  Idioma usado nas respostas geradas pela IA
+                </p>
+                {profile?.response_language && (
+                  <p className="text-xs text-primary font-medium">
+                    Idioma salvo: {LANGUAGES.find(l => l.value === profile.response_language)?.label || 'Português'}
+                  </p>
+                )}
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -237,8 +269,8 @@ export function ProfileSettings({ open, onOpenChange }: ProfileSettingsProps) {
             </Button>
             <Button
               onClick={handleSave}
-              className="rounded-lg bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white"
-              disabled={updating || loading}
+              className="rounded-lg bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white relative"
+              disabled={updating || loading || !hasUnsavedChanges}
             >
               {updating ? (
                 <>
@@ -246,7 +278,12 @@ export function ProfileSettings({ open, onOpenChange }: ProfileSettingsProps) {
                   Salvando...
                 </>
               ) : (
-                'Salvar alterações'
+                <>
+                  Salvar alterações
+                  {hasUnsavedChanges && (
+                    <span className="ml-2 inline-flex h-2 w-2 rounded-full bg-white/80 animate-pulse" />
+                  )}
+                </>
               )}
             </Button>
           </div>
