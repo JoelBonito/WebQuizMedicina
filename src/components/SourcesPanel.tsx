@@ -10,6 +10,8 @@ import {
   CheckCircle2,
   Sparkles,
   X,
+  MoreVertical,
+  Edit,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
@@ -37,6 +39,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "./ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 import { supabase } from "../lib/supabase";
 
 interface SourcesPanelProps {
@@ -103,6 +112,8 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
   const { user } = useAuth();
   const [selectedSources, setSelectedSources] = useState<Set<string>>(new Set());
   const [deletingSource, setDeletingSource] = useState<{ id: string; name: string } | null>(null);
+  const [renamingSource, setRenamingSource] = useState<{ id: string; currentName: string } | null>(null);
+  const [newSourceName, setNewSourceName] = useState<string>('');
   const [generatedCounts, setGeneratedCounts] = useState<
     Record<string, { quiz: number; flashcards: number; summaries: number }>
   >({});
@@ -321,6 +332,27 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
     }
   };
 
+  const handleRenameConfirm = async () => {
+    if (!renamingSource || !newSourceName.trim()) return;
+
+    try {
+      const { error } = await supabase
+        .from('sources')
+        .update({ name: newSourceName.trim() })
+        .eq('id', renamingSource.id);
+
+      if (error) throw error;
+
+      await refetch();
+      toast.success("Nome alterado com sucesso");
+      setRenamingSource(null);
+      setNewSourceName('');
+    } catch (error) {
+      console.error("Rename error:", error);
+      toast.error("Erro ao renomear arquivo");
+    }
+  };
+
   if (!projectId) {
     return (
       <div className="h-full w-full flex flex-col bg-gray-50/50 rounded-3xl p-4 border border-gray-200 overflow-hidden">
@@ -481,17 +513,41 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
                       )}
                     </div>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 rounded-lg hover:bg-red-50"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setDeletingSource({ id: source.id, name: source.name });
-                    }}
-                  >
-                    <Trash2 className="w-4 h-4 text-red-600" />
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 rounded-lg"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <MoreVertical className="w-4 h-4 text-gray-600" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setRenamingSource({ id: source.id, currentName: source.name });
+                          setNewSourceName(source.name);
+                        }}
+                      >
+                        <Edit className="w-4 h-4 mr-2" />
+                        Renomear
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeletingSource({ id: source.id, name: source.name });
+                        }}
+                        className="text-red-600 focus:text-red-600"
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Deletar
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </motion.div>
             ))}
@@ -523,6 +579,59 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Rename Dialog */}
+      <Dialog open={renamingSource !== null} onOpenChange={(open) => {
+        if (!open) {
+          setRenamingSource(null);
+          setNewSourceName('');
+        }
+      }}>
+        <DialogContent className="rounded-3xl sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold text-gray-900">
+              Renomear Fonte
+            </DialogTitle>
+            <DialogDescription className="text-sm text-gray-600">
+              Digite o novo nome para "{renamingSource?.currentName}"
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <input
+              type="text"
+              value={newSourceName}
+              onChange={(e) => setNewSourceName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleRenameConfirm();
+                }
+              }}
+              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0891B2] focus:border-transparent"
+              placeholder="Novo nome"
+              autoFocus
+            />
+          </div>
+          <DialogFooter className="gap-3">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setRenamingSource(null);
+                setNewSourceName('');
+              }}
+              className="rounded-xl"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleRenameConfirm}
+              disabled={!newSourceName.trim()}
+              className="rounded-xl bg-[#0891B2] hover:bg-[#0891B2]/90"
+            >
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Upload Success Modal */}
       <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>

@@ -10,12 +10,15 @@ import {
   Settings,
   Sparkles,
   X,
-  TrendingUp
+  TrendingUp,
+  Trash2,
+  Edit
 } from "lucide-react";
 import { motion } from "motion/react";
 import { useQuestions } from "../hooks/useQuestions";
 import { useFlashcards } from "../hooks/useFlashcards";
 import { useSummaries } from "../hooks/useSummaries";
+import { supabase } from "../lib/supabase";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "./ui/dialog";
 import { QuizSession } from "./QuizSession";
@@ -31,6 +34,7 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuItem,
 } from "./ui/dropdown-menu";
 
 interface ContentPanelProps {
@@ -45,6 +49,7 @@ interface GeneratedContent {
   title: string;
   sourceCount: number;
   createdAt: Date;
+  difficulty?: 'fácil' | 'médio' | 'difícil' | 'misto';
 }
 
 const ACTION_CARDS = [
@@ -135,9 +140,25 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
     toast.success("Pergunta enviada para o Chat! Alterne para a aba Chat.");
   };
 
-  const { questions, loading: loadingQuiz, generating: generatingQuiz, generateQuiz } = useQuestions(projectId);
-  const { flashcards, loading: loadingFlashcards, generating: generatingFlashcards, generateFlashcards } = useFlashcards(projectId);
+  const { questions, loading: loadingQuiz, generating: generatingQuiz, generateQuiz, refetch: fetchQuestions } = useQuestions(projectId);
+  const { flashcards, loading: loadingFlashcards, generating: generatingFlashcards, generateFlashcards, refetch: fetchFlashcards } = useFlashcards(projectId);
   const { summaries, loading: loadingSummaries, generating: generatingSummary, generateSummary, deleteSummary } = useSummaries(projectId);
+
+  // Helper function to determine difficulty level
+  const getDifficultyLevel = (items: { dificuldade: string }[]): 'fácil' | 'médio' | 'difícil' | 'misto' => {
+    if (items.length === 0) return 'médio';
+
+    const difficulties = [...new Set(items.map(item => item.dificuldade))];
+
+    if (difficulties.length === 1) {
+      const diff = difficulties[0];
+      if (diff === 'fácil' || diff === 'médio' || diff === 'difícil') {
+        return diff;
+      }
+    }
+
+    return 'misto';
+  };
 
   // Update generated content list when data changes
   useEffect(() => {
@@ -158,12 +179,14 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
     // Add each quiz session as a separate entry
     Object.entries(questionsBySession).forEach(([sessionId, sessionQuestions]) => {
       const mostRecent = sessionQuestions[0];
+      const difficulty = getDifficultyLevel(sessionQuestions);
       newContent.push({
         id: `quiz-${sessionId}`,
         type: 'quiz',
         title: `Quiz - ${sessionQuestions.length} questões`,
         sourceCount: selectedSourceIds.length,
         createdAt: new Date(mostRecent.created_at || new Date()),
+        difficulty,
       });
     });
 
@@ -180,12 +203,14 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
     // Add each flashcard session as a separate entry
     Object.entries(flashcardsBySession).forEach(([sessionId, sessionFlashcards]) => {
       const mostRecent = sessionFlashcards[0];
+      const difficulty = getDifficultyLevel(sessionFlashcards);
       newContent.push({
         id: `flashcards-${sessionId}`,
         type: 'flashcards',
         title: `Flashcards - ${sessionFlashcards.length} cards`,
         sourceCount: selectedSourceIds.length,
         createdAt: new Date(mostRecent.created_at || new Date()),
+        difficulty,
       });
     });
 
@@ -218,7 +243,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
       switch(type) {
         case 'quiz':
           const quizDiff = quizDifficulty !== 'todos' ? quizDifficulty : undefined;
-          const quizResult = await generateQuiz(selectedSourceIds, 15, quizDiff);
+          const quizResult = await generateQuiz(selectedSourceIds, 20, quizDiff);
           toast.success(quizDiff
             ? `Quiz gerado com sucesso (nível ${quizDiff})!`
             : "Quiz gerado com sucesso!"
@@ -282,6 +307,54 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
       toast.success("Resumo removido");
     } catch (error) {
       toast.error("Erro ao remover resumo");
+    }
+  };
+
+  const handleDeleteQuiz = async (sessionId: string) => {
+    try {
+      const { error } = await supabase
+        .from('questions')
+        .delete()
+        .eq('session_id', sessionId);
+
+      if (error) throw error;
+
+      // Refetch questions to update UI
+      await fetchQuestions();
+      toast.success("Quiz removido");
+    } catch (error) {
+      console.error('Error deleting quiz:', error);
+      toast.error("Erro ao remover quiz");
+    }
+  };
+
+  const handleDeleteFlashcards = async (sessionId: string) => {
+    try {
+      const { error } = await supabase
+        .from('flashcards')
+        .delete()
+        .eq('session_id', sessionId);
+
+      if (error) throw error;
+
+      // Refetch flashcards to update UI
+      await fetchFlashcards();
+      toast.success("Flashcards removidos");
+    } catch (error) {
+      console.error('Error deleting flashcards:', error);
+      toast.error("Erro ao remover flashcards");
+    }
+  };
+
+  const handleDeleteContent = async (content: GeneratedContent) => {
+    if (content.type === 'summary') {
+      await handleDeleteSummary(content.id);
+    } else if (content.type === 'quiz') {
+      const sessionId = content.id.replace('quiz-', '');
+      await handleDeleteQuiz(sessionId);
+    } else if (content.type === 'flashcards') {
+      const sessionId = content.id.replace('flashcards-', '');
+      await handleDeleteFlashcards(sessionId);
     }
   };
 
@@ -352,6 +425,13 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
                     {card.title}
                   </span>
 
+                  {/* Badge de dificuldade selecionada */}
+                  {showSettings && currentDifficulty !== 'todos' && (
+                    <Badge variant="outline" className="text-xs px-2 py-0.5 bg-white/50">
+                      {currentDifficulty}
+                    </Badge>
+                  )}
+
                   {/* Loading indicator */}
                   {generating && (
                     <div className="absolute inset-0 flex items-center justify-center bg-white/80 rounded-2xl">
@@ -366,7 +446,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
                     <DropdownMenuTrigger asChild>
                       <button
                         onClick={(e) => e.stopPropagation()}
-                        className="absolute top-3 right-3 p-2 rounded-full bg-white/60 hover:bg-white/90 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                        className="absolute top-3 right-3 p-2 rounded-full bg-white/80 hover:bg-white/95 shadow-sm transition-all z-10"
                       >
                         <Settings className="w-4 h-4 text-gray-600" />
                       </button>
@@ -449,26 +529,63 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
 
                     {/* Informações */}
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-gray-900 truncate">
-                        {content.title}
-                      </h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-medium text-gray-900 truncate">
+                          {content.title}
+                        </h3>
+                        {content.difficulty && (
+                          <Badge
+                            variant="outline"
+                            className="text-xs px-2 py-0.5 shrink-0"
+                          >
+                            {content.difficulty}
+                          </Badge>
+                        )}
+                      </div>
                       <p className="text-sm text-gray-500">
                         {style.label} · {content.sourceCount} fontes · {formatTimeAgo(content.createdAt)}
                       </p>
                     </div>
 
                     {/* Menu de ações */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (content.type === 'summary') {
-                          handleDeleteSummary(content.id);
-                        }
-                      }}
-                      className="p-2 hover:bg-gray-200 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <MoreVertical className="w-5 h-5 text-gray-600" />
-                    </button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          onClick={(e) => e.stopPropagation()}
+                          className="p-2 hover:bg-gray-200 rounded-lg transition-opacity"
+                        >
+                          <MoreVertical className="w-5 h-5 text-gray-600" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48">
+                        {/* TODO: Implementar renomear para quiz/flashcards (requer migration) */}
+                        {content.type === 'summary' && (
+                          <>
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                // TODO: Implementar renomear summary
+                                toast.info("Funcionalidade de renomear em desenvolvimento");
+                              }}
+                            >
+                              <Edit className="w-4 h-4 mr-2" />
+                              Renomear
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                          </>
+                        )}
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteContent(content);
+                          }}
+                          className="text-red-600 focus:text-red-600"
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Deletar
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </motion.div>
                 );
               })}

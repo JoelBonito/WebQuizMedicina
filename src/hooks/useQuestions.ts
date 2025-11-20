@@ -7,6 +7,7 @@ export interface Question {
   project_id: string;
   source_id: string | null;
   session_id: string | null;
+  tipo: 'multipla_escolha' | 'verdadeiro_falso' | 'citar' | 'completar' | 'caso_clinico';
   pergunta: string;
   opcoes: string[];
   resposta_correta: string;

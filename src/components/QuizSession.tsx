@@ -446,6 +446,23 @@ export function QuizSession({
                     })}
                   </div>
 
+                  {/* Dica - Mostrada ANTES da resposta para ajudar o aluno */}
+                  {state === "question" && currentQuestion.dica && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="glass rounded-2xl p-4 mb-6 border border-[#BAE6FD] bg-[#F0F9FF]/50"
+                    >
+                      <p className="text-sm font-semibold text-[#0891B2] mb-1 flex items-center gap-2">
+                        <HelpCircle className="w-4 h-4" />
+                        💭 Dica:
+                      </p>
+                      <p className="text-sm text-[#0891B2]">
+                        {currentQuestion.dica}
+                      </p>
+                    </motion.div>
+                  )}
+
                   {/* Feedback */}
                   {state === "feedback" && (
                     <motion.div
@@ -514,17 +531,7 @@ export function QuizSession({
                         </div>
                       )}
 
-                      {/* Dica */}
-                      {currentQuestion.dica && !isCorrectOption(selectedOption || "") && (
-                        <div className="glass rounded-2xl p-4 border border-[#BAE6FD] bg-[#F0F9FF]/50">
-                          <p className="text-sm font-semibold text-[#0891B2] mb-1">
-                            💭 Dica:
-                          </p>
-                          <p className="text-sm text-[#0891B2]">
-                            {currentQuestion.dica}
-                          </p>
-                        </div>
-                      )}
+                      {/* Removido: A dica agora é mostrada ANTES da resposta */}
 
                       {/* Tópico */}
                       {currentQuestion.topico && (
