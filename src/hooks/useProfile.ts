@@ -6,6 +6,7 @@ export interface Profile {
   id: string;
   display_name: string | null;
   avatar_url: string | null;
+  response_language: string;
   created_at: string;
   updated_at: string;
 }
@@ -41,6 +42,7 @@ export function useProfile() {
             .insert({
               id: user.id,
               display_name: displayName,
+              response_language: 'pt',
             })
             .select()
             .single();
@@ -61,7 +63,7 @@ export function useProfile() {
   };
 
   // Update profile
-  const updateProfile = async (updates: Partial<Pick<Profile, 'display_name' | 'avatar_url'>>) => {
+  const updateProfile = async (updates: Partial<Pick<Profile, 'display_name' | 'avatar_url' | 'response_language'>>) => {
     if (!user) throw new Error('User not authenticated');
 
     try {

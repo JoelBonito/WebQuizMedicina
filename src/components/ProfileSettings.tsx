@@ -12,7 +12,14 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import { User, Mail, Calendar, Loader2, Upload } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+import { User, Mail, Calendar, Loader2, Upload, Languages } from "lucide-react";
 import { toast } from "sonner";
 
 interface ProfileSettingsProps {
@@ -20,16 +27,31 @@ interface ProfileSettingsProps {
   onOpenChange: (open: boolean) => void;
 }
 
+const LANGUAGES = [
+  { value: 'pt', label: 'Português' },
+  { value: 'en', label: 'English' },
+  { value: 'es', label: 'Español' },
+  { value: 'fr', label: 'Français' },
+  { value: 'de', label: 'Deutsch' },
+  { value: 'it', label: 'Italiano' },
+  { value: 'ja', label: '日本語' },
+  { value: 'zh', label: '中文' },
+  { value: 'ru', label: 'Русский' },
+  { value: 'ar', label: 'العربية' },
+];
+
 export function ProfileSettings({ open, onOpenChange }: ProfileSettingsProps) {
   const { user } = useAuth();
   const { profile, loading, updating, updateProfile, uploadAvatar } = useProfile();
   const [displayName, setDisplayName] = useState("");
+  const [responseLanguage, setResponseLanguage] = useState("pt");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Update displayName when profile loads
+  // Update displayName and responseLanguage when profile loads
   useEffect(() => {
     if (profile) {
       setDisplayName(profile.display_name || user?.email?.split("@")[0] || "");
+      setResponseLanguage(profile.response_language || "pt");
     }
   }, [profile, user?.email]);
 
@@ -77,7 +99,10 @@ export function ProfileSettings({ open, onOpenChange }: ProfileSettingsProps) {
       return;
     }
 
-    const { error } = await updateProfile({ display_name: displayName.trim() });
+    const { error } = await updateProfile({
+      display_name: displayName.trim(),
+      response_language: responseLanguage
+    });
     if (error) {
       toast.error('Erro ao atualizar perfil');
     } else {
@@ -160,6 +185,32 @@ export function ProfileSettings({ open, onOpenChange }: ProfileSettingsProps) {
               />
               <p className="text-xs text-gray-500">
                 Email não pode ser alterado
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="language" className="text-gray-700 font-medium flex items-center gap-2">
+                <Languages className="w-4 h-4" />
+                Idioma de resposta
+              </Label>
+              <Select value={responseLanguage} onValueChange={setResponseLanguage}>
+                <SelectTrigger id="language" className="rounded-lg bg-white border-gray-200 text-gray-900">
+                  <SelectValue placeholder="Selecione um idioma" />
+                </SelectTrigger>
+                <SelectContent className="bg-white rounded-lg border-gray-200">
+                  {LANGUAGES.map((lang) => (
+                    <SelectItem
+                      key={lang.value}
+                      value={lang.value}
+                      className="text-gray-900 focus:bg-gray-100 focus:text-gray-900"
+                    >
+                      {lang.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-gray-500">
+                Idioma usado nas respostas geradas pela IA
               </p>
             </div>
 
