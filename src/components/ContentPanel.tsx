@@ -676,7 +676,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
             <DialogDescription className="sr-only">
               Visualize e gerencie suas dificuldades de aprendizado identificadas durante quizzes e flashcards.
             </DialogDescription>
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
               <DifficultiesPanel projectId={projectId} isFullscreenMode={true} />
             </div>
           </div>
@@ -699,7 +699,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
                   <X className="w-5 h-5" />
                 </Button>
               </div>
-              <div className="flex-1 overflow-y-auto">
+              <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
                 <ContentPanel projectId={projectId} selectedSourceIds={selectedSourceIds} isFullscreenMode={true} />
               </div>
             </div>
