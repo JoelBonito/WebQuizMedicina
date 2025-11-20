@@ -81,9 +81,9 @@ export function Auth() {
         transition={{ duration: 0.5 }}
         className="w-full max-w-md"
       >
-        <div className="text-center mb-6">
+        <div className="text-center mb-8">
           <div className="mx-auto flex justify-center">
-            <Logo className="w-auto h-[117px]" variant="full" />
+            <Logo className="w-auto h-32 sm:h-40" variant="full" />
           </div>
         </div>
 
