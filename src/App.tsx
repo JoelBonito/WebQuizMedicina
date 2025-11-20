@@ -16,6 +16,7 @@ const ResizableLayout = lazy(() => import("./components/ResizableLayout").then(m
 const MobileProjectLayout = lazy(() => import("./components/MobileProjectLayout").then(module => ({ default: module.MobileProjectLayout })));
 const Dashboard = lazy(() => import("./components/Dashboard").then(module => ({ default: module.Dashboard })));
 const Auth = lazy(() => import("./components/Auth").then(module => ({ default: module.Auth })));
+const ProjectStats = lazy(() => import("./components/ProjectStats").then(module => ({ default: module.ProjectStats })));
 
 // Loading fallback component
 const LoadingFallback = () => (
@@ -31,6 +32,7 @@ export default function App() {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [selectedSourceIds, setSelectedSourceIds] = useState<string[]>([]);
   const [view, setView] = useState<"dashboard" | "project">("dashboard");
+  const [showStats, setShowStats] = useState(false);
 
   // Debug logging for selectedProjectId changes
   useEffect(() => {
@@ -103,7 +105,12 @@ export default function App() {
           {isMobile ? (
             // Layout mobile com tabs em tela inteira
             <>
-              <Navbar onBackClick={handleBackToDashboard} projectName={projectName} />
+              <Navbar
+                onBackClick={handleBackToDashboard}
+                projectName={projectName}
+                projectId={selectedProjectId}
+                onViewStats={() => setShowStats(true)}
+              />
               <MobileProjectLayout
                 projectId={selectedProjectId!}
                 projectName={projectName}
@@ -113,7 +120,12 @@ export default function App() {
           ) : (
             // Layout desktop com 3 colunas
             <div className="min-h-screen bg-white">
-              <Navbar onBackClick={handleBackToDashboard} projectName={projectName} />
+              <Navbar
+                onBackClick={handleBackToDashboard}
+                projectName={projectName}
+                projectId={selectedProjectId}
+                onViewStats={() => setShowStats(true)}
+              />
 
               {/* Main Content */}
               <div className="pt-20 px-6 pb-6 h-screen overflow-hidden">
@@ -138,6 +150,16 @@ export default function App() {
                 </div>
               </div>
             </div>
+          )}
+
+          {/* Project Stats Modal */}
+          {showStats && selectedProjectId && (
+            <ProjectStats
+              projectId={selectedProjectId}
+              projectName={projectName}
+              open={showStats}
+              onClose={() => setShowStats(false)}
+            />
           )}
         </Suspense>
         <Toaster />

@@ -122,7 +122,6 @@ const formatTimeAgo = (date: Date) => {
 
 export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMode = false }: ContentPanelProps) {
   const [generatedContent, setGeneratedContent] = useState<GeneratedContent[]>([]);
-  const [isGenerating, setIsGenerating] = useState(false);
   const [selectedSummary, setSelectedSummary] = useState<any>(null);
   const [quizSessionOpen, setQuizSessionOpen] = useState(false);
   const [flashcardSessionOpen, setFlashcardSessionOpen] = useState(false);
@@ -237,8 +236,6 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
       return;
     }
 
-    setIsGenerating(true);
-
     try {
       switch(type) {
         case 'quiz':
@@ -273,8 +270,6 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
     } catch (error) {
       toast.error("Erro ao gerar conteúdo. Verifique se há fontes disponíveis.");
       console.error(error);
-    } finally {
-      setIsGenerating(false);
     }
   };
 
@@ -372,7 +367,6 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
   }
 
   const loading = loadingQuiz || loadingFlashcards || loadingSummaries;
-  const generating = generatingQuiz || generatingFlashcards || generatingSummary;
 
   return (
     <>
@@ -401,11 +395,17 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
             const currentDifficulty = card.id === 'quiz' ? quizDifficulty : flashcardDifficulty;
             const setDifficulty = card.id === 'quiz' ? setQuizDifficulty : setFlashcardDifficulty;
 
+            // Each button is disabled only when its own content is generating
+            const isButtonGenerating =
+              (card.id === 'quiz' && generatingQuiz) ||
+              (card.id === 'flashcards' && generatingFlashcards) ||
+              (card.id === 'summary' && generatingSummary);
+
             return (
               <div key={card.id} className="relative">
                 <button
                   onClick={() => handleGenerateContent(card.id as 'quiz' | 'flashcards' | 'summary')}
-                  disabled={isGenerating || generating}
+                  disabled={isButtonGenerating}
                   className={`
                     ${card.bgColor}
                     relative p-5 rounded-2xl w-full
@@ -432,8 +432,8 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
                     </Badge>
                   )}
 
-                  {/* Loading indicator */}
-                  {generating && (
+                  {/* Loading indicator - only for this specific button */}
+                  {isButtonGenerating && (
                     <div className="absolute inset-0 flex items-center justify-center bg-white/80 rounded-2xl">
                       <Loader2 className="w-6 h-6 animate-spin text-gray-600" />
                     </div>
