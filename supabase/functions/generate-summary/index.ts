@@ -207,6 +207,8 @@ serve(async (req) => {
       // Strategy 1: Single complete summary
       const prompt = `Você é um professor especialista em medicina. Analise o conteúdo abaixo e crie um resumo estruturado e completo para estudantes de medicina.
 
+IMPORTANTE: Todo o conteúdo deve ser em Português do Brasil.
+
 CONTEÚDO:
 ${combinedContent}
 
@@ -256,6 +258,8 @@ Retorne APENAS o JSON, sem texto adicional antes ou depois.`;
 
         const sectionPrompt = `Você é um professor especialista em medicina. Resuma esta seção do conteúdo de forma estruturada.
 
+IMPORTANTE: Todo o conteúdo deve ser em Português do Brasil.
+
 SEÇÃO ${chunkNum} DE ${chunks.length}:
 ${chunks[i]}
 
@@ -276,6 +280,8 @@ Retorne APENAS o HTML do resumo, sem texto adicional.`;
       console.log(`🔄 [PHASE 1] Combining section summaries...`);
 
       const combinePrompt = `Você é um professor especialista em medicina. Combine os resumos de seções abaixo em um resumo final estruturado e coerente.
+
+IMPORTANTE: Todo o conteúdo deve ser em Português do Brasil.
 
 RESUMOS DAS SEÇÕES:
 ${sectionSummaries.map((s, i) => `\n=== SEÇÃO ${i + 1} ===\n${s}`).join('\n')}
@@ -304,6 +310,8 @@ Retorne APENAS o JSON, sem texto adicional antes ou depois.`;
       console.log(`🔄 [PHASE 1] Generating executive summary (ultra-compressed)...`);
 
       const executivePrompt = `Você é um professor especialista em medicina. Crie um RESUMO EXECUTIVO ultra-comprimido do conteúdo extenso abaixo.
+
+IMPORTANTE: Todo o conteúdo deve ser em Português do Brasil.
 
 CONTEÚDO (${combinedContent.length} caracteres):
 ${combinedContent.substring(0, 50000)}... [conteúdo extenso]

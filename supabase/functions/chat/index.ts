@@ -224,6 +224,7 @@ serve(async (req) => {
 
     prompt += `Pergunta do aluno: ${sanitizedMessage}\n\n`;
     prompt += `Instruções:
+0. IMPORTANTE: Responda SEMPRE em Português do Brasil
 1. Responda APENAS com base nas fontes fornecidas acima
 2. Se a informação não estiver nas fontes, diga claramente que não encontrou
 3. Sempre cite a fonte (nome do arquivo) ao mencionar informações específicas
