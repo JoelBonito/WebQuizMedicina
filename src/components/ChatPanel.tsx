@@ -140,7 +140,7 @@ export function ChatPanel({ projectId }: ChatPanelProps) {
   return (
     <div className="h-full flex flex-col bg-gray-50/50 rounded-3xl p-4 border border-gray-200">
       {/* Header */}
-      <div className="glass-dark rounded-2xl p-4 mb-4 border border-gray-200">
+      <div className="glass-dark rounded-2xl p-4 mb-4 border border-gray-200 flex-shrink-0">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#0891B2] to-[#7CB342] flex items-center justify-center">
@@ -186,9 +186,9 @@ export function ChatPanel({ projectId }: ChatPanelProps) {
       ) : (
         <>
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto mb-4 space-y-4 custom-scrollbar">
-              <div className="pr-2">
-                {loading && messages.length === 0 ? (
+          <div className="flex-1 min-h-0 overflow-y-auto mb-4 pr-2" style={{ scrollbarWidth: 'thin', scrollbarColor: '#cbd5e1 transparent' }}>
+            <div className="space-y-4">
+              {loading && messages.length === 0 ? (
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="w-8 h-8 animate-spin text-[#0891B2]" />
                 </div>
@@ -313,12 +313,12 @@ export function ChatPanel({ projectId }: ChatPanelProps) {
                 </>
               )}
               <div ref={messagesEndRef} />
-              </div>
+            </div>
           </div>
 
           {/* Suggestions */}
           {messages.length === 0 && suggestions.length > 0 && (
-            <div className="mb-4 space-y-2">
+            <div className="mb-4 space-y-2 flex-shrink-0">
               <p className="text-xs text-gray-600 flex items-center gap-1">
                 <Lightbulb className="w-3 h-3" />
                 Sugestões{smartSuggestions.length > 0 ? ' baseadas nas suas dificuldades' : ''}:
@@ -340,7 +340,7 @@ export function ChatPanel({ projectId }: ChatPanelProps) {
           )}
 
           {/* Input */}
-          <div className="glass-dark rounded-2xl p-3 flex items-center gap-2 border border-gray-200">
+          <div className="glass-dark rounded-2xl p-3 flex items-center gap-2 border border-gray-200 flex-shrink-0">
             <input
               type="text"
               value={inputValue}
