@@ -61,25 +61,25 @@ const ACTION_CARDS = [
     id: 'quiz',
     title: 'Teste',
     icon: HelpCircle,
-    bgColor: 'bg-blue-50',
-    textColor: 'text-blue-700',
-    iconColor: 'text-blue-600',
+    bgColor: 'bg-gradient-to-br from-blue-600 to-blue-500',
+    textColor: 'text-white',
+    iconColor: 'text-white',
   },
   {
     id: 'flashcards',
     title: 'Cartões de Estudo',
     icon: Layers,
-    bgColor: 'bg-red-50',
-    textColor: 'text-red-700',
-    iconColor: 'text-red-600',
+    bgColor: 'bg-gradient-to-br from-red-600 to-rose-500',
+    textColor: 'text-white',
+    iconColor: 'text-white',
   },
   {
     id: 'summary',
     title: 'Resumo',
     icon: FileText,
-    bgColor: 'bg-purple-50',
-    textColor: 'text-purple-700',
-    iconColor: 'text-purple-600',
+    bgColor: 'bg-gradient-to-br from-purple-600 to-purple-500',
+    textColor: 'text-white',
+    iconColor: 'text-white',
   },
 ];
 
@@ -448,8 +448,9 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
                     ${card.bgColor}
                     relative p-5 rounded-2xl w-full
                     flex flex-col items-start gap-2
-                    transition-all duration-200
-                    hover:shadow-md hover:scale-[1.02]
+                    shadow-lg hover:shadow-xl
+                    transition-all duration-300
+                    hover:scale-[1.02]
                     active:scale-[0.98]
                     disabled:opacity-50 disabled:cursor-not-allowed
                     group

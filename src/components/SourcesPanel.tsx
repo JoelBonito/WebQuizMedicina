@@ -414,8 +414,7 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
               size="sm"
               onClick={processEmbeddings}
               disabled={processingEmbeddings || sources.filter(s => s.status !== 'ready').length === 0}
-              className="rounded-xl"
-              variant="outline"
+              className="rounded-xl bg-gradient-to-r from-blue-900 to-blue-800 hover:from-blue-950 hover:to-blue-900 text-white shadow-lg hover:shadow-xl transition-all duration-300"
             >
               {processingEmbeddings ? (
                 <>
