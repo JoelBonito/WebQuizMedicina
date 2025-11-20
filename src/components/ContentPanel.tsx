@@ -27,6 +27,7 @@ import { DifficultiesPanel } from "./DifficultiesPanel";
 interface ContentPanelProps {
   projectId: string | null;
   selectedSourceIds?: string[];
+  isFullscreenMode?: boolean;
 }
 
 interface GeneratedContent {
@@ -105,7 +106,7 @@ const formatTimeAgo = (date: Date) => {
   return `${Math.floor(seconds / 86400)}d atrás`;
 };
 
-export function ContentPanel({ projectId, selectedSourceIds = [] }: ContentPanelProps) {
+export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMode = false }: ContentPanelProps) {
   const [generatedContent, setGeneratedContent] = useState<GeneratedContent[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedSummary, setSelectedSummary] = useState<any>(null);
@@ -393,8 +394,8 @@ export function ContentPanel({ projectId, selectedSourceIds = [] }: ContentPanel
 
       {/* Summary Dialog */}
       <Dialog open={!!selectedSummary} onOpenChange={() => setSelectedSummary(null)}>
-        <DialogContent className="!fixed !inset-0 !top-0 !left-0 !right-0 !bottom-0 !translate-x-0 !translate-y-0 !max-w-none !w-screen !h-screen !m-0 !rounded-none !p-0 overflow-hidden">
-          <div className="h-screen w-full flex flex-col">
+        <DialogContent className="!fixed !inset-0 !top-0 !left-0 !right-0 !bottom-0 !translate-x-0 !translate-y-0 !max-w-none !w-screen !h-screen !m-0 !rounded-none !p-0 overflow-hidden supports-[height:100dvh]:!h-dvh">
+          <div className="h-screen supports-[height:100dvh]:h-dvh w-full flex flex-col">
             <div className="flex items-center justify-between p-6 border-b">
               <DialogTitle className="text-2xl font-bold text-gray-900">
                 {selectedSummary?.titulo}
@@ -411,7 +412,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [] }: ContentPanel
             <DialogDescription className="sr-only">
               Visualização completa do resumo. Selecione texto para enviar perguntas ao chat.
             </DialogDescription>
-            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-6">
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 md:p-6 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-6">
               {selectedSummary?.topicos && selectedSummary.topicos.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-6">
                   {selectedSummary.topicos.map((topico: string, i: number) => (
@@ -460,26 +461,28 @@ export function ContentPanel({ projectId, selectedSourceIds = [] }: ContentPanel
       </Dialog>
 
       {/* Fullscreen Dialog */}
-      <Dialog open={isFullscreen} onOpenChange={setIsFullscreen}>
-        <DialogContent className="!fixed !inset-0 !top-0 !left-0 !right-0 !bottom-0 !translate-x-0 !translate-y-0 !max-w-none !w-screen !h-screen !m-0 !rounded-none !p-6 overflow-hidden">
-          <div className="h-full w-full flex flex-col">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold text-gray-900">Estudo</h2>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => setIsFullscreen(false)}
-                className="h-8 w-8 p-0"
-              >
-                <X className="w-5 h-5" />
-              </Button>
+      {!isFullscreenMode && (
+        <Dialog open={isFullscreen} onOpenChange={setIsFullscreen}>
+          <DialogContent className="!fixed !inset-0 !top-0 !left-0 !right-0 !bottom-0 !translate-x-0 !translate-y-0 !max-w-none !w-screen !h-screen !m-0 !rounded-none !p-6 overflow-hidden supports-[height:100dvh]:!h-dvh">
+            <div className="h-full w-full flex flex-col">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-bold text-gray-900">Estudo</h2>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setIsFullscreen(false)}
+                  className="h-8 w-8 p-0"
+                >
+                  <X className="w-5 h-5" />
+                </Button>
+              </div>
+              <div className="flex-1 min-h-0 overflow-hidden">
+                <ContentPanel projectId={projectId} selectedSourceIds={selectedSourceIds} isFullscreenMode={true} />
+              </div>
             </div>
-            <div className="flex-1 min-h-0 overflow-hidden">
-              <ContentPanel projectId={projectId} selectedSourceIds={selectedSourceIds} />
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 }

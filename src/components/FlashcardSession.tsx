@@ -184,19 +184,15 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="!fixed !inset-0 !top-0 !left-0 !right-0 !bottom-0 !translate-x-0 !translate-y-0 !max-w-none !w-screen !h-screen !m-0 !rounded-none !p-0 !gap-0 overflow-hidden">
-        <DialogTitle className="sr-only">
-          {sessionState === "summary"
-            ? "Resumo da Sessão de Flashcards"
-            : `Flashcard ${currentIndex + 1} de ${flashcards.length}`}
-        </DialogTitle>
-        <DialogDescription className="sr-only">
-          {sessionState === "summary"
-            ? "Visualização dos resultados da sessão de flashcards com estatísticas de desempenho"
-            : "Estude os flashcards virando as cartas e avalie seu conhecimento"}
-        </DialogDescription>
+      <DialogContent className="!fixed !inset-0 !top-0 !left-0 !right-0 !bottom-0 !translate-x-0 !translate-y-0 !max-w-none !w-screen !h-screen !m-0 !rounded-none !p-0 !gap-0 overflow-hidden supports-[height:100dvh]:!h-dvh">
         {sessionState === "studying" ? (
-          <div className="flex flex-col h-screen w-full overflow-hidden">
+          <div className="flex flex-col h-screen supports-[height:100dvh]:h-dvh w-full overflow-hidden">
+            <DialogTitle className="sr-only">
+              Flashcard {currentIndex + 1} de {flashcards.length}
+            </DialogTitle>
+            <DialogDescription className="sr-only">
+              Estude os flashcards virando as cartas e avalie seu conhecimento
+            </DialogDescription>
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <div className="flex items-center gap-4">
@@ -226,7 +222,7 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
             </div>
 
             {/* Flashcard */}
-            <div className="flex-1 flex items-center justify-center p-8 pb-32 overflow-y-auto overscroll-contain">
+            <div className="flex-1 flex items-center justify-center p-4 md:p-8 pb-40 md:pb-32 overflow-y-auto overscroll-contain">
               <motion.div
                 className="relative w-full max-w-2xl"
                 style={{ perspective: 1000 }}
@@ -273,7 +269,7 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="sticky bottom-0 p-6 border-t border-gray-200 bg-white shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-10"
+                className="sticky bottom-0 p-4 md:p-6 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-6 border-t border-gray-200 bg-white shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-10"
               >
                 <p className="text-sm text-gray-700 mb-4 text-center font-medium">
                   Como foi a dificuldade deste flashcard?
@@ -312,7 +308,7 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
 
             {/* Next hint for front */}
             {cardState === "front" && (
-              <div className="sticky bottom-0 p-6 border-t border-gray-200 bg-white shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-10">
+              <div className="sticky bottom-0 p-4 md:p-6 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-6 border-t border-gray-200 bg-white shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-10">
                 <p className="text-sm text-gray-600 text-center">
                   Vire o card para ver a resposta e avaliar sua compreensão
                 </p>
@@ -321,7 +317,11 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
           </div>
         ) : (
           // Summary Screen
-          <div className="flex flex-col items-center justify-center p-12 overflow-y-auto overscroll-contain h-screen w-full">
+          <div className="flex flex-col items-center justify-center p-4 md:p-12 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-12 overflow-y-auto overscroll-contain h-screen supports-[height:100dvh]:h-dvh w-full">
+            <DialogTitle className="sr-only">Resumo da Sessão de Flashcards</DialogTitle>
+            <DialogDescription className="sr-only">
+              Visualização dos resultados da sessão de flashcards com estatísticas de desempenho
+            </DialogDescription>
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}

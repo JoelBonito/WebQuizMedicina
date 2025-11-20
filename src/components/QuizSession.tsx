@@ -204,17 +204,7 @@ export function QuizSession({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="!fixed !inset-0 !top-0 !left-0 !right-0 !bottom-0 !translate-x-0 !translate-y-0 !max-w-none !w-screen !h-screen !m-0 !rounded-none !p-0 overflow-hidden">
-        <DialogTitle className="sr-only">
-          {state === "summary" ? "Resumo do Quiz" : `Questão ${currentIndex + 1} de ${questions.length}`}
-        </DialogTitle>
-        <DialogDescription className="sr-only">
-          {state === "summary"
-            ? "Visualização dos resultados do quiz completo com estatísticas de desempenho"
-            : state === "feedback"
-            ? "Feedback da resposta selecionada com explicação detalhada"
-            : "Responda a questão selecionando uma das alternativas ou clique em 'Não Sei'"}
-        </DialogDescription>
+      <DialogContent className="!fixed !inset-0 !top-0 !left-0 !right-0 !bottom-0 !translate-x-0 !translate-y-0 !max-w-none !w-screen !h-screen !m-0 !rounded-none !p-0 overflow-hidden supports-[height:100dvh]:!h-dvh">
         <AnimatePresence mode="wait">
           {state === "summary" ? (
             <motion.div
@@ -222,8 +212,12 @@ export function QuizSession({
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="p-8 overflow-y-auto overscroll-contain h-screen w-full"
+              className="p-4 md:p-8 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-8 overflow-y-auto overscroll-contain h-screen supports-[height:100dvh]:h-dvh w-full"
             >
+              <DialogTitle className="sr-only">Resumo do Quiz</DialogTitle>
+              <DialogDescription className="sr-only">
+                Visualização dos resultados do quiz completo com estatísticas de desempenho
+              </DialogDescription>
               {/* Summary */}
               <div className="text-center mb-8">
                 <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-br from-[#0891B2] to-[#7CB342] flex items-center justify-center">
@@ -314,8 +308,16 @@ export function QuizSession({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex flex-col h-screen w-full"
+              className="flex flex-col h-screen supports-[height:100dvh]:h-dvh w-full"
             >
+              <DialogTitle className="sr-only">
+                Questão {currentIndex + 1} de {questions.length}
+              </DialogTitle>
+              <DialogDescription className="sr-only">
+                {state === "feedback"
+                  ? "Feedback da resposta selecionada com explicação detalhada"
+                  : "Responda a questão selecionando uma das alternativas ou clique em 'Não Sei'"}
+              </DialogDescription>
               {/* Header */}
               <div className="p-6 border-b border-gray-200">
                 <div className="flex items-center justify-between mb-4">
@@ -357,7 +359,7 @@ export function QuizSession({
               </div>
 
               {/* Question Content */}
-              <div className="flex-1 overflow-y-auto overscroll-contain p-6 pb-32">
+              <div className="flex-1 overflow-y-auto overscroll-contain p-4 md:p-6 pb-40 md:pb-32">
                 <motion.div
                   key={currentIndex}
                   initial={{ opacity: 0, x: 20 }}
@@ -496,7 +498,7 @@ export function QuizSession({
               </div>
 
               {/* Footer */}
-              <div className="sticky bottom-0 p-6 border-t border-gray-200 bg-white shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-10">
+              <div className="sticky bottom-0 p-4 md:p-6 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-6 border-t border-gray-200 bg-white shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-10">
                 <div className="max-w-3xl mx-auto">
                   {state === "question" ? (
                     <div className="flex gap-3">
