@@ -40,9 +40,9 @@ export function RightPanel({ projectId }: RightPanelProps) {
         </div>
       </div>
 
-      {/* Expanded Dialog - 95% da tela */}
+      {/* Fullscreen Dialog */}
       <Dialog open={isFullscreen} onOpenChange={setIsFullscreen}>
-        <DialogContent className="max-w-[95vw] w-[95vw] h-[95vh] !p-0 rounded-2xl">
+        <DialogContent className="!fixed !inset-0 !top-0 !left-0 !right-0 !bottom-0 !translate-x-0 !translate-y-0 !max-w-none !w-screen !h-screen !m-0 !rounded-none !p-0 supports-[height:100dvh]:!h-dvh">
           <div className="h-full w-full flex flex-col bg-gray-50">
             <div className="flex items-center justify-between p-6 border-b bg-white flex-shrink-0">
               <h2 className="text-2xl font-bold text-gray-900">Chat</h2>
@@ -55,7 +55,7 @@ export function RightPanel({ projectId }: RightPanelProps) {
                 <X className="w-5 h-5" />
               </Button>
             </div>
-            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 md:p-6 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-6">
               <ChatPanel projectId={projectId} isFullscreenMode={true} />
             </div>
           </div>
