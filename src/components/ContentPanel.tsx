@@ -393,8 +393,8 @@ export function ContentPanel({ projectId, selectedSourceIds = [] }: ContentPanel
 
       {/* Summary Dialog */}
       <Dialog open={!!selectedSummary} onOpenChange={() => setSelectedSummary(null)}>
-        <DialogContent className="max-w-full h-screen m-0 rounded-none p-0">
-          <div className="h-full flex flex-col">
+        <DialogContent className="!fixed !inset-0 !top-0 !left-0 !right-0 !bottom-0 !translate-x-0 !translate-y-0 !max-w-none !w-screen !h-screen !m-0 !rounded-none !p-0 overflow-hidden">
+          <div className="h-screen w-full flex flex-col">
             <div className="flex items-center justify-between p-6 border-b">
               <DialogTitle className="text-2xl font-bold text-gray-900">
                 {selectedSummary?.titulo}
@@ -411,7 +411,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [] }: ContentPanel
             <DialogDescription className="sr-only">
               Visualização completa do resumo. Selecione texto para enviar perguntas ao chat.
             </DialogDescription>
-            <div className="flex-1 min-h-0 overflow-y-auto p-6">
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-6">
               {selectedSummary?.topicos && selectedSummary.topicos.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-6">
                   {selectedSummary.topicos.map((topico: string, i: number) => (
@@ -461,8 +461,8 @@ export function ContentPanel({ projectId, selectedSourceIds = [] }: ContentPanel
 
       {/* Fullscreen Dialog */}
       <Dialog open={isFullscreen} onOpenChange={setIsFullscreen}>
-        <DialogContent className="max-w-full h-screen m-0 rounded-none p-6">
-          <div className="h-full flex flex-col">
+        <DialogContent className="!fixed !inset-0 !top-0 !left-0 !right-0 !bottom-0 !translate-x-0 !translate-y-0 !max-w-none !w-screen !h-screen !m-0 !rounded-none !p-6 overflow-hidden">
+          <div className="h-full w-full flex flex-col">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-2xl font-bold text-gray-900">Estudo</h2>
               <Button
