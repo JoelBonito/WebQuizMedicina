@@ -101,7 +101,7 @@ export function MobileProjectLayout({ projectId, projectName, onBack }: MobilePr
         {/* Conteúdo de cada tab em tela inteira */}
         <div className="flex-1 overflow-hidden">
           {activeTab === 'fontes' && (
-            <div className="h-full overflow-auto">
+            <div className="h-full">
               <SourcesPanel
                 projectId={projectId}
                 onSelectedSourcesChange={handleSelectedSourcesChange}
@@ -110,7 +110,7 @@ export function MobileProjectLayout({ projectId, projectName, onBack }: MobilePr
           )}
 
           {activeTab === 'estudo' && (
-            <div className="h-full overflow-auto">
+            <div className="h-full">
               <ContentPanel
                 projectId={projectId}
                 selectedSourceIds={selectedSourceIds}
@@ -119,7 +119,7 @@ export function MobileProjectLayout({ projectId, projectName, onBack }: MobilePr
           )}
 
           {activeTab === 'chat' && (
-            <div className="h-full overflow-auto">
+            <div className="h-full">
               <RightPanel projectId={projectId} />
             </div>
           )}
