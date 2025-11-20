@@ -278,33 +278,68 @@ serve(async (req) => {
       console.log(`${formatBatchProgress(batchNum, totalBatches)} Generating ${batchCount} questions...`);
 
       const prompt =
-        `Você é um professor especialista em medicina. Analise o conteúdo abaixo e gere ${batchCount} perguntas de múltipla escolha de alta qualidade para estudantes de medicina.
+        `Você é um professor especialista em medicina. Analise o conteúdo abaixo e gere ${batchCount} perguntas variadas de alta qualidade para estudantes de medicina.
 
 IMPORTANTE: Todas as perguntas, opções, dicas e justificativas devem ser em Português do Brasil.
 
 CONTEÚDO:
 ${combinedContent}
 
-INSTRUÇÕES:
-1. Crie perguntas que testem compreensão profunda, não apenas memorização
-2. Cada pergunta deve ter 4 alternativas (A, B, C, D)
+TIPOS DE QUESTÕES (distribua entre todos os tipos):
+1. **multipla_escolha**: Questão tradicional com 4 alternativas (A, B, C, D)
+2. **verdadeiro_falso**: Afirmação para avaliar se é verdadeira ou falsa (2 opções: "Verdadeiro", "Falso")
+3. **citar**: Pergunta que pede para citar/identificar algo, com 4 opções de resposta
+4. **completar**: Frase incompleta para completar com a opção correta (4 alternativas)
+5. **caso_clinico**: Caso clínico detalhado com pergunta sobre diagnóstico, tratamento ou conduta (4 alternativas)
+
+INSTRUÇÕES GERAIS:
+1. DISTRIBUA as ${batchCount} perguntas entre TODOS os 5 tipos acima (pelo menos 1 de cada tipo)
+2. Crie perguntas que testem compreensão profunda, não apenas memorização
 3. Apenas UMA alternativa deve estar correta
 4. Forneça uma justificativa clara e educativa para a resposta correta
 5. Classifique a dificuldade como: "fácil", "médio" ou "difícil"${difficulty ? ` - IMPORTANTE: TODAS as perguntas devem ser de nível "${difficulty}"` : ''}
 6. Identifique o tópico principal da pergunta
-7. Quando apropriado, forneça uma dica que ajude sem revelar a resposta
+7. SEMPRE forneça uma dica útil que ajude o aluno a pensar, sem revelar diretamente a resposta
 ${totalBatches > 1 ? `8. Este é o lote ${batchNum} de ${totalBatches}. Varie os tópicos em relação aos lotes anteriores.` : ''}
+
+FORMATO ESPECÍFICO POR TIPO:
+- **multipla_escolha**: 4 opções (A, B, C, D)
+- **verdadeiro_falso**: 2 opções exatas: ["Verdadeiro", "Falso"], resposta_correta deve ser "Verdadeiro" ou "Falso"
+- **citar**: 4 opções (A, B, C, D) com nomes, termos ou conceitos
+- **completar**: 4 opções (A, B, C, D) que completam a frase
+- **caso_clinico**: Pergunta longa (cenário clínico) + 4 opções (A, B, C, D)
 
 FORMATO DE SAÍDA (JSON estrito):
 {
   "perguntas": [
     {
-      "pergunta": "Texto da pergunta aqui?",
-      "opcoes": ["A) Primeira opção", "B) Segunda opção", "C) Terceira opção", "D) Quarta opção"],
+      "tipo": "multipla_escolha",
+      "pergunta": "Qual é o mecanismo de ação da aspirina?",
+      "opcoes": ["A) Inibição da COX-1 e COX-2", "B) Bloqueio de canais de cálcio", "C) Inibição da bomba de prótons", "D) Agonista de receptores beta"],
       "resposta_correta": "A",
-      "justificativa": "Explicação detalhada do porquê esta é a resposta correta e por que as outras estão erradas.",
-      "dica": "Uma dica útil sem revelar a resposta",
-      "topico": "Nome do tópico principal",
+      "justificativa": "A aspirina inibe irreversivelmente as enzimas COX-1 e COX-2, bloqueando a síntese de prostaglandinas.",
+      "dica": "Pense no mecanismo anti-inflamatório relacionado às prostaglandinas.",
+      "topico": "Farmacologia",
+      "dificuldade": "${difficulty || 'médio'}"
+    },
+    {
+      "tipo": "verdadeiro_falso",
+      "pergunta": "A diabetes tipo 1 é caracterizada pela resistência insulínica.",
+      "opcoes": ["Verdadeiro", "Falso"],
+      "resposta_correta": "Falso",
+      "justificativa": "A diabetes tipo 1 é caracterizada pela destruição autoimune das células beta pancreáticas, resultando em deficiência de insulina, não resistência.",
+      "dica": "Lembre-se da diferença entre tipo 1 (deficiência) e tipo 2 (resistência).",
+      "topico": "Endocrinologia",
+      "dificuldade": "${difficulty || 'médio'}"
+    },
+    {
+      "tipo": "caso_clinico",
+      "pergunta": "Paciente masculino, 65 anos, hipertenso, apresenta dor torácica opressiva de início súbito, irradiando para o braço esquerdo e mandíbula, acompanhada de sudorese fria. ECG mostra supradesnivelamento do segmento ST em derivações V2-V4. Qual é o diagnóstico mais provável?",
+      "opcoes": ["A) Infarto agudo do miocárdio com supra de ST", "B) Angina estável", "C) Pericardite aguda", "D) Dissecção de aorta"],
+      "resposta_correta": "A",
+      "justificativa": "O quadro clínico de dor torácica típica associada ao supradesnivelamento do segmento ST é diagnóstico de IAM com supra.",
+      "dica": "O supradesnivelamento de ST é um achado clássico em uma condição cardíaca aguda e grave.",
+      "topico": "Cardiologia",
       "dificuldade": "${difficulty || 'médio'}"
     }
   ]
@@ -326,10 +361,12 @@ Retorne APENAS o JSON, sem texto adicional antes ou depois.`;
     console.log(`✅ [PHASE 1] Total questions generated: ${allQuestions.length}`);
 
     // Save all questions to database
+    const validTypes = ["multipla_escolha", "verdadeiro_falso", "citar", "completar", "caso_clinico"];
     const questionsToInsert = allQuestions.map((q: any) => ({
       project_id: project_id || sources[0].project_id,
       source_id: source_id || null,
       session_id: sessionId,
+      tipo: validTypes.includes(q.tipo) ? q.tipo : "multipla_escolha",
       pergunta: sanitizeString(q.pergunta || ""),
       opcoes: Array.isArray(q.opcoes)
         ? q.opcoes.map((opt: string) => sanitizeString(opt))
