@@ -151,10 +151,10 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
 
   if (!projectId) {
     return (
-      <div className={`h-full flex flex-col ${
+      <div className={`flex flex-col ${
         isFullscreenMode
           ? "bg-gray-50/50 p-6"
-          : "bg-gray-50/50 rounded-3xl p-4 border border-gray-200"
+          : "bg-gray-50/50 rounded-3xl p-4 border border-gray-200 h-full"
       }`}>
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
@@ -167,10 +167,10 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
   }
 
   return (
-    <div className={`h-full flex flex-col ${
+    <div className={`flex flex-col ${
       isFullscreenMode
         ? "bg-gray-50/50 p-6"
-        : "bg-gray-50/50 rounded-3xl p-4 border border-gray-200"
+        : "bg-gray-50/50 rounded-3xl p-4 border border-gray-200 h-full"
     }`}>
       {/* Header */}
       <div className="glass-dark rounded-2xl p-4 mb-4 border border-gray-200">
