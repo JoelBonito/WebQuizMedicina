@@ -427,7 +427,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
 
                   {/* Badge de dificuldade selecionada */}
                   {showSettings && currentDifficulty !== 'todos' && (
-                    <Badge variant="outline" className="text-xs px-2 py-0.5 bg-white/50">
+                    <Badge className="text-xs px-2.5 py-1 bg-white/90 backdrop-blur-sm border border-gray-200 rounded-lg font-medium shadow-sm">
                       {currentDifficulty}
                     </Badge>
                   )}
@@ -534,10 +534,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
                           {content.title}
                         </h3>
                         {content.difficulty && (
-                          <Badge
-                            variant="outline"
-                            className="text-xs px-2 py-0.5 shrink-0"
-                          >
+                          <Badge className="text-xs px-2.5 py-1 bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200 text-blue-700 rounded-lg font-medium shadow-sm shrink-0">
                             {content.difficulty}
                           </Badge>
                         )}
