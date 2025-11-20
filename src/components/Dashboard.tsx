@@ -1,8 +1,10 @@
 import { useState } from "react";
-import { Plus, BookOpen, Trash2, Edit, ChevronRight, Loader2, X } from "lucide-react";
+import { Plus, BookOpen, Trash2, Edit, ChevronRight, Loader2, X, BarChart3 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { motion } from "motion/react";
+import { ProjectStats } from "./ProjectStats";
+import { useProjectStats } from "../hooks/useProjectStats";
 import {
   Dialog,
   DialogContent,
@@ -31,12 +33,123 @@ interface DashboardProps {
   onSelectSubject: (subjectId: string) => void;
 }
 
+interface ProjectCardProps {
+  project: { id: string; name: string; created_at: string };
+  index: number;
+  onSelect: (id: string) => void;
+  onEdit: (project: { id: string; name: string }) => void;
+  onDelete: (project: { id: string; name: string }) => void;
+  onViewStats: (project: { id: string; name: string }) => void;
+}
+
+const ProjectCard = ({ project, index, onSelect, onEdit, onDelete, onViewStats }: ProjectCardProps) => {
+  const { stats } = useProjectStats(project.id);
+
+  return (
+    <motion.div
+      key={project.id}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.1 }}
+      className="group relative"
+    >
+      <div className="glass-dark rounded-2xl p-6 border border-gray-200 hover:shadow-xl transition-all duration-300 cursor-pointer h-full flex flex-col">
+        {/* Icon */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#0891B2] to-[#7CB342] flex items-center justify-center shadow-lg">
+            <BookOpen className="w-7 h-7 text-white" />
+          </div>
+
+          {/* Action buttons - show on hover */}
+          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-lg hover:bg-blue-50"
+              onClick={(e) => {
+                e.stopPropagation();
+                onViewStats({ id: project.id, name: project.name });
+              }}
+            >
+              <BarChart3 className="w-4 h-4 text-blue-600" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-lg hover:bg-gray-100"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit({ id: project.id, name: project.name });
+              }}
+            >
+              <Edit className="w-4 h-4 text-gray-600" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-lg hover:bg-red-50"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete({ id: project.id, name: project.name });
+              }}
+            >
+              <Trash2 className="w-4 h-4 text-red-600" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1" onClick={() => onSelect(project.id)}>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">{project.name}</h3>
+          <p className="text-sm text-gray-500 mb-4">
+            Criado em {new Date(project.created_at).toLocaleDateString("pt-BR")}
+          </p>
+
+          {/* Stats */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            <Badge variant="outline" className="rounded-lg text-[#0891B2] border-[#BAE6FD] bg-[#F0F9FF]">
+              {stats.totalSources} Fontes
+            </Badge>
+            <Badge variant="outline" className="rounded-lg text-blue-600 border-blue-200 bg-blue-50">
+              {stats.totalQuizzes} Quiz
+            </Badge>
+            <Badge variant="outline" className="rounded-lg text-red-600 border-red-200 bg-red-50">
+              {stats.totalFlashcards} Cards
+            </Badge>
+            {stats.totalSummaries > 0 && (
+              <Badge variant="outline" className="rounded-lg text-purple-600 border-purple-200 bg-purple-50">
+                {stats.totalSummaries} Resumos
+              </Badge>
+            )}
+            {stats.quizAccuracy > 0 && (
+              <Badge variant="outline" className="rounded-lg text-green-600 border-green-200 bg-green-50">
+                {stats.quizAccuracy}% acerto
+              </Badge>
+            )}
+          </div>
+        </div>
+
+        {/* Footer - Open button */}
+        <Button
+          variant="ghost"
+          className="w-full justify-between rounded-xl hover:bg-[#F0F9FF] text-gray-700 font-medium"
+          onClick={() => onSelect(project.id)}
+        >
+          Abrir matéria
+          <ChevronRight className="w-4 h-4" />
+        </Button>
+      </div>
+    </motion.div>
+  );
+};
+
 export function Dashboard({ onSelectSubject }: DashboardProps) {
   const { user } = useAuth();
   const { projects, loading, createProject, updateProject, deleteProject } = useProjects();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<{ id: string; name: string } | null>(null);
   const [deletingProject, setDeletingProject] = useState<{ id: string; name: string } | null>(null);
+  const [statsProject, setStatsProject] = useState<{ id: string; name: string } | null>(null);
   const [formData, setFormData] = useState({ name: "" });
   const [submitting, setSubmitting] = useState(false);
 
@@ -157,79 +270,15 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {projects.map((project, index) => (
-                <motion.div
+                <ProjectCard
                   key={project.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className="group relative"
-                >
-                  <div className="glass-dark rounded-2xl p-6 border border-gray-200 hover:shadow-xl transition-all duration-300 cursor-pointer h-full flex flex-col">
-                    {/* Icon */}
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#0891B2] to-[#7CB342] flex items-center justify-center shadow-lg">
-                        <BookOpen className="w-7 h-7 text-white" />
-                      </div>
-
-                      {/* Edit/Delete buttons - show on hover */}
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 rounded-lg hover:bg-gray-100"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openEditDialog({ id: project.id, name: project.name });
-                          }}
-                        >
-                          <Edit className="w-4 h-4 text-gray-600" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 rounded-lg hover:bg-red-50"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDeletingProject({ id: project.id, name: project.name });
-                          }}
-                        >
-                          <Trash2 className="w-4 h-4 text-red-600" />
-                        </Button>
-                      </div>
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex-1" onClick={() => onSelectSubject(project.id)}>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">{project.name}</h3>
-                      <p className="text-sm text-gray-500 mb-4">
-                        Criado em {new Date(project.created_at).toLocaleDateString("pt-BR")}
-                      </p>
-
-                      {/* Stats */}
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        <Badge variant="outline" className="rounded-lg text-[#0891B2] border-[#BAE6FD] bg-[#F0F9FF]">
-                          0 Fontes
-                        </Badge>
-                        <Badge variant="outline" className="rounded-lg text-[#0891B2] border-[#BAE6FD] bg-[#F0F9FF]">
-                          0 Quiz
-                        </Badge>
-                        <Badge variant="outline" className="rounded-lg text-[#7CB342] border-[#D4E157] bg-[#F1F8E9]">
-                          0 Cards
-                        </Badge>
-                      </div>
-                    </div>
-
-                    {/* Footer - Open button */}
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-between rounded-xl hover:bg-[#F0F9FF] text-gray-700 font-medium"
-                      onClick={() => onSelectSubject(project.id)}
-                    >
-                      Abrir matéria
-                      <ChevronRight className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </motion.div>
+                  project={project}
+                  index={index}
+                  onSelect={onSelectSubject}
+                  onEdit={openEditDialog}
+                  onDelete={setDeletingProject}
+                  onViewStats={setStatsProject}
+                />
               ))}
             </div>
           )}
@@ -339,6 +388,16 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Project Stats Modal */}
+        {statsProject && (
+          <ProjectStats
+            projectId={statsProject.id}
+            projectName={statsProject.name}
+            open={true}
+            onClose={() => setStatsProject(null)}
+          />
+        )}
     </div>
   );
 }

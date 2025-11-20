@@ -1,4 +1,4 @@
-import { ArrowLeft, LogOut, User, Languages, Palette } from "lucide-react";
+import { ArrowLeft, LogOut, User, Languages, Palette, BarChart3 } from "lucide-react";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { Button } from "./ui/button";
 import { useAuth } from "../hooks/useAuth";
@@ -19,9 +19,11 @@ import { useState } from "react";
 interface NavbarProps {
   onBackClick?: () => void;
   projectName?: string;
+  projectId?: string | null;
+  onViewStats?: () => void;
 }
 
-export function Navbar({ onBackClick, projectName }: NavbarProps) {
+export function Navbar({ onBackClick, projectName, projectId, onViewStats }: NavbarProps) {
   const { user, signOut } = useAuth();
   const [profileOpen, setProfileOpen] = useState(false);
   const [languageOpen, setLanguageOpen] = useState(false);
@@ -71,10 +73,21 @@ export function Navbar({ onBackClick, projectName }: NavbarProps) {
 
         {/* Project Name */}
         {projectName && (
-          <div className="absolute left-1/2 transform -translate-x-1/2">
+          <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-2">
             <div className="glass-dark px-4 py-2 rounded-2xl border border-gray-200">
               <span className="text-gray-800">{projectName}</span>
             </div>
+            {projectId && onViewStats && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onViewStats}
+                className="h-9 w-9 rounded-xl hover:bg-blue-50"
+                title="Ver estatísticas"
+              >
+                <BarChart3 className="w-4 h-4 text-blue-600" />
+              </Button>
+            )}
           </div>
         )}
 
