@@ -406,7 +406,7 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
         </div>
 
       {/* Sources List - Com altura mínima 0 para permitir scroll correto */}
-      <div className="flex-1 min-h-0 overflow-y-auto">
+      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="w-8 h-8 animate-spin text-[#0891B2]" />
