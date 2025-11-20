@@ -57,7 +57,7 @@ export function RightPanel({ projectId }: RightPanelProps) {
             </div>
             {/* Container with overflow-hidden to constrain ChatPanel and enable internal scroll */}
             <div className="flex-1 min-h-0 overflow-hidden">
-              <ChatPanel projectId={projectId} />
+              <ChatPanel projectId={projectId} isFullscreenMode={true} />
             </div>
           </div>
         </DialogContent>
