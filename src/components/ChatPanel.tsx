@@ -186,8 +186,8 @@ export function ChatPanel({ projectId }: ChatPanelProps) {
       ) : (
         <>
           {/* Messages */}
-          <div className="flex-1 min-h-0 overflow-y-auto mb-4">
-              <div className="space-y-4 pr-2 pb-2">
+          <div className="flex-1 overflow-y-auto mb-4 space-y-4 custom-scrollbar">
+              <div className="pr-2">
                 {loading && messages.length === 0 ? (
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="w-8 h-8 animate-spin text-[#0891B2]" />
