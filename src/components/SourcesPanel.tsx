@@ -354,20 +354,24 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange }: SourcesPane
   }
 
   return (
-    <div className="h-full w-full flex flex-col bg-gray-50/50 rounded-3xl p-4 border border-gray-200 overflow-hidden">
-      <input
-        ref={fileInputRef}
-        type="file"
-        multiple
-        accept=".pdf,.txt,.md,.mp3,.wav,.m4a,.jpg,.jpeg,.png"
-        onChange={handleFileInput}
-        className="hidden"
-      />
+    <div className="h-full w-full flex flex-col bg-gray-50/50 rounded-3xl border border-gray-200 overflow-hidden">
+      {/* Banda colorida do topo */}
+      <div className="h-1.5 w-full bg-gradient-to-r from-[#0891B2] to-[#7CB342]" />
 
-      {/* Header */}
-      <div className="glass-dark rounded-2xl mb-4 p-4 border border-gray-200">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-gray-900">Fontes</h3>
+      <div className="flex-1 overflow-hidden p-4">
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          accept=".pdf,.txt,.md,.mp3,.wav,.m4a,.jpg,.jpeg,.png"
+          onChange={handleFileInput}
+          className="hidden"
+        />
+
+        {/* Header */}
+        <div className="glass-dark rounded-2xl mb-4 p-4 border border-gray-200">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-gray-900">Fontes</h3>
           <Button
             size="sm"
             onClick={() => fileInputRef.current?.click()}
@@ -568,6 +572,7 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange }: SourcesPane
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 }
