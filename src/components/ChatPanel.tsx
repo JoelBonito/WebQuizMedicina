@@ -139,7 +139,11 @@ export function ChatPanel({ projectId, isFullscreenMode = false }: ChatPanelProp
   }
 
   return (
-    <div className={`flex flex-col bg-gray-50/50 rounded-3xl p-4 border border-gray-200 h-full ${isFullscreenMode ? 'overflow-hidden' : ''}`}>
+    <div className={`flex flex-col h-full ${
+      isFullscreenMode
+        ? "bg-gray-50/50 p-6"
+        : "bg-gray-50/50 rounded-3xl p-4 border border-gray-200"
+    }`}>
       {/* Header */}
       <div className="glass-dark rounded-2xl p-4 mb-4 border border-gray-200 flex-shrink-0">
         <div className="flex items-center justify-between mb-2">
