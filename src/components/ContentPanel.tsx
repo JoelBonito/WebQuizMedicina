@@ -370,22 +370,28 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
 
   return (
     <>
-      <div className="h-full w-full flex flex-col bg-gray-50/50 rounded-3xl border border-gray-200 overflow-hidden">
+      <div className={`h-full w-full flex flex-col overflow-hidden ${
+        isFullscreenMode
+          ? "bg-gray-50/50"
+          : "bg-gray-50/50 rounded-3xl border border-gray-200"
+      }`}>
         {/* Banda colorida do topo */}
         <div className="h-1.5 w-full bg-gradient-to-r from-green-500 to-emerald-500" />
 
         <div className="flex-1 overflow-hidden p-6 flex flex-col">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-lg font-semibold text-gray-900">Estudo</h1>
-            <button
-              onClick={() => setIsFullscreen(true)}
-              className="hidden md:flex items-center justify-center text-gray-600 hover:text-gray-900 transition-colors"
-              aria-label="Expandir"
-            >
-              <span className="material-symbols-outlined text-[20px]">expand_content</span>
-            </button>
-          </div>
+          {/* Header - Oculto em fullscreen para evitar duplicidade */}
+          {!isFullscreenMode && (
+            <div className="flex items-center justify-between mb-6">
+              <h1 className="text-lg font-semibold text-gray-900">Estudo</h1>
+              <button
+                onClick={() => setIsFullscreen(true)}
+                className="hidden md:flex items-center justify-center text-gray-600 hover:text-gray-900 transition-colors"
+                aria-label="Expandir"
+              >
+                <span className="material-symbols-outlined text-[20px]">expand_content</span>
+              </button>
+            </div>
+          )}
 
         {/* Grid de Botões de Ação */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
@@ -680,9 +686,9 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
       {/* Fullscreen Dialog */}
       {!isFullscreenMode && (
         <Dialog open={isFullscreen} onOpenChange={setIsFullscreen}>
-          <DialogContent className="!fixed !inset-0 !top-0 !left-0 !right-0 !bottom-0 !translate-x-0 !translate-y-0 !max-w-none !w-screen !h-screen !m-0 !rounded-none !p-6 overflow-hidden supports-[height:100dvh]:!h-dvh">
-            <div className="h-full w-full flex flex-col">
-              <div className="flex items-center justify-between mb-4">
+          <DialogContent className="!fixed !inset-0 !top-0 !left-0 !right-0 !bottom-0 !translate-x-0 !translate-y-0 !max-w-none !w-screen !h-screen !m-0 !rounded-none !p-0 overflow-hidden supports-[height:100dvh]:!h-dvh">
+            <div className="h-full w-full flex flex-col bg-gray-50">
+              <div className="flex items-center justify-between p-6 border-b bg-white">
                 <h2 className="text-2xl font-bold text-gray-900">Estudo</h2>
                 <Button
                   size="sm"
