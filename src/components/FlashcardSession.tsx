@@ -226,7 +226,7 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
             </div>
 
             {/* Flashcard */}
-            <div className="flex-1 min-h-0 flex items-center justify-center p-8 overflow-y-auto">
+            <div className="flex-1 flex items-center justify-center p-8 pb-24 overflow-y-auto">
               <motion.div
                 className="relative w-full max-w-2xl"
                 style={{ perspective: 1000 }}
@@ -273,7 +273,7 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="p-6 border-t border-gray-200 bg-gray-50/50"
+                className="p-6 border-t border-gray-200 bg-white shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]"
               >
                 <p className="text-sm text-gray-700 mb-4 text-center font-medium">
                   Como foi a dificuldade deste flashcard?
@@ -312,7 +312,7 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
 
             {/* Next hint for front */}
             {cardState === "front" && (
-              <div className="p-6 border-t border-gray-200 bg-gray-50">
+              <div className="p-6 border-t border-gray-200 bg-white shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
                 <p className="text-sm text-gray-600 text-center">
                   Vire o card para ver a resposta e avaliar sua compreensão
                 </p>

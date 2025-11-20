@@ -204,7 +204,7 @@ export function QuizSession({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-full h-screen m-0 rounded-none p-0">
+      <DialogContent className="max-w-full h-screen m-0 rounded-none p-0 overflow-hidden">
         <DialogTitle className="sr-only">
           {state === "summary" ? "Resumo do Quiz" : `Questão ${currentIndex + 1} de ${questions.length}`}
         </DialogTitle>
@@ -357,7 +357,7 @@ export function QuizSession({
               </div>
 
               {/* Question Content */}
-              <div className="flex-1 min-h-0 overflow-y-auto p-6">
+              <div className="flex-1 overflow-y-auto p-6 pb-24">
                 <motion.div
                   key={currentIndex}
                   initial={{ opacity: 0, x: 20 }}
@@ -496,7 +496,7 @@ export function QuizSession({
               </div>
 
               {/* Footer */}
-              <div className="p-6 border-t border-gray-200 bg-gray-50/50">
+              <div className="p-6 border-t border-gray-200 bg-white shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
                 <div className="max-w-3xl mx-auto">
                   {state === "question" ? (
                     <div className="flex gap-3">
