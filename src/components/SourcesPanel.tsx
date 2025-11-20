@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
-import { ScrollArea } from "./ui/scroll-area";
 import { Checkbox } from "./ui/checkbox";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { motion } from "motion/react";
@@ -398,8 +397,7 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange }: SourcesPane
         </div>
 
       {/* Sources List */}
-      <div className="flex-1 min-h-0 overflow-hidden">
-        <ScrollArea className="h-full">
+      <div className="flex-1 overflow-y-auto">
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="w-8 h-8 animate-spin text-[#0891B2]" />
@@ -490,7 +488,6 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange }: SourcesPane
             ))}
           </div>
         )}
-        </ScrollArea>
       </div>
 
       {/* Delete Confirmation Dialog */}
@@ -575,7 +572,7 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange }: SourcesPane
                 <X className="w-5 h-5" />
               </Button>
             </div>
-            <div className="flex-1 overflow-hidden">
+            <div className="flex-1 min-h-0 overflow-hidden">
               <SourcesPanel projectId={projectId} onSelectedSourcesChange={onSelectedSourcesChange} />
             </div>
           </div>

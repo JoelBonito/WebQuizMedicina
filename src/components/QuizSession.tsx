@@ -222,7 +222,7 @@ export function QuizSession({
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="p-8 overflow-y-auto h-full"
+              className="p-8 overflow-y-auto h-full max-h-screen"
             >
               {/* Summary */}
               <div className="text-center mb-8">
@@ -357,7 +357,7 @@ export function QuizSession({
               </div>
 
               {/* Question Content */}
-              <div className="flex-1 overflow-y-auto p-6">
+              <div className="flex-1 min-h-0 overflow-y-auto p-6">
                 <motion.div
                   key={currentIndex}
                   initial={{ opacity: 0, x: 20 }}
