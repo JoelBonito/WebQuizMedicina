@@ -55,8 +55,8 @@ export function RightPanel({ projectId }: RightPanelProps) {
                 <X className="w-5 h-5" />
               </Button>
             </div>
-            {/* CRITICAL: Removed overflow-hidden to allow scroll inside ChatPanel */}
-            <div className="flex-1 min-h-0">
+            {/* Container with overflow-hidden to constrain ChatPanel and enable internal scroll */}
+            <div className="flex-1 min-h-0 overflow-hidden">
               <ChatPanel projectId={projectId} />
             </div>
           </div>
