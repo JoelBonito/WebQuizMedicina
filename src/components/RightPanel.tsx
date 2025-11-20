@@ -44,7 +44,7 @@ export function RightPanel({ projectId }: RightPanelProps) {
       <Dialog open={isFullscreen} onOpenChange={setIsFullscreen}>
         <DialogContent className="!fixed !inset-0 !top-0 !left-0 !right-0 !bottom-0 !translate-x-0 !translate-y-0 !max-w-none !w-screen !h-screen !m-0 !rounded-none !p-4 md:!p-6 supports-[height:100dvh]:!h-dvh">
           <div className="h-full w-full flex flex-col pb-[env(safe-area-inset-bottom)]">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-4 flex-shrink-0">
               <h2 className="text-2xl font-bold text-gray-900">Chat</h2>
               <Button
                 size="sm"
@@ -55,7 +55,8 @@ export function RightPanel({ projectId }: RightPanelProps) {
                 <X className="w-5 h-5" />
               </Button>
             </div>
-            <div className="flex-1 min-h-0">
+            {/* CRITICAL: Use h-[calc(100%-4rem)] instead of flex-1 to give explicit height */}
+            <div className="h-[calc(100%-4rem)] overflow-hidden">
               <ChatPanel projectId={projectId} />
             </div>
           </div>
