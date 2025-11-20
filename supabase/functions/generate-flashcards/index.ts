@@ -221,6 +221,8 @@ serve(async (req) => {
 
       const prompt = `Você é um professor especialista em medicina. Analise o conteúdo abaixo e crie ${batchCount} flashcards de alta qualidade para estudantes de medicina.
 
+IMPORTANTE: Toda a frente e verso dos flashcards devem ser em Português do Brasil.
+
 CONTEÚDO:
 ${combinedContent}
 

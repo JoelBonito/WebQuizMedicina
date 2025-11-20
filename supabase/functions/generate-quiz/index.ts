@@ -274,6 +274,8 @@ serve(async (req) => {
       const prompt =
         `Você é um professor especialista em medicina. Analise o conteúdo abaixo e gere ${batchCount} perguntas de múltipla escolha de alta qualidade para estudantes de medicina.
 
+IMPORTANTE: Todas as perguntas, opções, dicas e justificativas devem ser em Português do Brasil.
+
 CONTEÚDO:
 ${combinedContent}
 
