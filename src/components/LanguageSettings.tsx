@@ -9,7 +9,9 @@ import {
 import { Button } from "./ui/button";
 import { Label } from "./ui/label";
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
-import { Languages, BookOpen, MessageSquare, Brain, FileText } from "lucide-react";
+import { Languages, BookOpen, MessageSquare, Brain, FileText, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { useState } from "react";
 
 interface LanguageSettingsProps {
   open: boolean;
@@ -17,16 +19,48 @@ interface LanguageSettingsProps {
 }
 
 export function LanguageSettings({ open, onOpenChange }: LanguageSettingsProps) {
-  const { language, setLanguage, getLanguageName } = useLanguage();
+  const { language, setLanguage, getLanguageName, isLoading } = useLanguage();
+  const [isSaving, setIsSaving] = useState(false);
+  const [initialLanguage] = useState(language);
 
-  const handleSave = () => {
-    onOpenChange(false);
+  const hasChanges = language !== initialLanguage;
+
+  const handleSave = async () => {
+    if (!hasChanges) {
+      onOpenChange(false);
+      return;
+    }
+
+    setIsSaving(true);
+
+    try {
+      // setLanguage já salva no perfil
+      const languageName = getLanguageName(language);
+      toast.success(`Idioma atualizado para ${languageName}!`, {
+        duration: 4000,
+      });
+
+      setTimeout(() => {
+        onOpenChange(false);
+        setIsSaving(false);
+      }, 500);
+    } catch (error) {
+      toast.error('Erro ao salvar idioma');
+      setIsSaving(false);
+    }
   };
 
   const languages = [
-    { value: "pt-BR" as const, label: "Português (Brasil)", flag: "🇧🇷" },
-    { value: "en-US" as const, label: "English (US)", flag: "🇺🇸" },
-    { value: "es-ES" as const, label: "Español", flag: "🇪🇸" },
+    { value: "pt" as const, label: "Português", flag: "🇵🇹" },
+    { value: "en" as const, label: "English", flag: "🇬🇧" },
+    { value: "es" as const, label: "Español", flag: "🇪🇸" },
+    { value: "fr" as const, label: "Français", flag: "🇫🇷" },
+    { value: "de" as const, label: "Deutsch", flag: "🇩🇪" },
+    { value: "it" as const, label: "Italiano", flag: "🇮🇹" },
+    { value: "ja" as const, label: "日本語", flag: "🇯🇵" },
+    { value: "zh" as const, label: "中文", flag: "🇨🇳" },
+    { value: "ru" as const, label: "Русский", flag: "🇷🇺" },
+    { value: "ar" as const, label: "العربية", flag: "🇸🇦" },
   ];
 
   return (
@@ -49,7 +83,7 @@ export function LanguageSettings({ open, onOpenChange }: LanguageSettingsProps) 
               Selecione seu idioma preferido
             </Label>
             <RadioGroup value={language} onValueChange={(value) => setLanguage(value as any)}>
-              <div className="space-y-3">
+              <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
                 {languages.map((lang) => (
                   <div
                     key={lang.value}
@@ -121,14 +155,28 @@ export function LanguageSettings({ open, onOpenChange }: LanguageSettingsProps) 
               variant="outline"
               onClick={() => onOpenChange(false)}
               className="rounded-lg"
+              disabled={isSaving}
             >
               Cancelar
             </Button>
             <Button
               onClick={handleSave}
-              className="rounded-lg bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white"
+              className="rounded-lg bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white relative"
+              disabled={isSaving || isLoading || !hasChanges}
             >
-              Salvar
+              {isSaving ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                <>
+                  Salvar
+                  {hasChanges && (
+                    <span className="ml-2 inline-flex h-2 w-2 rounded-full bg-white/80 animate-pulse" />
+                  )}
+                </>
+              )}
             </Button>
           </div>
         </div>
