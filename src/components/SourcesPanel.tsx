@@ -204,7 +204,10 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
         toast.success(`${file.name} enviado com sucesso!`);
       } catch (error) {
         console.error("Upload error:", error);
-        toast.error(`Erro ao enviar ${file.name}`);
+        const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+        toast.error(`Erro ao enviar ${file.name}: ${errorMessage}`, {
+          duration: 6000, // Show for 6 seconds for longer messages
+        });
       }
     }
 
@@ -395,6 +398,11 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
               )}
             </Button>
           </div>
+
+          {/* File size info */}
+          <p className="text-xs text-gray-500 mt-2">
+            Tamanho máximo: 50 MB por arquivo
+          </p>
         </div>
 
       {/* Sources List */}

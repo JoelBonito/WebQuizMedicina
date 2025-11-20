@@ -23,12 +23,12 @@ export function LanguageSettings({ open, onOpenChange }: LanguageSettingsProps) 
   const [isSaving, setIsSaving] = useState(false);
   const [initialLanguage, setInitialLanguage] = useState(language);
 
-  // Update initialLanguage when dialog opens
+  // Update initialLanguage ONLY when dialog opens (not when language changes)
   useEffect(() => {
     if (open) {
       setInitialLanguage(language);
     }
-  }, [open, language]);
+  }, [open]); // Removed 'language' from dependencies to prevent resetting on selection
 
   const hasChanges = language !== initialLanguage;
 
