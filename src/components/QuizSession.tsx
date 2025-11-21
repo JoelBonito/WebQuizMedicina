@@ -37,6 +37,13 @@ interface Answer {
   tempoResposta: number;
 }
 
+// Função auxiliar para normalizar a resposta e evitar erros de comparação
+// (Remove espaços, pontos finais e garante que seja maiúscula)
+const normalizeAnswer = (text: string | null | undefined) => {
+  if (!text) return "";
+  return text.trim().toUpperCase().replace(".", "").charAt(0);
+};
+
 export function QuizSession({
   questions,
   projectId,
@@ -111,7 +118,8 @@ export function QuizSession({
     setSelectedOption(option);
     setState("feedback");
 
-    const correct = option === currentQuestion.resposta_correta;
+    // CORREÇÃO: Normaliza ambas as respostas antes de comparar
+    const correct = normalizeAnswer(option) === normalizeAnswer(currentQuestion.resposta_correta);
     const tempoResposta = Math.floor((Date.now() - startTime) / 1000);
 
     const answer: Answer = {
@@ -211,7 +219,8 @@ export function QuizSession({
   };
 
   const isCorrectOption = (option: string) => {
-    return option === currentQuestion.resposta_correta;
+    // CORREÇÃO: Normaliza a comparação visual também
+    return normalizeAnswer(option) === normalizeAnswer(currentQuestion.resposta_correta);
   };
 
   const getOptionStyle = (option: string) => {
@@ -530,8 +539,6 @@ export function QuizSession({
                           </p>
                         </div>
                       )}
-
-                      {/* Removido: A dica agora é mostrada ANTES da resposta */}
 
                       {/* Tópico */}
                       {currentQuestion.topico && (
