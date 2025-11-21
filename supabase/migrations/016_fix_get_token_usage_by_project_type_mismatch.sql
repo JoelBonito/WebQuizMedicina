@@ -1,11 +1,16 @@
--- Fix: Ensure return column types exactly match declared RETURNS TABLE for get_token_usage_by_project
+-- Fix: Convert cost from USD to BRL and add type casting for get_token_usage_by_project
 -- Migration: 016_fix_get_token_usage_by_project_type_mismatch.sql
 --
--- Reason: Prevent PostgREST error similar to get_token_usage_by_user
--- The projects.name column may be typed as character varying, but the function declares project_name as TEXT.
--- Add explicit type casts to ensure consistency.
+-- Reason:
+-- 1. Frontend expects total_cost_brl but function returns total_cost_usd
+-- 2. Prevent PostgREST type mismatch errors with explicit casts
+-- 3. Convert USD to BRL using exchange rate (1 USD ≈ 5.5 BRL)
+--
+-- Note: Must DROP function first because we're changing the return type signature
 
-CREATE OR REPLACE FUNCTION public.get_token_usage_by_project(
+DROP FUNCTION IF EXISTS public.get_token_usage_by_project(uuid, timestamptz, timestamptz);
+
+CREATE FUNCTION public.get_token_usage_by_project(
   target_user_id UUID,
   start_date TIMESTAMPTZ DEFAULT NOW() - INTERVAL '30 days',
   end_date TIMESTAMPTZ DEFAULT NOW()
@@ -16,7 +21,7 @@ RETURNS TABLE (
   total_tokens BIGINT,
   total_input_tokens BIGINT,
   total_output_tokens BIGINT,
-  total_cost_usd NUMERIC,
+  total_cost_brl NUMERIC,  -- Changed from total_cost_usd to total_cost_brl
   operation_counts JSONB
 ) AS $$
 BEGIN
@@ -32,7 +37,7 @@ BEGIN
     SUM(tul.tokens_input + tul.tokens_output)::bigint AS total_tokens,
     SUM(tul.tokens_input)::bigint AS total_input_tokens,
     SUM(tul.tokens_output)::bigint AS total_output_tokens,
-    SUM(tul.cost_usd)::numeric AS total_cost_usd,
+    (SUM(tul.cost_usd) * 5.5)::numeric AS total_cost_brl,  -- Convert USD to BRL (1 USD ≈ 5.5 BRL)
     jsonb_object_agg(
       tul.operation_type,
       COUNT(*)
@@ -46,4 +51,4 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-COMMENT ON FUNCTION public.get_token_usage_by_project IS 'Returns token usage statistics grouped by project for a specific user (admin only) - Fixed type casting';
+COMMENT ON FUNCTION public.get_token_usage_by_project IS 'Returns token usage statistics grouped by project for a specific user (admin only) - Returns costs in BRL with type casting';
