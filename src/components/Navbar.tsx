@@ -27,12 +27,18 @@ interface NavbarProps {
 
 export function Navbar({ onBackClick, projectName, projectId, onViewStats, onAdminClick }: NavbarProps) {
   const { user, signOut } = useAuth();
-  const { profile } = useProfile();
+  const { profile, loading: profileLoading } = useProfile();
   const [profileOpen, setProfileOpen] = useState(false);
   const [languageOpen, setLanguageOpen] = useState(false);
   const [themeOpen, setThemeOpen] = useState(false);
 
+  // Debug: log profile data
+  console.log('[Navbar] Profile data:', profile);
+  console.log('[Navbar] Profile loading:', profileLoading);
+  console.log('[Navbar] Profile role:', profile?.role);
+
   const isAdmin = profile?.role === 'admin';
+  console.log('[Navbar] isAdmin:', isAdmin);
 
   const handleSignOut = async () => {
     const { error } = await signOut();
