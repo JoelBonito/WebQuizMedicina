@@ -200,7 +200,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
 
   const { questions, loading: loadingQuiz, generating: generatingQuiz, generateQuiz, refetch: fetchQuestions } = useQuestions(projectId);
   const { flashcards, loading: loadingFlashcards, generating: generatingFlashcards, generateFlashcards, refetch: fetchFlashcards } = useFlashcards(projectId);
-  const { summaries, loading: loadingSummaries, generating: generatingSummary, generateSummary, deleteSummary } = useSummaries(projectId);
+  const { summaries, loading: loadingSummaries, generating: generatingSummary, generateSummary, deleteSummary, refetch: fetchSummaries } = useSummaries(projectId);
   const { difficulties } = useDifficulties(projectId);
 
   // Helper function to determine difficulty level
@@ -797,7 +797,15 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
       />
 
       {/* Difficulties Dialog - Fullscreen */}
-      <Dialog open={difficultiesOpen} onOpenChange={setDifficultiesOpen}>
+      <Dialog open={difficultiesOpen} onOpenChange={(open) => {
+        setDifficultiesOpen(open);
+        // Refetch all data when closing the difficulties dialog
+        if (!open) {
+          fetchQuestions();
+          fetchFlashcards();
+          fetchSummaries();
+        }
+      }}>
         <DialogContent className="!fixed !inset-0 !top-0 !left-0 !right-0 !bottom-0 !translate-x-0 !translate-y-0 !max-w-none !w-screen !h-screen !m-0 !rounded-none !p-0 overflow-hidden supports-[height:100dvh]:!h-dvh">
           <div className="h-screen supports-[height:100dvh]:h-dvh w-full flex flex-col bg-gray-50">
             <div className="flex items-center justify-between p-6 border-b bg-white">
