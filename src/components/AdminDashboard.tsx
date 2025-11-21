@@ -271,7 +271,7 @@ export function AdminDashboard() {
                       color: 'hsl(var(--chart-1))',
                     },
                     total_cost_brl: {
-                      label: 'Custo (USD)',
+                      label: 'Custo (BRL)',
                       color: 'hsl(var(--chart-2))',
                     },
                   }}
@@ -295,7 +295,7 @@ export function AdminDashboard() {
                       <YAxis
                         yAxisId="right"
                         orientation="right"
-                        tickFormatter={(value) => `$${value.toFixed(2)}`}
+                        tickFormatter={(value) => `R$ ${value.toFixed(2)}`}
                         className="text-xs"
                       />
                       <ChartTooltip
@@ -362,7 +362,7 @@ export function AdminDashboard() {
                     <TableHead className="w-10"></TableHead>
                     <TableHead>Usuário</TableHead>
                     <TableHead className="text-right">Total Tokens</TableHead>
-                    <TableHead className="text-right">Custo (USD)</TableHead>
+                    <TableHead className="text-right">Custo (BRL)</TableHead>
                     <TableHead className="text-center">Operações</TableHead>
                   </TableRow>
                 </TableHeader>
