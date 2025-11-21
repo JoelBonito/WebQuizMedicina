@@ -205,37 +205,28 @@ serve(async (req) => {
 
     if (strategyInfo.strategy === 'SINGLE') {
       // Strategy 1: Single complete summary
-      const prompt = `Você é um professor especialista em medicina. Analise o conteúdo abaixo e crie um resumo estruturado e completo para estudantes de medicina.
-
-IMPORTANTE: Todo o conteúdo deve ser em Português do Brasil.
+      // Optimized prompt with JSON mode (no need for verbose formatting instructions)
+      const prompt = `Você é um professor especialista em medicina. Crie um resumo estruturado e completo do conteúdo abaixo.
 
 CONTEÚDO:
 ${combinedContent}
 
-INSTRUÇÕES:
-1. Crie um título descritivo e atrativo para o resumo
-2. Organize o conteúdo em HTML bem estruturado usando:
-   - <h2> para seções principais
-   - <h3> para subseções
-   - <p> para parágrafos
-   - <ul> e <li> para listas
-   - <strong> para termos importantes
-   - <em> para ênfase
-3. Identifique os tópicos principais abordados
-4. Seja claro, conciso mas completo
-5. Mantenha a terminologia médica correta
-6. Organize logicamente (introdução → conceitos → mecanismos → aplicações clínicas)
+ESTRUTURA:
+- Título descritivo e atrativo
+- HTML organizado: <h2> seções, <h3> subseções, <p> parágrafos, <ul><li> listas, <strong> termos importantes
+- Lógica: introdução → conceitos → mecanismos → aplicações clínicas
+- Identifique tópicos principais
+- Terminologia médica correta, Português do Brasil
 
-FORMATO DE SAÍDA (JSON estrito):
+JSON:
 {
-  "titulo": "Título do Resumo",
-  "conteudo_html": "<h2>Seção 1</h2><p>Conteúdo...</p><h3>Subseção</h3><ul><li>Item 1</li><li>Item 2</li></ul>",
-  "topicos": ["Tópico 1", "Tópico 2", "Tópico 3"]
-}
+  "titulo": "string",
+  "conteudo_html": "string (HTML)",
+  "topicos": ["string", ...]
+}`;
 
-Retorne APENAS o JSON, sem texto adicional antes ou depois.`;
-
-      const response = await callGemini(prompt, 'gemini-2.5-pro', SAFE_OUTPUT_LIMIT);
+      // Use Flash instead of Pro for single summaries (10x cheaper, same quality for this task)
+      const response = await callGemini(prompt, 'gemini-2.5-flash', SAFE_OUTPUT_LIMIT, true);
       parsed = parseJsonFromResponse(response);
     } else if (strategyInfo.strategy === 'BATCHED') {
       // Strategy 2: Batched sections summary
@@ -279,61 +270,56 @@ Retorne APENAS o HTML do resumo, sem texto adicional.`;
       // Combine section summaries
       console.log(`🔄 [PHASE 1] Combining section summaries...`);
 
-      const combinePrompt = `Você é um professor especialista em medicina. Combine os resumos de seções abaixo em um resumo final estruturado e coerente.
+      // Optimized: Use Flash instead of Pro for combining (10x cheaper, sufficient for formatting task)
+      const combinePrompt = `Combine os resumos abaixo em um resumo final estruturado e coerente.
 
-IMPORTANTE: Todo o conteúdo deve ser em Português do Brasil.
-
-RESUMOS DAS SEÇÕES:
+RESUMOS:
 ${sectionSummaries.map((s, i) => `\n=== SEÇÃO ${i + 1} ===\n${s}`).join('\n')}
 
-INSTRUÇÕES:
-1. Crie um título geral descritivo
-2. Organize o conteúdo em HTML bem estruturado
-3. Elimine redundâncias entre seções
-4. Mantenha a estrutura lógica
-5. Identifique os tópicos principais
+REGRAS:
+- Título geral descritivo
+- HTML bem estruturado
+- Elimine redundâncias
+- Identifique tópicos principais
+- Português do Brasil
 
-FORMATO DE SAÍDA (JSON estrito):
+JSON:
 {
-  "titulo": "Título do Resumo Completo",
-  "conteudo_html": "<h2>Seção 1</h2><p>Conteúdo combinado...</p>",
-  "topicos": ["Tópico 1", "Tópico 2", "Tópico 3"]
-}
+  "titulo": "string",
+  "conteudo_html": "string (HTML)",
+  "topicos": ["string", ...]
+}`;
 
-Retorne APENAS o JSON, sem texto adicional antes ou depois.`;
-
-      const combineResponse = await callGemini(combinePrompt, 'gemini-2.5-pro', SAFE_OUTPUT_LIMIT);
+      // OPTIMIZATION: Flash instead of Pro saves ~90% cost (sufficient for combining/formatting)
+      const combineResponse = await callGemini(combinePrompt, 'gemini-2.5-flash', SAFE_OUTPUT_LIMIT, true);
       parsed = parseJsonFromResponse(combineResponse);
       console.log(`✅ [PHASE 1] Combined summary generated`);
     } else {
       // Strategy 3: Executive summary (ultra-compressed)
       console.log(`🔄 [PHASE 1] Generating executive summary (ultra-compressed)...`);
 
-      const executivePrompt = `Você é um professor especialista em medicina. Crie um RESUMO EXECUTIVO ultra-comprimido do conteúdo extenso abaixo.
+      // Optimized executive summary with JSON mode
+      const executivePrompt = `Crie um RESUMO EXECUTIVO ultra-comprimido do conteúdo extenso.
 
-IMPORTANTE: Todo o conteúdo deve ser em Português do Brasil.
+CONTEÚDO (${combinedContent.length} chars):
+${combinedContent.substring(0, 50000)}
 
-CONTEÚDO (${combinedContent.length} caracteres):
-${combinedContent.substring(0, 50000)}... [conteúdo extenso]
+REGRAS:
+- Título descritivo com "Resumo Executivo:"
+- APENAS conceitos essenciais
+- HTML: <h2>, <p>, <ul><li>
+- Máximo 3-4 seções
+- Extremamente conciso
+- Português do Brasil
 
-INSTRUÇÕES:
-1. Crie um título descritivo
-2. Foque APENAS nos conceitos mais importantes e essenciais
-3. Organize em HTML usando <h2>, <p>, <ul>/<li>
-4. Máximo de 3-4 seções principais
-5. Seja extremamente conciso - este é um resumo executivo
-6. Liste os tópicos principais cobertos
-
-FORMATO DE SAÍDA (JSON estrito):
+JSON:
 {
-  "titulo": "Resumo Executivo: [Título]",
-  "conteudo_html": "<h2>Conceitos Essenciais</h2><p>...</p>",
-  "topicos": ["Tópico 1", "Tópico 2", "Tópico 3"]
-}
+  "titulo": "string",
+  "conteudo_html": "string (HTML)",
+  "topicos": ["string", ...]
+}`;
 
-Retorne APENAS o JSON, sem texto adicional antes ou depois.`;
-
-      const response = await callGemini(executivePrompt, 'gemini-2.5-flash', 2500);
+      const response = await callGemini(executivePrompt, 'gemini-2.5-flash', 2500, true);
       parsed = parseJsonFromResponse(response);
       console.log(`✅ [PHASE 1] Executive summary generated`);
     }

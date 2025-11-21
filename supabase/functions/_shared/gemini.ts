@@ -17,7 +17,8 @@ export interface GeminiResponse {
 export async function callGemini(
   prompt: string,
   model: 'gemini-2.5-flash' | 'gemini-2.5-pro' | 'gemini-2.5-flash-lite' = 'gemini-2.5-flash',
-  maxOutputTokens: number = 16384 // Increased from 8192 - Gemini 2.5 supports up to 16k output tokens
+  maxOutputTokens: number = 16384, // Increased from 8192 - Gemini 2.5 supports up to 16k output tokens
+  jsonMode: boolean = false // Enable native JSON mode to save tokens and ensure valid JSON
 ): Promise<string> {
   if (!GEMINI_API_KEY) {
     throw new Error('GEMINI_API_KEY not configured');
@@ -30,6 +31,20 @@ export async function callGemini(
 
   if (estimatedTokens > 30000) {
     console.warn(`⚠️ [Gemini] Very large prompt detected! This may cause API errors. Consider reducing content.`);
+  }
+
+  // Build generation config with optional JSON mode
+  const generationConfig: any = {
+    temperature: 0.7,
+    topK: 40,
+    topP: 0.95,
+    maxOutputTokens,
+  };
+
+  // Enable native JSON mode to save prompt tokens and ensure valid JSON
+  if (jsonMode) {
+    generationConfig.responseMimeType = "application/json";
+    console.log('🔧 [Gemini] JSON mode enabled - native JSON output guaranteed');
   }
 
   const response = await fetch(
@@ -49,12 +64,7 @@ export async function callGemini(
             ],
           },
         ],
-        generationConfig: {
-          temperature: 0.7,
-          topK: 40,
-          topP: 0.95,
-          maxOutputTokens,
-        },
+        generationConfig,
       }),
     }
   );
@@ -128,10 +138,25 @@ export async function callGeminiWithFile(
   prompt: string,
   fileData: string,
   mimeType: string,
-  model: 'gemini-2.5-flash' | 'gemini-2.5-pro' | 'gemini-2.5-flash-lite' = 'gemini-2.5-flash'
+  model: 'gemini-2.5-flash' | 'gemini-2.5-pro' | 'gemini-2.5-flash-lite' = 'gemini-2.5-flash',
+  jsonMode: boolean = false
 ): Promise<string> {
   if (!GEMINI_API_KEY) {
     throw new Error('GEMINI_API_KEY not configured');
+  }
+
+  // Build generation config with optional JSON mode
+  const generationConfig: any = {
+    temperature: 0.7,
+    topK: 40,
+    topP: 0.95,
+    maxOutputTokens: 16384, // Gemini 2.5 supports up to 16k output tokens
+  };
+
+  // Enable native JSON mode to save prompt tokens and ensure valid JSON
+  if (jsonMode) {
+    generationConfig.responseMimeType = "application/json";
+    console.log('🔧 [Gemini] JSON mode enabled for file processing');
   }
 
   const response = await fetch(
@@ -157,12 +182,7 @@ export async function callGeminiWithFile(
             ],
           },
         ],
-        generationConfig: {
-          temperature: 0.7,
-          topK: 40,
-          topP: 0.95,
-          maxOutputTokens: 16384, // Gemini 2.5 supports up to 16k output tokens
-        },
+        generationConfig,
       }),
     }
   );
