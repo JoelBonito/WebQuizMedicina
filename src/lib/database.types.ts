@@ -259,12 +259,140 @@ export interface Database {
           created_at?: string
         }
       }
+      profiles: {
+        Row: {
+          id: string
+          display_name: string | null
+          avatar_url: string | null
+          response_language: string
+          role: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          display_name?: string | null
+          avatar_url?: string | null
+          response_language?: string
+          role?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          display_name?: string | null
+          avatar_url?: string | null
+          response_language?: string
+          role?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      token_usage_logs: {
+        Row: {
+          id: string
+          user_id: string
+          project_id: string | null
+          operation_type: 'embedding' | 'chat' | 'quiz' | 'flashcard' | 'summary'
+          tokens_input: number
+          tokens_output: number
+          cost_usd: number
+          metadata: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          project_id?: string | null
+          operation_type: 'embedding' | 'chat' | 'quiz' | 'flashcard' | 'summary'
+          tokens_input?: number
+          tokens_output?: number
+          cost_usd?: number
+          metadata?: Json
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          project_id?: string | null
+          operation_type?: 'embedding' | 'chat' | 'quiz' | 'flashcard' | 'summary'
+          tokens_input?: number
+          tokens_output?: number
+          cost_usd?: number
+          metadata?: Json
+          created_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      get_token_usage_by_user: {
+        Args: {
+          start_date?: string
+          end_date?: string
+        }
+        Returns: {
+          user_id: string
+          user_email: string
+          display_name: string
+          total_tokens: number
+          total_input_tokens: number
+          total_output_tokens: number
+          total_cost_usd: number
+          operation_counts: Json
+        }[]
+      }
+      get_token_usage_by_project: {
+        Args: {
+          target_user_id: string
+          start_date?: string
+          end_date?: string
+        }
+        Returns: {
+          project_id: string
+          project_name: string
+          total_tokens: number
+          total_input_tokens: number
+          total_output_tokens: number
+          total_cost_usd: number
+          operation_counts: Json
+        }[]
+      }
+      get_daily_usage: {
+        Args: {
+          start_date?: string
+          end_date?: string
+          target_user_id?: string
+        }
+        Returns: {
+          date: string
+          total_tokens: number
+          total_input_tokens: number
+          total_output_tokens: number
+          total_cost_usd: number
+          unique_users: number
+        }[]
+      }
+      get_token_usage_summary: {
+        Args: {
+          start_date?: string
+          end_date?: string
+        }
+        Returns: {
+          total_tokens: number
+          total_cost_usd: number
+          active_users: number
+          total_operations: number
+          avg_tokens_per_operation: number
+          most_used_operation: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

@@ -17,6 +17,7 @@ const MobileProjectLayout = lazy(() => import("./components/MobileProjectLayout"
 const Dashboard = lazy(() => import("./components/Dashboard").then(module => ({ default: module.Dashboard })));
 const Auth = lazy(() => import("./components/Auth").then(module => ({ default: module.Auth })));
 const ProjectStats = lazy(() => import("./components/ProjectStats").then(module => ({ default: module.ProjectStats })));
+const AdminDashboard = lazy(() => import("./components/AdminDashboard").then(module => ({ default: module.AdminDashboard })));
 
 // Loading fallback component
 const LoadingFallback = () => (
@@ -31,7 +32,7 @@ export default function App() {
   const isMobile = useIsMobile();
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [selectedSourceIds, setSelectedSourceIds] = useState<string[]>([]);
-  const [view, setView] = useState<"dashboard" | "project">("dashboard");
+  const [view, setView] = useState<"dashboard" | "project" | "admin">("dashboard");
   const [showStats, setShowStats] = useState(false);
 
   // Debug logging for selectedProjectId changes
@@ -48,6 +49,12 @@ export default function App() {
   const handleBackToDashboard = () => {
     console.log('[App] handleBackToDashboard called - clearing projectId');
     setView("dashboard");
+    setSelectedProjectId(null);
+  };
+
+  const handleAdminClick = () => {
+    console.log('[App] handleAdminClick called - navigating to admin');
+    setView("admin");
     setSelectedProjectId(null);
   };
 
@@ -82,10 +89,26 @@ export default function App() {
     return (
       <ThemeProvider>
         <LanguageProvider>
-          <Navbar />
+          <Navbar onAdminClick={handleAdminClick} />
           <div className="min-h-screen bg-white pt-16">
             <Suspense fallback={<LoadingFallback />}>
               <Dashboard onSelectSubject={handleSelectProject} />
+            </Suspense>
+          </div>
+          <Toaster />
+        </LanguageProvider>
+      </ThemeProvider>
+    );
+  }
+
+  if (view === "admin") {
+    return (
+      <ThemeProvider>
+        <LanguageProvider>
+          <Navbar onBackClick={handleBackToDashboard} onAdminClick={handleAdminClick} />
+          <div className="min-h-screen bg-white pt-16">
+            <Suspense fallback={<LoadingFallback />}>
+              <AdminDashboard />
             </Suspense>
           </div>
           <Toaster />
@@ -110,6 +133,7 @@ export default function App() {
                 projectName={projectName}
                 projectId={selectedProjectId}
                 onViewStats={() => setShowStats(true)}
+                onAdminClick={handleAdminClick}
               />
               <MobileProjectLayout
                 projectId={selectedProjectId!}
@@ -125,6 +149,7 @@ export default function App() {
                 projectName={projectName}
                 projectId={selectedProjectId}
                 onViewStats={() => setShowStats(true)}
+                onAdminClick={handleAdminClick}
               />
 
               {/* Main Content */}
