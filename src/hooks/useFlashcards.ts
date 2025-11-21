@@ -78,6 +78,16 @@ export const useFlashcards = (projectId: string | null) => {
       const result = await response.json();
 
       if (!response.ok) {
+        // Check for quota/rate limit errors
+        const errorMessage = result.error || '';
+        if (
+          response.status === 429 ||
+          errorMessage.includes('quota') ||
+          errorMessage.includes('RESOURCE_EXHAUSTED') ||
+          errorMessage.includes('rate limit')
+        ) {
+          throw new Error('Limite de uso da API atingido. Por favor, tente novamente mais tarde (aproximadamente em 1 minuto).');
+        }
         throw new Error(result.error || 'Failed to generate flashcards');
       }
 
