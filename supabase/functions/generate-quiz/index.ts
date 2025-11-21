@@ -105,7 +105,7 @@ serve(async (req) => {
 
     if (useSemanticSearch) {
       try {
-        const query = `Gerar questões de medicina variadas: casos clínicos, diagnósticos, tratamentos, fisiologia.`;
+        const query = `Gerar questões de medicina aprofundadas: fisiopatologia, diagnóstico diferencial, tratamento, casos clínicos.`;
         const relevantChunks = await semanticSearch(supabaseClient, query, sourceIds, 8);
         if (relevantChunks.length > 0) {
           combinedContent = relevantChunks.map((c) => c.content).join('\n\n---\n\n');
@@ -133,7 +133,7 @@ serve(async (req) => {
 
     if (!combinedContent.trim()) throw new Error("No content available");
 
-    // 6. Geração do Quiz com Prompt Atualizado
+    // 6. Geração do Quiz com Prompt OTIMIZADO
     const batchSizes = calculateBatchSizes('QUIZ_MULTIPLE_CHOICE', count);
     const sessionId = crypto.randomUUID();
     const allQuestions: any[] = [];
@@ -142,36 +142,38 @@ serve(async (req) => {
       const batchCount = batchSizes[i];
 
       const prompt = `
-Você é um professor universitário de medicina criando um quiz.
-Gere ${batchCount} questões variadas baseadas no conteúdo abaixo.
+Você é um professor universitário de MEDICINA criando uma prova para estudantes.
+Gere ${batchCount} questões de alto nível baseadas no conteúdo abaixo.
 
-CONTEÚDO:
+CONTEÚDO BASE:
 ${combinedContent.substring(0, 30000)}
 
-DISTRIBUIÇÃO OBRIGATÓRIA DOS TIPOS DE QUESTÃO:
-Tente balancear entre os seguintes 4 tipos:
-1. "multipla_escolha": Pergunta padrão de conhecimento (A, B, C, D).
-2. "verdadeiro_falso": Uma afirmação onde as opções são apenas "Verdadeiro" e "Falso".
-3. "citar": Pergunta do tipo "Qual destes é um exemplo de..." ou "Complete a frase...". (Use 4 opções, apenas 1 correta).
-4. "caso_clinico": Um pequeno cenário clínico seguido de uma pergunta sobre diagnóstico ou conduta. (4 opções).
+TIPOS DE QUESTÃO (Diversifique):
+1. "multipla_escolha": Pergunta direta sobre conceitos.
+2. "verdadeiro_falso": Afirmação para julgar (Opções: [Verdadeiro, Falso]).
+3. "citar": "Qual destes é um exemplo de..." (4 opções, apenas 1 correta).
+4. "caso_clinico": Cenário clínico curto + pergunta de conduta/diagnóstico.
 
-REGRAS ESSENCIAIS:
+REGRAS DE OURO (FORMATO):
 - TODAS as questões devem ter APENAS UMA alternativa correta.
-- NUNCA peça "Cite 3 exemplos" ou "Selecione todas as corretas" (o app não suporta).
-- INCLUA SEMPRE UMA DICA: Uma pequena ajuda pedagógica para o aluno que não revele a resposta direta.
-- INCLUA JUSTIFICATIVA: Explique detalhadamente porque a resposta correta é a certa.
+- NUNCA use "Cite 3 exemplos" ou "Selecione todas as corretas".
+- Opções devem ser sempre arrays de strings: ["A) Texto", "B) Texto"...] ou ["Verdadeiro", "Falso"].
 
-FORMATO JSON ESPERADO:
+REGRAS DE CONTEÚDO (PEDAGÓGICO):
+- JUSTIFICATIVA OBRIGATÓRIA: Não diga apenas "A resposta é A". Explique a FISIOPATOLOGIA, o MECANISMO ou o CRITÉRIO DIAGNÓSTICO. Se possível, explique brevemente por que os distratores principais estão errados.
+- DICA ÚTIL: Uma pista clínica sutil (ex: "Lembre-se da tríade de Virchow") que ajude o raciocínio sem entregar a resposta de bandeja.
+
+FORMATO JSON:
 {
   "perguntas": [
     {
-      "tipo": "multipla_escolha" | "verdadeiro_falso" | "citar" | "caso_clinico",
+      "tipo": "multipla_escolha",
       "pergunta": "Texto da pergunta...",
       "opcoes": ["Opção A", "Opção B", "Opção C", "Opção D"],
-      "resposta_correta": "Opção A",
-      "justificativa": "Explicação didática...",
-      "dica": "Pense na fisiopatologia da doença...",
-      "dificuldade": "fácil" | "médio" | "difícil",
+      "resposta_correta": "Opção A", 
+      "justificativa": "A resposta A é correta pois [EXPLICAÇÃO DETALHADA DO CONCEITO]. Já a B está incorreta porque...",
+      "dica": "Pense na relação entre X e Y.",
+      "dificuldade": "médio",
       "topico": "Cardiologia"
     }
   ]
@@ -186,11 +188,11 @@ FORMATO JSON ESPERADO:
       }
     }
 
-    // 7. Sanitização e Inserção no Banco
+    // 7. Sanitização e Inserção
     const validTypes = ["multipla_escolha", "verdadeiro_falso", "citar", "caso_clinico", "completar"];
     
     const questionsToInsert = allQuestions.map((q: any) => {
-      // Limpeza da resposta correta
+      // Garante que a resposta correta esteja limpa
       let respostaLimpa = sanitizeString(q.resposta_correta || "");
       
       const tipo = validTypes.includes(q.tipo) ? q.tipo : "multipla_escolha";
@@ -204,7 +206,7 @@ FORMATO JSON ESPERADO:
         opcoes: Array.isArray(q.opcoes) ? q.opcoes.map((opt: string) => sanitizeString(opt)) : [],
         resposta_correta: respostaLimpa, 
         justificativa: sanitizeString(q.justificativa || ""),
-        dica: q.dica ? sanitizeString(q.dica) : null, // Garante que a dica seja salva
+        dica: q.dica ? sanitizeString(q.dica) : null,
         topico: q.topico ? sanitizeString(q.topico) : "Geral",
         dificuldade: q.dificuldade || "médio",
       };
@@ -217,6 +219,7 @@ FORMATO JSON ESPERADO:
 
     if (insertError) throw insertError;
 
+    // Log de Auditoria (ignora erro se falhar)
     try {
       await getAuditLogger().logAIGeneration(
         AuditEventType.AI_QUIZ_GENERATED,
