@@ -458,7 +458,8 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
-                className="glass-hover glass-dark rounded-2xl p-4 border border-gray-200 relative"
+                className="glass-hover glass-dark rounded-2xl p-4 border border-gray-200 relative overflow-visible"
+                style={{ zIndex: 1 }}
               >
                 <div className="flex items-start gap-3">
                   {source.status === 'ready' && (
@@ -511,13 +512,13 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
                       )}
                     </div>
                   </div>
-                  <div className="relative z-10">
+                  <div className="relative z-30 pointer-events-auto">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 rounded-lg relative z-10"
+                          className="h-8 w-8 rounded-lg relative z-30 pointer-events-auto"
                           onClick={(e) => {
                             e.stopPropagation();
                           }}
@@ -527,8 +528,9 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
                       </DropdownMenuTrigger>
                       <DropdownMenuContent
                         align="end"
-                        className="w-48"
+                        className="w-48 z-[100] pointer-events-auto"
                         onClick={(e) => e.stopPropagation()}
+                        sideOffset={5}
                       >
                         <DropdownMenuItem
                           onSelect={(e) => {
