@@ -44,6 +44,32 @@ const normalizeAnswer = (text: string | null | undefined) => {
   return text.trim().toUpperCase().replace(".", "").charAt(0);
 };
 
+// Função auxiliar para verificar se uma opção (letra) está correta
+// Lida com casos onde resposta_correta pode ser a letra (A, B, C, D) ou o texto da opção (Verdadeiro, Falso)
+const isAnswerCorrect = (selectedLetter: string, correctAnswer: string, options: string[]) => {
+  // Normaliza para comparação
+  const normalizedSelected = normalizeAnswer(selectedLetter);
+  const normalizedCorrect = normalizeAnswer(correctAnswer);
+
+  // Caso 1: Comparação direta por letra (A, B, C, D)
+  if (normalizedSelected === normalizedCorrect) {
+    return true;
+  }
+
+  // Caso 2: Resposta correta pode ser o texto da opção (ex: "Verdadeiro")
+  // Encontra o índice da opção selecionada
+  const selectedIndex = selectedLetter.charCodeAt(0) - 65; // A=0, B=1, C=2, D=3
+  if (selectedIndex >= 0 && selectedIndex < options.length) {
+    const selectedOptionText = options[selectedIndex].replace(/^[A-D]\)\s*/, "").trim();
+    // Compara o texto da opção com a resposta correta
+    if (selectedOptionText.toUpperCase() === correctAnswer.trim().toUpperCase()) {
+      return true;
+    }
+  }
+
+  return false;
+};
+
 export function QuizSession({
   questions,
   projectId,
@@ -118,8 +144,8 @@ export function QuizSession({
     setSelectedOption(option);
     setState("feedback");
 
-    // CORREÇÃO: Normaliza ambas as respostas antes de comparar
-    const correct = normalizeAnswer(option) === normalizeAnswer(currentQuestion.resposta_correta);
+    // CORREÇÃO: Usa função robusta que lida com letra (A, B) ou texto (Verdadeiro, Falso)
+    const correct = isAnswerCorrect(option, currentQuestion.resposta_correta, currentQuestion.opcoes);
     const tempoResposta = Math.floor((Date.now() - startTime) / 1000);
 
     const answer: Answer = {
@@ -219,8 +245,32 @@ export function QuizSession({
   };
 
   const isCorrectOption = (option: string) => {
-    // CORREÇÃO: Normaliza a comparação visual também
-    return normalizeAnswer(option) === normalizeAnswer(currentQuestion.resposta_correta);
+    // CORREÇÃO: Usa função robusta que lida com letra (A, B) ou texto (Verdadeiro, Falso)
+    return isAnswerCorrect(option, currentQuestion.resposta_correta, currentQuestion.opcoes);
+  };
+
+  // Retorna a letra da resposta correta formatada (ex: "A", "B")
+  const getCorrectAnswerLetter = () => {
+    const correctAnswer = currentQuestion.resposta_correta;
+
+    // Se a resposta correta já é uma letra (A, B, C, D)
+    if (/^[A-D]$/i.test(correctAnswer.trim())) {
+      return correctAnswer.toUpperCase();
+    }
+
+    // Se a resposta correta é o texto da opção (ex: "Verdadeiro")
+    // Procura qual opção contém esse texto
+    const correctIndex = currentQuestion.opcoes.findIndex((opt) => {
+      const optText = opt.replace(/^[A-D]\)\s*/, "").trim();
+      return optText.toUpperCase() === correctAnswer.trim().toUpperCase();
+    });
+
+    if (correctIndex !== -1) {
+      return getOptionLetter(correctIndex);
+    }
+
+    // Fallback: retorna a própria resposta
+    return correctAnswer;
   };
 
   const getOptionStyle = (option: string) => {
@@ -505,7 +555,7 @@ export function QuizSession({
                                 </p>
                                 <p className="text-sm text-red-700">
                                   A resposta correta é{" "}
-                                  {currentQuestion.resposta_correta}
+                                  {getCorrectAnswerLetter()}
                                 </p>
                               </div>
                             </div>
@@ -521,7 +571,7 @@ export function QuizSession({
                               </p>
                               <p className="text-sm text-orange-700">
                                 Tópico adicionado às dificuldades. A resposta
-                                correta é {currentQuestion.resposta_correta}
+                                correta é {getCorrectAnswerLetter()}
                               </p>
                             </div>
                           </div>
