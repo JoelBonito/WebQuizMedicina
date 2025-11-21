@@ -105,6 +105,9 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
           error: "Erro ao gerar resumo focado",
         }
       );
+
+      // Notify ContentPanel to refresh
+      window.dispatchEvent(new CustomEvent('content-generated'));
     } catch (error) {
       console.error(error);
     } finally {
@@ -144,6 +147,9 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
           duration: 7000,
         });
       }
+
+      // Notify ContentPanel to refresh
+      window.dispatchEvent(new CustomEvent('content-generated'));
     } catch (error) {
       console.error(error);
     } finally {

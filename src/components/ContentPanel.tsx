@@ -299,6 +299,21 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
     }
   }, [customNames, projectId]);
 
+  // Listen for content generation events from DifficultiesPanel
+  useEffect(() => {
+    const handleContentGenerated = () => {
+      fetchQuestions();
+      fetchFlashcards();
+      fetchSummaries();
+    };
+
+    window.addEventListener('content-generated', handleContentGenerated);
+
+    return () => {
+      window.removeEventListener('content-generated', handleContentGenerated);
+    };
+  }, [fetchQuestions, fetchFlashcards, fetchSummaries]);
+
   const handleGenerateContent = async (type: 'quiz' | 'flashcards' | 'summary') => {
     if (selectedSourceIds.length === 0) {
       toast.error("Selecione pelo menos uma fonte para gerar conteúdo");
@@ -797,15 +812,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
       />
 
       {/* Difficulties Dialog - Fullscreen */}
-      <Dialog open={difficultiesOpen} onOpenChange={(open) => {
-        setDifficultiesOpen(open);
-        // Refetch all data when closing the difficulties dialog
-        if (!open) {
-          fetchQuestions();
-          fetchFlashcards();
-          fetchSummaries();
-        }
-      }}>
+      <Dialog open={difficultiesOpen} onOpenChange={setDifficultiesOpen}>
         <DialogContent className="!fixed !inset-0 !top-0 !left-0 !right-0 !bottom-0 !translate-x-0 !translate-y-0 !max-w-none !w-screen !h-screen !m-0 !rounded-none !p-0 overflow-hidden supports-[height:100dvh]:!h-dvh">
           <div className="h-screen supports-[height:100dvh]:h-dvh w-full flex flex-col bg-gray-50">
             <div className="flex items-center justify-between p-6 border-b bg-white">
