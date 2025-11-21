@@ -81,7 +81,7 @@ export function SummaryViewer({ html, onAskChat, onHighlight }: SummaryViewerPro
     <div className="relative" ref={contentRef}>
       {/* Summary Content */}
       <div
-        className="prose prose-sm max-w-none select-text"
+        className="study-content select-text"
         dangerouslySetInnerHTML={{ __html: html }}
         style={{ userSelect: 'text', WebkitUserSelect: 'text', MozUserSelect: 'text' }}
       />
