@@ -518,15 +518,22 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 rounded-lg"
-                        onClick={(e) => e.stopPropagation()}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                        }}
                       >
                         <MoreVertical className="w-4 h-4 text-gray-600" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuContent
+                      align="end"
+                      className="w-48"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <DropdownMenuItem
-                        onClick={(e) => {
-                          e.stopPropagation();
+                        onSelect={(e) => {
+                          e.preventDefault();
                           setRenamingSource({ id: source.id, currentName: source.name });
                           setNewSourceName(source.name);
                         }}
@@ -536,8 +543,8 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
-                        onClick={(e) => {
-                          e.stopPropagation();
+                        onSelect={(e) => {
+                          e.preventDefault();
                           setDeletingSource({ id: source.id, name: source.name });
                         }}
                         className="text-red-600 focus:text-red-600"

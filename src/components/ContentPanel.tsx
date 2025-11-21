@@ -172,13 +172,24 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
   const [newContentName, setNewContentName] = useState<string>('');
 
   // Store custom names for quiz/flashcards (visualization only) - persist in localStorage
-  const [customNames, setCustomNames] = useState<Record<string, string>>(() => {
-    if (typeof window !== 'undefined') {
+  const [customNames, setCustomNames] = useState<Record<string, string>>({});
+
+  // Load custom names from localStorage when projectId changes
+  useEffect(() => {
+    if (projectId && typeof window !== 'undefined') {
       const saved = localStorage.getItem(`custom-names-${projectId}`);
-      return saved ? JSON.parse(saved) : {};
+      if (saved) {
+        try {
+          setCustomNames(JSON.parse(saved));
+        } catch (e) {
+          console.error('Error loading custom names:', e);
+          setCustomNames({});
+        }
+      } else {
+        setCustomNames({});
+      }
     }
-    return {};
-  });
+  }, [projectId]);
 
   const handleAskChat = (selectedText: string) => {
     localStorage.setItem('chat_question', `Explique melhor: "${selectedText}"`);
@@ -678,16 +689,23 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <button
-                          onClick={(e) => e.stopPropagation()}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                          }}
                           className="p-2 hover:bg-gray-200 rounded-lg transition-opacity"
                         >
                           <MoreVertical className="w-5 h-5 text-gray-600" />
                         </button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuContent
+                        align="end"
+                        className="w-48"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation();
+                          onSelect={(e) => {
+                            e.preventDefault();
                             setRenamingContent({ id: content.id, currentName: content.title, type: content.type });
                             setNewContentName(content.title);
                           }}
@@ -697,8 +715,8 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation();
+                          onSelect={(e) => {
+                            e.preventDefault();
                             handleDeleteContent(content);
                           }}
                           className="text-red-600 focus:text-red-600"
