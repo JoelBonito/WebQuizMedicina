@@ -458,8 +458,7 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
-                whileHover={{ scale: 1.02 }}
-                className="glass-hover glass-dark rounded-2xl p-4 border border-gray-200"
+                className="glass-hover glass-dark rounded-2xl p-4 border border-gray-200 relative"
               >
                 <div className="flex items-start gap-3">
                   {source.status === 'ready' && (
@@ -512,48 +511,49 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
                       )}
                     </div>
                   </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 rounded-lg"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                        }}
+                  <div className="relative z-10">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 rounded-lg relative z-10"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                          }}
+                        >
+                          <MoreVertical className="w-4 h-4 text-gray-600" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent
+                        align="end"
+                        className="w-48"
+                        onClick={(e) => e.stopPropagation()}
                       >
-                        <MoreVertical className="w-4 h-4 text-gray-600" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent
-                      align="end"
-                      className="w-48"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <DropdownMenuItem
-                        onSelect={(e) => {
-                          e.preventDefault();
-                          setRenamingSource({ id: source.id, currentName: source.name });
-                          setNewSourceName(source.name);
-                        }}
-                      >
-                        <Edit className="w-4 h-4 mr-2" />
-                        Renomear
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onSelect={(e) => {
-                          e.preventDefault();
-                          setDeletingSource({ id: source.id, name: source.name });
-                        }}
-                        className="text-red-600 focus:text-red-600"
-                      >
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        Deletar
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                        <DropdownMenuItem
+                          onSelect={(e) => {
+                            e.preventDefault();
+                            setRenamingSource({ id: source.id, currentName: source.name });
+                            setNewSourceName(source.name);
+                          }}
+                        >
+                          <Edit className="w-4 h-4 mr-2" />
+                          Renomear
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onSelect={(e) => {
+                            e.preventDefault();
+                            setDeletingSource({ id: source.id, name: source.name });
+                          }}
+                          className="text-red-600 focus:text-red-600"
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Deletar
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </div>
               </motion.div>
             ))}
