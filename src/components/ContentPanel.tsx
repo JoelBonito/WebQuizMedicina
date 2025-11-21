@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
+import { Input } from "./ui/input";
 import {
   HelpCircle,
   Layers,
@@ -166,6 +167,13 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
   const [quizDifficulty, setQuizDifficulty] = useState<'todos' | 'fácil' | 'médio' | 'difícil'>('todos');
   const [flashcardDifficulty, setFlashcardDifficulty] = useState<'todos' | 'fácil' | 'médio' | 'difícil'>('todos');
 
+  // Rename dialog state
+  const [renamingContent, setRenamingContent] = useState<{ id: string; currentName: string; type: string } | null>(null);
+  const [newContentName, setNewContentName] = useState<string>('');
+
+  // Store custom names for quiz/flashcards (visualization only)
+  const [customNames, setCustomNames] = useState<Record<string, string>>({});
+
   const handleAskChat = (selectedText: string) => {
     localStorage.setItem('chat_question', `Explique melhor: "${selectedText}"`);
     window.dispatchEvent(new CustomEvent('ask-chat', { detail: selectedText }));
@@ -214,10 +222,11 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
     Object.entries(questionsBySession).forEach(([sessionId, sessionQuestions]) => {
       const mostRecent = sessionQuestions[0];
       const difficulty = getDifficultyLevel(sessionQuestions);
+      const contentId = `quiz-${sessionId}`;
       newContent.push({
-        id: `quiz-${sessionId}`,
+        id: contentId,
         type: 'quiz',
-        title: `Quiz - ${sessionQuestions.length} questões`,
+        title: customNames[contentId] || `Quiz - ${sessionQuestions.length} questões`,
         sourceCount: selectedSourceIds.length,
         createdAt: new Date(mostRecent.created_at || new Date()),
         difficulty,
@@ -238,10 +247,11 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
     Object.entries(flashcardsBySession).forEach(([sessionId, sessionFlashcards]) => {
       const mostRecent = sessionFlashcards[0];
       const difficulty = getDifficultyLevel(sessionFlashcards);
+      const contentId = `flashcards-${sessionId}`;
       newContent.push({
-        id: `flashcards-${sessionId}`,
+        id: contentId,
         type: 'flashcards',
-        title: `Flashcards - ${sessionFlashcards.length} cards`,
+        title: customNames[contentId] || `Flashcards - ${sessionFlashcards.length} cards`,
         sourceCount: selectedSourceIds.length,
         createdAt: new Date(mostRecent.created_at || new Date()),
         difficulty,
@@ -253,7 +263,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
       newContent.push({
         id: summary.id,
         type: 'summary',
-        title: summary.titulo,
+        title: customNames[summary.id] || summary.titulo,
         sourceCount: summary.source_ids?.length || 0,
         createdAt: new Date(summary.created_at || new Date()),
       });
@@ -263,7 +273,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
     newContent.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
     setGeneratedContent(newContent);
-  }, [questions, flashcards, summaries, projectId, selectedSourceIds]);
+  }, [questions, flashcards, summaries, projectId, selectedSourceIds, customNames]);
 
   const handleGenerateContent = async (type: 'quiz' | 'flashcards' | 'summary') => {
     if (selectedSourceIds.length === 0) {
@@ -385,6 +395,42 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
     } else if (content.type === 'flashcards') {
       const sessionId = content.id.replace('flashcards-', '');
       await handleDeleteFlashcards(sessionId);
+    }
+  };
+
+  const handleRenameConfirm = async () => {
+    if (!renamingContent || !newContentName.trim()) return;
+
+    try {
+      if (renamingContent.type === 'summary') {
+        // For summaries, update in database
+        const { error } = await supabase
+          .from('summaries')
+          .update({ titulo: newContentName.trim() })
+          .eq('id', renamingContent.id);
+
+        if (error) throw error;
+
+        // Remove from custom names if exists
+        const newCustomNames = { ...customNames };
+        delete newCustomNames[renamingContent.id];
+        setCustomNames(newCustomNames);
+
+        toast.success("Resumo renomeado");
+      } else {
+        // For quiz/flashcards, store in local state (visualization only)
+        setCustomNames({
+          ...customNames,
+          [renamingContent.id]: newContentName.trim()
+        });
+        toast.success(renamingContent.type === 'quiz' ? "Quiz renomeado" : "Flashcards renomeados");
+      }
+
+      setRenamingContent(null);
+      setNewContentName('');
+    } catch (error) {
+      console.error('Error renaming content:', error);
+      toast.error("Erro ao renomear");
     }
   };
 
@@ -626,21 +672,16 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
                         </button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-48">
-                        {/* TODO: Implementar renomear para quiz/flashcards (requer migration) */}
-                        {content.type === 'summary' && (
-                          <>
-                            <DropdownMenuItem
-                              onClick={() => {
-                                // TODO: Implementar renomear summary
-                                toast.info("Funcionalidade de renomear em desenvolvimento");
-                              }}
-                            >
-                              <Edit className="w-4 h-4 mr-2" />
-                              Renomear
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                          </>
-                        )}
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setRenamingContent({ id: content.id, currentName: content.title, type: content.type });
+                            setNewContentName(content.title);
+                          }}
+                        >
+                          <Edit className="w-4 h-4 mr-2" />
+                          Renomear
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
                         <DropdownMenuItem
                           onClick={() => {
                             handleDeleteContent(content);
@@ -744,6 +785,57 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
             <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 md:p-6 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-6">
               <DifficultiesPanel projectId={projectId} isFullscreenMode={true} />
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Rename Dialog */}
+      <Dialog open={renamingContent !== null} onOpenChange={(open) => {
+        if (!open) {
+          setRenamingContent(null);
+          setNewContentName('');
+        }
+      }}>
+        <DialogContent className="rounded-3xl max-w-md">
+          <DialogTitle className="text-xl font-semibold text-gray-900">
+            Renomear {renamingContent?.type === 'quiz' ? 'Quiz' : renamingContent?.type === 'flashcards' ? 'Flashcards' : 'Resumo'}
+          </DialogTitle>
+          <DialogDescription className="text-sm text-gray-600">
+            Digite o novo nome para "{renamingContent?.currentName}"
+          </DialogDescription>
+          <div className="py-4">
+            <Input
+              type="text"
+              value={newContentName}
+              onChange={(e) => setNewContentName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleRenameConfirm();
+                }
+              }}
+              placeholder="Novo nome..."
+              className="w-full rounded-xl"
+              autoFocus
+            />
+          </div>
+          <div className="flex gap-3 justify-end">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setRenamingContent(null);
+                setNewContentName('');
+              }}
+              className="rounded-xl border-gray-300 hover:bg-gray-50 text-gray-700"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleRenameConfirm}
+              disabled={!newContentName.trim()}
+              className="rounded-xl bg-[#0891B2] hover:bg-[#0891B2]/90"
+            >
+              Salvar
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
