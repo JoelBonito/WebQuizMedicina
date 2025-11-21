@@ -278,13 +278,13 @@ serve(async (req) => {
       console.log(`${formatBatchProgress(batchNum, totalBatches)} Generating ${batchCount} questions...`);
 
       // Optimized prompt - removed verbose JSON formatting instructions (JSON mode handles this)
-      // Context is sent only ONCE per batch (not repeated if we implement caching later)
+      // Context is sent in EVERY batch to ensure all questions have proper medical content
       const prompt = `Você é um professor especialista em medicina. Analise o conteúdo e gere ${batchCount} perguntas variadas de alta qualidade.
 
-${i === 0 ? `CONTEÚDO:
+CONTEÚDO:
 ${combinedContent}
 
-` : ''}TIPOS: multipla_escolha (4 opções A-D), verdadeiro_falso (2 opções: Verdadeiro/Falso), citar (4 opções), completar (4 opções), caso_clinico (cenário + 4 opções).
+TIPOS: multipla_escolha (4 opções A-D), verdadeiro_falso (2 opções: Verdadeiro/Falso), citar (4 opções), completar (4 opções), caso_clinico (cenário + 4 opções).
 
 REGRAS:
 - Distribua entre TODOS os 5 tipos (mínimo 1 de cada)
