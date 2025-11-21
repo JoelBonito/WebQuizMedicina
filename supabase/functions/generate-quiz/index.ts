@@ -98,7 +98,7 @@ serve(async (req) => {
 
     if (sources.length === 0) throw new Error("No sources found");
 
-    // 5. Preparação do Contexto (Embeddings ou Concatenação)
+    // 5. Preparação do Contexto
     const sourceIds = sources.map(s => s.id);
     let useSemanticSearch = await hasAnyEmbeddings(supabaseClient, sourceIds);
     let combinedContent = "";
@@ -133,7 +133,7 @@ serve(async (req) => {
 
     if (!combinedContent.trim()) throw new Error("No content available");
 
-    // 6. Geração do Quiz com Prompt OTIMIZADO
+    // 6. Geração do Quiz com Prompt AJUSTADO (Justificativa Curta e Citada)
     const batchSizes = calculateBatchSizes('QUIZ_MULTIPLE_CHOICE', count);
     const sessionId = crypto.randomUUID();
     const allQuestions: any[] = [];
@@ -142,37 +142,38 @@ serve(async (req) => {
       const batchCount = batchSizes[i];
 
       const prompt = `
-Você é um professor universitário de MEDICINA criando uma prova para estudantes.
-Gere ${batchCount} questões de alto nível baseadas no conteúdo abaixo.
+Você é um professor universitário de MEDICINA criando uma prova.
+Gere ${batchCount} questões baseadas no CONTEÚDO abaixo.
 
 CONTEÚDO BASE:
 ${combinedContent.substring(0, 30000)}
 
-TIPOS DE QUESTÃO (Diversifique):
-1. "multipla_escolha": Pergunta direta sobre conceitos.
-2. "verdadeiro_falso": Afirmação para julgar (Opções: [Verdadeiro, Falso]).
-3. "citar": "Qual destes é um exemplo de..." (4 opções, apenas 1 correta).
-4. "caso_clinico": Cenário clínico curto + pergunta de conduta/diagnóstico.
+TIPOS DE QUESTÃO (Varie):
+1. "multipla_escolha": Conceitos diretos.
+2. "verdadeiro_falso": Julgue a afirmação (Opções: [Verdadeiro, Falso]).
+3. "citar": "Qual destes é um exemplo de..." (4 opções).
+4. "caso_clinico": Cenário curto + conduta.
 
-REGRAS DE OURO (FORMATO):
+REGRAS DE FORMATO (Rígidas):
 - TODAS as questões devem ter APENAS UMA alternativa correta.
-- NUNCA use "Cite 3 exemplos" ou "Selecione todas as corretas".
 - Opções devem ser sempre arrays de strings: ["A) Texto", "B) Texto"...] ou ["Verdadeiro", "Falso"].
 
-REGRAS DE CONTEÚDO (PEDAGÓGICO):
-- JUSTIFICATIVA OBRIGATÓRIA: Não diga apenas "A resposta é A". Explique a FISIOPATOLOGIA, o MECANISMO ou o CRITÉRIO DIAGNÓSTICO. Se possível, explique brevemente por que os distratores principais estão errados.
-- DICA ÚTIL: Uma pista clínica sutil (ex: "Lembre-se da tríade de Virchow") que ajude o raciocínio sem entregar a resposta de bandeja.
+REGRAS PARA A JUSTIFICATIVA (Obrigatório):
+Quero uma justificativa CURTA que valide a resposta certa usando o texto fornecido.
+1. CITE A FONTE: Comece frases com "Segundo o texto...", "O material indica que...", "Conforme a fonte...".
+2. TRADUZA: Se o conteúdo base estiver em inglês ou outro idioma, a justificativa DEVE ser escrita inteiramente em PORTUGUÊS DO BRASIL.
+3. CONCISÃO: Máximo de 2 a 3 frases. Vá direto ao ponto do porquê aquela opção é a correta baseada na leitura.
 
 FORMATO JSON:
 {
   "perguntas": [
     {
       "tipo": "multipla_escolha",
-      "pergunta": "Texto da pergunta...",
-      "opcoes": ["Opção A", "Opção B", "Opção C", "Opção D"],
-      "resposta_correta": "Opção A", 
-      "justificativa": "A resposta A é correta pois [EXPLICAÇÃO DETALHADA DO CONCEITO]. Já a B está incorreta porque...",
-      "dica": "Pense na relação entre X e Y.",
+      "pergunta": "Qual o tratamento de primeira linha para...",
+      "opcoes": ["A) Opção A", "B) Opção B", "C) Opção C", "D) Opção D"],
+      "resposta_correta": "A", 
+      "justificativa": "Conforme o texto, a Opção A é a primeira linha devido à sua eficácia comprovada na redução da mortalidade. O material destaca que as outras drogas só devem ser usadas se houver contraindicação.",
+      "dica": "Pense na droga que reduz a mortalidade a longo prazo.",
       "dificuldade": "médio",
       "topico": "Cardiologia"
     }
@@ -192,9 +193,7 @@ FORMATO JSON:
     const validTypes = ["multipla_escolha", "verdadeiro_falso", "citar", "caso_clinico", "completar"];
     
     const questionsToInsert = allQuestions.map((q: any) => {
-      // Garante que a resposta correta esteja limpa
       let respostaLimpa = sanitizeString(q.resposta_correta || "");
-      
       const tipo = validTypes.includes(q.tipo) ? q.tipo : "multipla_escolha";
 
       return {
@@ -219,7 +218,7 @@ FORMATO JSON:
 
     if (insertError) throw insertError;
 
-    // Log de Auditoria (ignora erro se falhar)
+    // Log de Auditoria
     try {
       await getAuditLogger().logAIGeneration(
         AuditEventType.AI_QUIZ_GENERATED,
