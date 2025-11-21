@@ -200,7 +200,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
 
   const { questions, loading: loadingQuiz, generating: generatingQuiz, generateQuiz, refetch: fetchQuestions } = useQuestions(projectId);
   const { flashcards, loading: loadingFlashcards, generating: generatingFlashcards, generateFlashcards, refetch: fetchFlashcards } = useFlashcards(projectId);
-  const { summaries, loading: loadingSummaries, generating: generatingSummary, generateSummary, deleteSummary } = useSummaries(projectId);
+  const { summaries, loading: loadingSummaries, generating: generatingSummary, generateSummary, deleteSummary, refetch: fetchSummaries } = useSummaries(projectId);
   const { difficulties } = useDifficulties(projectId);
 
   // Helper function to determine difficulty level
@@ -298,6 +298,21 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
       localStorage.setItem(`custom-names-${projectId}`, JSON.stringify(customNames));
     }
   }, [customNames, projectId]);
+
+  // Listen for content generation events from DifficultiesPanel
+  useEffect(() => {
+    const handleContentGenerated = () => {
+      fetchQuestions();
+      fetchFlashcards();
+      fetchSummaries();
+    };
+
+    window.addEventListener('content-generated', handleContentGenerated);
+
+    return () => {
+      window.removeEventListener('content-generated', handleContentGenerated);
+    };
+  }, [fetchQuestions, fetchFlashcards, fetchSummaries]);
 
   const handleGenerateContent = async (type: 'quiz' | 'flashcards' | 'summary') => {
     if (selectedSourceIds.length === 0) {
