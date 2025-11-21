@@ -448,7 +448,8 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
                     ${card.bgColor}
                     relative p-5 rounded-2xl w-full
                     flex flex-col items-start gap-2
-                    shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_15px_40px_rgb(0,0,0,0.2)]
+                    shadow-[0_8px_30px_rgb(0,0,0,0.15),inset_0_1px_0_rgba(255,255,255,0.4),inset_0_-1px_0_rgba(0,0,0,0.2)]
+                    hover:shadow-[0_15px_40px_rgb(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.5),inset_0_-1px_0_rgba(0,0,0,0.3)]
                     transition-all duration-300
                     hover:scale-[1.03]
                     active:scale-[0.98]
@@ -456,22 +457,23 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
                     group
                     overflow-hidden
                     backdrop-blur-xl
-                    border-2 border-white/30
+                    border-2 border-white/40
                     before:absolute before:inset-0
-                    before:bg-gradient-to-br before:from-white/30 before:via-white/10 before:to-transparent
-                    before:opacity-60
+                    before:bg-[linear-gradient(135deg,rgba(255,255,255,0.4)_0%,rgba(255,255,255,0)_30%,rgba(255,255,255,0)_70%,rgba(255,255,255,0.3)_100%)]
+                    before:opacity-70
                     after:absolute after:inset-0
-                    after:bg-gradient-to-tr after:from-transparent after:via-white/20 after:to-white/40
+                    after:bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.6),transparent_60%)]
                     after:opacity-0 hover:after:opacity-100
                     after:transition-opacity after:duration-500
-                    after:blur-xl
+                    [box-shadow:0_2px_4px_rgba(255,255,255,0.3)_inset,0_8px_30px_rgba(0,0,0,0.15)]
+                    hover:[box-shadow:0_2px_8px_rgba(255,255,255,0.4)_inset,0_15px_40px_rgba(0,0,0,0.25)]
                   `}
                 >
                   {/* Ícone */}
-                  <CardIcon className={`w-7 h-7 ${card.iconColor} relative z-10 drop-shadow-lg`} />
+                  <CardIcon className={`w-7 h-7 ${card.iconColor} relative z-10 drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]`} />
 
                   {/* Título */}
-                  <span className={`font-semibold text-base ${card.textColor} relative z-10 drop-shadow-md`}>
+                  <span className={`font-semibold text-base ${card.textColor} relative z-10 drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]`}>
                     {card.title}
                   </span>
 
@@ -488,8 +490,8 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
                   const diffLevel = currentDifficulty === 'todos' ? 'misto' : (currentDifficulty as 'fácil' | 'médio' | 'difícil');
                   const DiffIcon = getDifficultyIcon(diffLevel);
                   return (
-                    <Badge className={`absolute top-3 right-14 text-xs px-2.5 py-1 rounded-lg font-medium shadow-sm flex items-center gap-1 ${getDifficultyBadgeStyle(diffLevel)}`}>
-                      <DiffIcon className="w-3 h-3" />
+                    <Badge className={`absolute top-3 right-14 text-[10px] px-2 py-0.5 rounded-lg font-medium shadow-sm flex items-center gap-1 ${getDifficultyBadgeStyle(diffLevel)}`}>
+                      <DiffIcon className="w-2.5 h-2.5" />
                       {currentDifficulty === 'todos' ? 'misto' : currentDifficulty}
                     </Badge>
                   );
@@ -501,9 +503,10 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
                     <DropdownMenuTrigger asChild>
                       <button
                         onClick={(e) => e.stopPropagation()}
-                        className="absolute top-3 right-3 p-2 rounded-full bg-white/90 hover:bg-white backdrop-blur-md shadow-md hover:shadow-lg transition-all z-10 border border-white/50 hover:scale-110"
+                        className="absolute top-3 right-3 p-1.5 rounded-lg bg-white/80 hover:bg-white/95 backdrop-blur-sm shadow-sm hover:shadow-md transition-all z-10 border border-white/60 hover:scale-105 group/edit"
+                        aria-label="Editar dificuldade"
                       >
-                        <Settings className="w-4 h-4 text-gray-600" />
+                        <Edit className="w-4 h-4 text-gray-600 group-hover/edit:text-gray-800" />
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48">
@@ -539,10 +542,10 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
           <Button
             onClick={() => setDifficultiesOpen(true)}
             size="sm"
-            className="rounded-xl flex items-center gap-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_15px_40px_rgba(251,146,60,0.4)] transition-all duration-300 backdrop-blur-xl border-2 border-white/30 relative overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/30 before:via-white/10 before:to-transparent before:opacity-60 after:absolute after:inset-0 after:bg-gradient-to-tr after:from-transparent after:via-white/20 after:to-white/40 after:opacity-0 hover:after:opacity-100 after:transition-opacity after:duration-500 hover:scale-[1.05]"
+            className="rounded-xl flex items-center gap-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-[0_8px_30px_rgb(0,0,0,0.15),inset_0_1px_0_rgba(255,255,255,0.4),inset_0_-1px_0_rgba(0,0,0,0.2)] hover:shadow-[0_15px_40px_rgba(251,146,60,0.4),inset_0_1px_0_rgba(255,255,255,0.5),inset_0_-1px_0_rgba(0,0,0,0.3)] transition-all duration-300 backdrop-blur-xl border-2 border-white/40 relative overflow-hidden before:absolute before:inset-0 before:bg-[linear-gradient(135deg,rgba(255,255,255,0.4)_0%,rgba(255,255,255,0)_30%,rgba(255,255,255,0)_70%,rgba(255,255,255,0.3)_100%)] before:opacity-70 after:absolute after:inset-0 after:bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.6),transparent_60%)] after:opacity-0 hover:after:opacity-100 after:transition-opacity after:duration-500 hover:scale-[1.05] [box-shadow:0_2px_4px_rgba(255,255,255,0.3)_inset,0_8px_30px_rgba(0,0,0,0.15)] hover:[box-shadow:0_2px_8px_rgba(255,255,255,0.4)_inset,0_15px_40px_rgba(251,146,60,0.4)]"
           >
-            <TrendingUp className="w-4 h-4 relative z-10 drop-shadow-lg" />
-            <span className="relative z-10 drop-shadow-md">Análise das Dificuldades</span>
+            <TrendingUp className="w-4 h-4 relative z-10 drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]" />
+            <span className="relative z-10 drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]">Análise das Dificuldades</span>
           </Button>
         </div>
 
