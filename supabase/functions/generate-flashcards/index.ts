@@ -254,7 +254,8 @@ FORMATO DE SAÍDA (JSON estrito):
 
 Retorne APENAS o JSON, sem texto adicional antes ou depois.`;
 
-      const response = await callGemini(prompt, 'gemini-2.5-flash', SAFE_OUTPUT_LIMIT);
+      // Enable JSON mode to save tokens and ensure valid JSON output
+      const response = await callGemini(prompt, 'gemini-2.5-flash', SAFE_OUTPUT_LIMIT, true);
       const parsed = parseJsonFromResponse(response);
 
       if (!parsed.flashcards || !Array.isArray(parsed.flashcards)) {

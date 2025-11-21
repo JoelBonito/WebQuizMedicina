@@ -183,8 +183,15 @@ serve(async (req) => {
       // ⚠️ PHASE 0: Fallback to truncated concatenation (legacy method)
       console.warn('⚠️ [PHASE 0] No embeddings found. Using fallback method (truncated concatenation)');
 
-      const MAX_SOURCES = 3;
-      const MAX_CONTENT_LENGTH = 40000; // ~10k tokens
+      // OPTIMIZATION: Reduce fallback context from 40k to 20k chars (~5k tokens)
+      // If question is very short (<20 chars), likely a greeting - use minimal context
+      const isShortMessage = message.trim().length < 20;
+      const MAX_SOURCES = isShortMessage ? 1 : 3;
+      const MAX_CONTENT_LENGTH = isShortMessage ? 5000 : 20000; // Reduced from 40000 to save tokens
+
+      if (isShortMessage) {
+        console.log('💬 [PHASE 0] Short message detected, using minimal context');
+      }
 
       let usedSources = sources;
       if (sources.length > MAX_SOURCES) {
