@@ -525,7 +525,8 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48">
                       <DropdownMenuItem
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           setRenamingSource({ id: source.id, currentName: source.name });
                           setNewSourceName(source.name);
                         }}
@@ -535,7 +536,8 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           setDeletingSource({ id: source.id, name: source.name });
                         }}
                         className="text-red-600 focus:text-red-600"
