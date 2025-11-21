@@ -28,24 +28,29 @@
       // PWA Plugin for Service Worker
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
+        includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
         manifest: {
           name: 'WebQuiz Medicina',
-          short_name: 'WebQuiz',
-          description: 'Plataforma de estudos médicos com IA',
-          theme_color: '#0891B2',
+          short_name: 'QuizMed',
+          description: 'Seu assistente de estudos para medicina',
+          theme_color: '#ffffff',
           background_color: '#ffffff',
           display: 'standalone',
+          scope: '/',
+          start_url: '/',
+          orientation: 'portrait',
           icons: [
             {
-              src: 'icon-192x192.png',
+              src: 'pwa-192x192.png',
               sizes: '192x192',
-              type: 'image/png'
+              type: 'image/png',
+              purpose: 'any maskable'
             },
             {
-              src: 'icon-512x512.png',
+              src: 'pwa-512x512.png',
               sizes: '512x512',
-              type: 'image/png'
+              type: 'image/png',
+              purpose: 'any maskable'
             }
           ]
         },
