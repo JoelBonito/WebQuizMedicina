@@ -149,17 +149,17 @@ CONTEÚDO:
 ${combinedContent.substring(0, 30000)}
 
 DISTRIBUIÇÃO OBRIGATÓRIA DOS TIPOS DE QUESTÃO:
-Tente balancear entre os seguintes 4 tipos (pelo menos uma de cada se possível):
+Tente balancear entre os seguintes 4 tipos:
 1. "multipla_escolha": Pergunta padrão de conhecimento (A, B, C, D).
 2. "verdadeiro_falso": Uma afirmação onde as opções são apenas "Verdadeiro" e "Falso".
 3. "citar": Pergunta do tipo "Qual destes é um exemplo de..." ou "Complete a frase...". (Use 4 opções, apenas 1 correta).
 4. "caso_clinico": Um pequeno cenário clínico seguido de uma pergunta sobre diagnóstico ou conduta. (4 opções).
 
-REGRAS DE OURO (PARA EVITAR ERROS NO APP):
-- TODAS as questões devem ser de ESCOLHA ÚNICA (apenas uma alternativa correta).
-- NUNCA peça "Cite 3 exemplos" ou "Selecione todas as corretas".
-- Para "citar", pergunte: "Qual das alternativas abaixo é um sintoma de X?".
-- Para "verdadeiro_falso", o array de opções deve ter EXATAMENTE ["Verdadeiro", "Falso"] ou ["Falso", "Verdadeiro"].
+REGRAS ESSENCIAIS:
+- TODAS as questões devem ter APENAS UMA alternativa correta.
+- NUNCA peça "Cite 3 exemplos" ou "Selecione todas as corretas" (o app não suporta).
+- INCLUA SEMPRE UMA DICA: Uma pequena ajuda pedagógica para o aluno que não revele a resposta direta.
+- INCLUA JUSTIFICATIVA: Explique detalhadamente porque a resposta correta é a certa.
 
 FORMATO JSON ESPERADO:
 {
@@ -170,6 +170,7 @@ FORMATO JSON ESPERADO:
       "opcoes": ["Opção A", "Opção B", "Opção C", "Opção D"],
       "resposta_correta": "Opção A",
       "justificativa": "Explicação didática...",
+      "dica": "Pense na fisiopatologia da doença...",
       "dificuldade": "fácil" | "médio" | "difícil",
       "topico": "Cardiologia"
     }
@@ -189,14 +190,9 @@ FORMATO JSON ESPERADO:
     const validTypes = ["multipla_escolha", "verdadeiro_falso", "citar", "caso_clinico", "completar"];
     
     const questionsToInsert = allQuestions.map((q: any) => {
-      // Limpeza especial para resposta correta
+      // Limpeza da resposta correta
       let respostaLimpa = sanitizeString(q.resposta_correta || "");
       
-      // Se for Verdadeiro/Falso, mantém a palavra inteira. Se for A/B/C/D, pega só a letra.
-      // Mas para garantir compatibilidade com o código de comparação anterior (normalizeAnswer), 
-      // vamos tentar manter o padrão que o frontend espera.
-      
-      // Lógica de fallback para tipo
       const tipo = validTypes.includes(q.tipo) ? q.tipo : "multipla_escolha";
 
       return {
@@ -208,7 +204,7 @@ FORMATO JSON ESPERADO:
         opcoes: Array.isArray(q.opcoes) ? q.opcoes.map((opt: string) => sanitizeString(opt)) : [],
         resposta_correta: respostaLimpa, 
         justificativa: sanitizeString(q.justificativa || ""),
-        dica: q.dica ? sanitizeString(q.dica) : null,
+        dica: q.dica ? sanitizeString(q.dica) : null, // Garante que a dica seja salva
         topico: q.topico ? sanitizeString(q.topico) : "Geral",
         dificuldade: q.dificuldade || "médio",
       };
