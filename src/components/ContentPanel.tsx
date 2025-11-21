@@ -488,28 +488,28 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
                   )}
                 </button>
 
-                {/* Badge de dificuldade ao lado do settings */}
+                {/* Badge de dificuldade - canto inferior direito sem fundo */}
                 {showSettings && (() => {
                   const diffLevel = currentDifficulty === 'todos' ? 'misto' : (currentDifficulty as 'fácil' | 'médio' | 'difícil');
                   const DiffIcon = getDifficultyIcon(diffLevel);
                   return (
-                    <Badge className={`absolute top-3 right-14 text-[10px] px-2 py-0.5 rounded-lg font-medium shadow-sm flex items-center gap-1 ${getDifficultyBadgeStyle(diffLevel)}`}>
+                    <div className="absolute bottom-3 right-3 text-[10px] font-bold text-white/90 flex items-center gap-1 z-10 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
                       <DiffIcon className="w-2.5 h-2.5" />
-                      {currentDifficulty === 'todos' ? 'misto' : currentDifficulty}
-                    </Badge>
+                      <span>{currentDifficulty === 'todos' ? 'misto' : currentDifficulty}</span>
+                    </div>
                   );
                 })()}
 
-                {/* Botão de configuração (apenas para Quiz e Flashcards) */}
+                {/* Botão de configuração - sem fundo */}
                 {showSettings && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <button
                         onClick={(e) => e.stopPropagation()}
-                        className="absolute top-3 right-3 p-1.5 rounded-lg bg-white/80 hover:bg-white/95 backdrop-blur-sm shadow-sm hover:shadow-md transition-all z-10 border border-white/60 hover:scale-105 group/edit"
+                        className="absolute top-3 right-3 p-1.5 rounded-lg hover:scale-110 transition-all z-10 group/edit"
                         aria-label="Editar dificuldade"
                       >
-                        <Edit className="w-4 h-4 text-gray-600 group-hover/edit:text-gray-800" />
+                        <Edit className="w-4 h-4 text-white/90 group-hover/edit:text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48">
