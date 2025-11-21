@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useProfile } from '../hooks/useProfile';
-import { useTokenUsage, formatCost, formatTokens, getOperationLabel } from '../hooks/useTokenUsage';
+import { useTokenUsage, formatCostBRL, formatTokens, getOperationLabel } from '../hooks/useTokenUsage';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -209,7 +209,7 @@ export function AdminDashboard() {
             <Card className="glass-hover border-gray-200 transition-all duration-300">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-gray-600">
-                  Custo Total (USD)
+                  Custo Total (BRL)
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -219,7 +219,7 @@ export function AdminDashboard() {
                   </div>
                   <div>
                     <p className="text-3xl font-bold text-gray-900">
-                      {formatCost(summary.total_cost_usd || 0)}
+                      {formatCostBRL(summary.total_cost_brl || 0)}
                     </p>
                     <p className="text-xs text-gray-500 mt-1">
                       Operação mais usada: {getOperationLabel(summary.most_used_operation || '')}
@@ -270,7 +270,7 @@ export function AdminDashboard() {
                       label: 'Total Tokens',
                       color: 'hsl(var(--chart-1))',
                     },
-                    total_cost_usd: {
+                    total_cost_brl: {
                       label: 'Custo (USD)',
                       color: 'hsl(var(--chart-2))',
                     },
@@ -312,7 +312,7 @@ export function AdminDashboard() {
                                   <span className="font-medium">Tokens:</span> {formatTokens(data.total_tokens)}
                                 </p>
                                 <p className="text-xs text-gray-700">
-                                  <span className="font-medium">Custo:</span> {formatCost(data.total_cost_usd)}
+                                  <span className="font-medium">Custo:</span> {formatCostBRL(data.total_cost_brl)}
                                 </p>
                                 <p className="text-xs text-gray-700">
                                   <span className="font-medium">Usuários:</span> {data.unique_users}
@@ -334,7 +334,7 @@ export function AdminDashboard() {
                       <Line
                         yAxisId="right"
                         type="monotone"
-                        dataKey="total_cost_usd"
+                        dataKey="total_cost_brl"
                         stroke="hsl(var(--chart-2))"
                         strokeWidth={2}
                         dot={{ fill: 'hsl(var(--chart-2))', r: 4 }}
@@ -391,7 +391,7 @@ export function AdminDashboard() {
                           {formatTokens(user.total_tokens)}
                         </TableCell>
                         <TableCell className="text-right font-semibold text-green-700">
-                          {formatCost(user.total_cost_usd)}
+                          {formatCostBRL(user.total_cost_brl)}
                         </TableCell>
                         <TableCell className="text-center">
                           <div className="flex flex-wrap gap-1 justify-center">
@@ -438,7 +438,7 @@ export function AdminDashboard() {
                                         {formatTokens(project.total_tokens)}
                                       </TableCell>
                                       <TableCell className="text-right text-sm font-medium text-green-700">
-                                        {formatCost(project.total_cost_usd)}
+                                        {formatCostBRL(project.total_cost_brl)}
                                       </TableCell>
                                       <TableCell className="text-center">
                                         <div className="flex flex-wrap gap-1 justify-center">
