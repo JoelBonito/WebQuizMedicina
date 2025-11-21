@@ -29,6 +29,8 @@ import {
   ChevronRight,
   Loader2,
   AlertCircle,
+  Search,
+  FolderKanban,
 } from 'lucide-react';
 import { Badge } from './ui/badge';
 import { Alert, AlertDescription } from './ui/alert';
@@ -40,7 +42,8 @@ export function AdminDashboard() {
   );
   const [endDate, setEndDate] = useState<Date>(new Date());
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
-  const [selectedUserFilter, setSelectedUserFilter] = useState<string>('');
+  const [loadingProjects, setLoadingProjects] = useState<boolean>(false);
+  const [searchTerm, setSearchTerm] = useState<string>('');
 
   const {
     userUsage,
@@ -75,8 +78,22 @@ export function AdminDashboard() {
     }
 
     setExpandedUserId(userId);
-    await fetchProjectUsage(userId, startDate, endDate);
+    setLoadingProjects(true);
+    try {
+      await fetchProjectUsage(userId, startDate, endDate);
+    } finally {
+      setLoadingProjects(false);
+    }
   };
+
+  // Filter users based on search term
+  const filteredUserUsage = userUsage.filter((user) => {
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      user.display_name?.toLowerCase().includes(searchLower) ||
+      user.user_email?.toLowerCase().includes(searchLower)
+    );
+  });
 
   // Format date for input
   const formatDateForInput = (date: Date) => {
@@ -352,8 +369,30 @@ export function AdminDashboard() {
         {!loading && userUsage.length > 0 && (
           <Card className="glass border-gray-200">
             <CardHeader>
-              <CardTitle className="text-lg">Consumo por Usuário</CardTitle>
-              <CardDescription>Clique em um usuário para ver detalhes por projeto</CardDescription>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Users className="w-5 h-5 text-[#0891B2]" />
+                Consumo por Usuário
+                <Badge variant="outline" className="ml-auto text-xs">
+                  {userUsage.length} usuários
+                </Badge>
+              </CardTitle>
+              <CardDescription className="flex items-center gap-2 text-sm">
+                <span className="inline-flex items-center gap-1">
+                  <ChevronRight className="w-3 h-3" />
+                  Clique em um usuário para ver breakdown por projeto/matéria
+                </span>
+              </CardDescription>
+
+              {/* Search Bar */}
+              <div className="mt-4 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input
+                  placeholder="Buscar por nome ou email..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
             </CardHeader>
             <CardContent>
               <Table>
@@ -367,19 +406,34 @@ export function AdminDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {userUsage.map((user) => (
+                  {filteredUserUsage.length === 0 && searchTerm && (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                        <div className="flex flex-col items-center gap-2">
+                          <Search className="w-8 h-8 text-gray-400" />
+                          <p>Nenhum usuário encontrado para "{searchTerm}"</p>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {filteredUserUsage.map((user) => (
                     <>
                       <TableRow
                         key={user.user_id}
-                        className="cursor-pointer hover:bg-gray-50 transition-colors"
+                        className="cursor-pointer hover:bg-blue-50/50 transition-all duration-200 border-l-4 border-l-transparent hover:border-l-[#0891B2]"
                         onClick={() => handleUserExpand(user.user_id)}
                       >
                         <TableCell>
-                          {expandedUserId === user.user_id ? (
-                            <ChevronDown className="w-4 h-4 text-gray-500" />
-                          ) : (
-                            <ChevronRight className="w-4 h-4 text-gray-500" />
-                          )}
+                          <div className="flex items-center gap-1">
+                            {expandedUserId === user.user_id ? (
+                              <ChevronDown className="w-4 h-4 text-[#0891B2] font-bold" />
+                            ) : (
+                              <ChevronRight className="w-4 h-4 text-gray-400" />
+                            )}
+                            {expandedUserId === user.user_id && loadingProjects && (
+                              <Loader2 className="w-3 h-3 animate-spin text-[#0891B2]" />
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell>
                           <div>
@@ -412,13 +466,35 @@ export function AdminDashboard() {
                       </TableRow>
 
                       {/* Expanded Project Details */}
-                      {expandedUserId === user.user_id && projectUsage.length > 0 && (
+                      {expandedUserId === user.user_id && (
                         <TableRow>
-                          <TableCell colSpan={5} className="bg-gray-50 p-0">
-                            <div className="p-4">
-                              <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                                📊 Breakdown por Projeto
-                              </h4>
+                          <TableCell colSpan={5} className="bg-gradient-to-r from-blue-50/30 to-green-50/30 p-0 border-l-4 border-l-[#0891B2]">
+                            <div className="p-6">
+                              <div className="flex items-center justify-between mb-4">
+                                <h4 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                                  <FolderKanban className="w-5 h-5 text-[#0891B2]" />
+                                  Consumo por Projeto / Matéria
+                                </h4>
+                                <Badge className="bg-[#0891B2] text-white">
+                                  {projectUsage.length} projetos
+                                </Badge>
+                              </div>
+
+                              {loadingProjects && (
+                                <div className="flex justify-center items-center py-8">
+                                  <Loader2 className="w-6 h-6 animate-spin text-[#0891B2]" />
+                                </div>
+                              )}
+
+                              {!loadingProjects && projectUsage.length === 0 && (
+                                <div className="text-center py-8 text-gray-500">
+                                  <FolderKanban className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                                  <p className="font-medium">Nenhum projeto com consumo registrado</p>
+                                  <p className="text-sm">Este usuário ainda não gerou conteúdo em nenhum projeto</p>
+                                </div>
+                              )}
+
+                              {!loadingProjects && projectUsage.length > 0 && (
                               <Table>
                                 <TableHeader>
                                   <TableRow>
@@ -430,14 +506,20 @@ export function AdminDashboard() {
                                 </TableHeader>
                                 <TableBody>
                                   {projectUsage.map((project) => (
-                                    <TableRow key={project.project_id}>
-                                      <TableCell className="text-sm text-gray-700">
-                                        {project.project_name}
+                                    <TableRow key={project.project_id} className="hover:bg-white/60">
+                                      <TableCell className="text-sm font-medium text-gray-900">
+                                        <div className="flex items-center gap-2">
+                                          <FolderKanban className="w-4 h-4 text-gray-400" />
+                                          {project.project_name}
+                                        </div>
                                       </TableCell>
-                                      <TableCell className="text-right text-sm font-medium">
+                                      <TableCell className="text-right text-sm font-semibold text-gray-900">
                                         {formatTokens(project.total_tokens)}
+                                        <p className="text-xs text-gray-500 font-normal">
+                                          Input: {formatTokens(project.total_input_tokens)} | Output: {formatTokens(project.total_output_tokens)}
+                                        </p>
                                       </TableCell>
-                                      <TableCell className="text-right text-sm font-medium text-green-700">
+                                      <TableCell className="text-right text-sm font-semibold text-green-700">
                                         {formatCostBRL(project.total_cost_brl)}
                                       </TableCell>
                                       <TableCell className="text-center">
@@ -449,7 +531,7 @@ export function AdminDashboard() {
                                               <Badge
                                                 key={op}
                                                 variant="outline"
-                                                className="text-xs bg-[#7CB342]/10 text-[#7CB342] border-[#7CB342]/20"
+                                                className="text-xs bg-[#7CB342]/10 text-[#7CB342] border-[#7CB342]/20 font-medium"
                                               >
                                                 {getOperationLabel(op)}: {count}
                                               </Badge>
@@ -460,6 +542,7 @@ export function AdminDashboard() {
                                   ))}
                                 </TableBody>
                               </Table>
+                              )}
                             </div>
                           </TableCell>
                         </TableRow>
