@@ -473,7 +473,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
                   `}
                 >
                   {/* Ícone */}
-                  <CardIcon className={`w-7 h-7 ${card.iconColor} relative z-10 drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]`} />
+                  <CardIcon className={`w-7 h-7 ${card.iconColor} relative z-10 drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)] mt-[-4px]`} />
 
                   {/* Título */}
                   <span className={`font-semibold text-base ${card.textColor} relative z-10 drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]`}>
