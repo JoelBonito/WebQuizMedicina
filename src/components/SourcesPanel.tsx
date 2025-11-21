@@ -455,107 +455,68 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
               {sources.map((source, index) => (
               <motion.div
                 key={source.id}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="glass-hover glass-dark rounded-2xl p-4 border border-gray-200 relative overflow-visible"
-                style={{ zIndex: 1 }}
+                transition={{ delay: index * 0.05 }}
+                className="flex items-center gap-4 p-4 rounded-xl hover:bg-gray-50 transition-colors"
               >
-                <div className="flex items-start gap-3">
-                  {source.status === 'ready' && (
-                    <Checkbox
-                      checked={selectedSources.has(source.id)}
-                      onCheckedChange={(checked) => handleSourceToggle(source.id, checked as boolean)}
-                      className="mt-1"
-                    />
-                  )}
-                  <div className="mt-1">{getFileIcon(source.type)}</div>
-                  <div className="flex-1 min-w-0">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <p className="text-sm text-gray-900 cursor-default mb-2">
-                          {truncateFileName(source.name)}
-                        </p>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>{source.name}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                    <div className="flex flex-wrap gap-2">
-                      {getStatusBadge(source.status)}
-                      {generatedCounts[source.id]?.quiz > 0 && (
-                        <Badge
-                          variant="secondary"
-                          className="rounded-lg bg-[#F0F9FF] text-[#0891B2] border-[#BAE6FD] text-xs"
-                        >
-                          <CheckCircle2 className="w-3 h-3 mr-1" />
-                          {generatedCounts[source.id].quiz} Quiz
-                        </Badge>
-                      )}
-                      {generatedCounts[source.id]?.flashcards > 0 && (
-                        <Badge
-                          variant="secondary"
-                          className="rounded-lg bg-blue-50 text-blue-700 border-blue-200 text-xs"
-                        >
-                          <CheckCircle2 className="w-3 h-3 mr-1" />
-                          {generatedCounts[source.id].flashcards} Cards
-                        </Badge>
-                      )}
-                      {generatedCounts[source.id]?.summaries > 0 && (
-                        <Badge
-                          variant="secondary"
-                          className="rounded-lg bg-[#F1F8E9] text-[#7CB342] border-[#D4E157] text-xs"
-                        >
-                          <CheckCircle2 className="w-3 h-3 mr-1" />
-                          {generatedCounts[source.id].summaries} Resumos
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                  <div className="relative z-30 pointer-events-auto">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 rounded-lg relative z-30 pointer-events-auto"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                          }}
-                        >
-                          <MoreVertical className="w-4 h-4 text-gray-600" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent
-                        align="end"
-                        className="w-48 z-[100] pointer-events-auto"
-                        onClick={(e) => e.stopPropagation()}
-                        sideOffset={5}
+                {/* Checkbox de seleção */}
+                {source.status === 'ready' && (
+                  <Checkbox
+                    checked={selectedSources.has(source.id)}
+                    onCheckedChange={(checked) => handleSourceToggle(source.id, checked as boolean)}
+                  />
+                )}
+
+                {/* Nome da fonte */}
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-medium text-gray-900 truncate">
+                    {source.name}
+                  </h3>
+                </div>
+
+                {/* Menu de ações */}
+                <div className="relative z-30 pointer-events-auto">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                        }}
+                        className="p-2 hover:bg-gray-200 rounded-lg transition-opacity"
                       >
-                        <DropdownMenuItem
-                          onSelect={(e) => {
-                            e.preventDefault();
-                            setRenamingSource({ id: source.id, currentName: source.name });
-                            setNewSourceName(source.name);
-                          }}
-                        >
-                          <Edit className="w-4 h-4 mr-2" />
-                          Renomear
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onSelect={(e) => {
-                            e.preventDefault();
-                            setDeletingSource({ id: source.id, name: source.name });
-                          }}
-                          className="text-red-600 focus:text-red-600"
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Deletar
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
+                        <MoreVertical className="w-5 h-5 text-gray-600" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                      align="end"
+                      className="w-48 z-[100] pointer-events-auto"
+                      onClick={(e) => e.stopPropagation()}
+                      sideOffset={5}
+                    >
+                      <DropdownMenuItem
+                        onSelect={(e) => {
+                          e.preventDefault();
+                          setRenamingSource({ id: source.id, currentName: source.name });
+                          setNewSourceName(source.name);
+                        }}
+                      >
+                        <Edit className="w-4 h-4 mr-2" />
+                        Renomear
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onSelect={(e) => {
+                          e.preventDefault();
+                          setDeletingSource({ id: source.id, name: source.name });
+                        }}
+                        className="text-red-600 focus:text-red-600"
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Deletar
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </motion.div>
             ))}
