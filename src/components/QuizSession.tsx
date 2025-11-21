@@ -111,7 +111,13 @@ export function QuizSession({
     setSelectedOption(option);
     setState("feedback");
 
-    const correct = option === currentQuestion.resposta_correta;
+    // Convert letter (A, B, C, D) to option text for comparison
+    const optionIndex = option.charCodeAt(0) - 65; // A=0, B=1, C=2, D=3
+    const optionText = currentQuestion.opcoes[optionIndex];
+
+    // Compare option text with correct answer (handles both letter and text formats)
+    const correct = option === currentQuestion.resposta_correta ||
+                    optionText === currentQuestion.resposta_correta;
     const tempoResposta = Math.floor((Date.now() - startTime) / 1000);
 
     const answer: Answer = {
@@ -211,7 +217,13 @@ export function QuizSession({
   };
 
   const isCorrectOption = (option: string) => {
-    return option === currentQuestion.resposta_correta;
+    // Convert letter (A, B, C, D) to option text for comparison
+    const optionIndex = option.charCodeAt(0) - 65; // A=0, B=1, C=2, D=3
+    const optionText = currentQuestion.opcoes[optionIndex];
+
+    // Compare option text with correct answer (handles both letter and text formats)
+    return option === currentQuestion.resposta_correta ||
+           optionText === currentQuestion.resposta_correta;
   };
 
   const getOptionStyle = (option: string) => {
