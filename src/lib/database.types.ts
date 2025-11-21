@@ -345,6 +345,7 @@ export interface Database {
           total_input_tokens: number
           total_output_tokens: number
           total_cost_usd: number
+          total_cost_brl: number
           operation_counts: Json
         }[]
       }
@@ -361,6 +362,7 @@ export interface Database {
           total_input_tokens: number
           total_output_tokens: number
           total_cost_usd: number
+          total_cost_brl: number
           operation_counts: Json
         }[]
       }
@@ -376,6 +378,7 @@ export interface Database {
           total_input_tokens: number
           total_output_tokens: number
           total_cost_usd: number
+          total_cost_brl: number
           unique_users: number
         }[]
       }
@@ -387,6 +390,7 @@ export interface Database {
         Returns: {
           total_tokens: number
           total_cost_usd: number
+          total_cost_brl: number
           active_users: number
           total_operations: number
           avg_tokens_per_operation: number

@@ -187,6 +187,16 @@ export function formatCost(cost: number): string {
   }).format(cost);
 }
 
+// Helper function to format cost in BRL (Brazilian Real)
+export function formatCostBRL(cost: number): string {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(cost);
+}
+
 // Helper function to format tokens with thousands separator
 export function formatTokens(tokens: number): string {
   return new Intl.NumberFormat('pt-BR').format(tokens);
