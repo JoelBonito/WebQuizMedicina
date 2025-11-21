@@ -110,17 +110,17 @@ export const useDifficulties = (projectId: string | null) => {
 
   const markAsResolved = async (id: string) => {
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('difficulties')
-        .update({ resolvido: true, updated_at: new Date().toISOString() })
-        .eq('id', id)
-        .select()
-        .single();
+        .update({ resolvido: true })
+        .eq('id', id);
 
       if (error) throw error;
 
       // Update local state
-      setDifficulties(difficulties.map((d) => (d.id === id ? data : d)));
+      setDifficulties(difficulties.map((d) =>
+        d.id === id ? { ...d, resolvido: true } : d
+      ));
     } catch (err) {
       console.error('Error marking as resolved:', err);
       throw err;
