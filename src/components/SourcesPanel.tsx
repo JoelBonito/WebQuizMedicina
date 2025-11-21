@@ -654,17 +654,17 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
             <Button
               onClick={processEmbeddings}
               disabled={processingEmbeddings}
-              className="rounded-xl bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white shadow-lg hover:shadow-xl transition-all duration-300 px-6"
+              className="rounded-xl bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white shadow-[0_8px_30px_rgb(0,0,0,0.15),inset_0_1px_0_rgba(255,255,255,0.4),inset_0_-1px_0_rgba(0,0,0,0.2)] hover:shadow-[0_15px_40px_rgba(8,145,178,0.4),inset_0_1px_0_rgba(255,255,255,0.5),inset_0_-1px_0_rgba(0,0,0,0.3)] transition-all duration-300 px-6 backdrop-blur-xl border-2 border-white/40 relative overflow-hidden before:absolute before:inset-0 before:bg-[linear-gradient(135deg,rgba(255,255,255,0.4)_0%,rgba(255,255,255,0)_30%,rgba(255,255,255,0)_70%,rgba(255,255,255,0.3)_100%)] before:opacity-70 after:absolute after:inset-0 after:bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.6),transparent_60%)] after:opacity-0 hover:after:opacity-100 after:transition-opacity after:duration-500 hover:scale-[1.05] [box-shadow:0_2px_4px_rgba(255,255,255,0.3)_inset,0_8px_30px_rgba(0,0,0,0.15)] hover:[box-shadow:0_2px_8px_rgba(255,255,255,0.4)_inset,0_15px_40px_rgba(8,145,178,0.4)]"
             >
               {processingEmbeddings ? (
                 <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Processando...
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin relative z-10" />
+                  <span className="relative z-10">Processando...</span>
                 </>
               ) : (
                 <>
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Processar Arquivos
+                  <Sparkles className="w-4 h-4 mr-2 relative z-10 drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]" />
+                  <span className="relative z-10 drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]">Processar Arquivos</span>
                 </>
               )}
             </Button>
