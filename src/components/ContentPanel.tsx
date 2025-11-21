@@ -16,12 +16,14 @@ import {
   CheckCircle,
   AlertCircle,
   AlertTriangle,
-  Zap
+  Zap,
+  Lightbulb
 } from "lucide-react";
 import { motion } from "motion/react";
 import { useQuestions } from "../hooks/useQuestions";
 import { useFlashcards } from "../hooks/useFlashcards";
 import { useSummaries } from "../hooks/useSummaries";
+import { useDifficulties } from "../hooks/useDifficulties";
 import { supabase } from "../lib/supabase";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "./ui/dialog";
@@ -174,6 +176,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
   const { questions, loading: loadingQuiz, generating: generatingQuiz, generateQuiz, refetch: fetchQuestions } = useQuestions(projectId);
   const { flashcards, loading: loadingFlashcards, generating: generatingFlashcards, generateFlashcards, refetch: fetchFlashcards } = useFlashcards(projectId);
   const { summaries, loading: loadingSummaries, generating: generatingSummary, generateSummary, deleteSummary } = useSummaries(projectId);
+  const { difficulties } = useDifficulties(projectId);
 
   // Helper function to determine difficulty level
   const getDifficultyLevel = (items: { dificuldade: string }[]): 'fácil' | 'médio' | 'difícil' | 'misto' => {
@@ -539,14 +542,21 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
 
         {/* Botão Análise das Dificuldades - Centralizado */}
         <div className="flex justify-center mb-4">
-          <Button
+          <button
             onClick={() => setDifficultiesOpen(true)}
-            size="sm"
-            className="rounded-xl flex items-center gap-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-[0_8px_30px_rgb(0,0,0,0.15),inset_0_1px_0_rgba(255,255,255,0.4),inset_0_-1px_0_rgba(0,0,0,0.2)] hover:shadow-[0_15px_40px_rgba(251,146,60,0.4),inset_0_1px_0_rgba(255,255,255,0.5),inset_0_-1px_0_rgba(0,0,0,0.3)] transition-all duration-300 backdrop-blur-xl border-2 border-white/40 relative overflow-hidden before:absolute before:inset-0 before:bg-[linear-gradient(135deg,rgba(255,255,255,0.4)_0%,rgba(255,255,255,0)_30%,rgba(255,255,255,0)_70%,rgba(255,255,255,0.3)_100%)] before:opacity-70 after:absolute after:inset-0 after:bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.6),transparent_60%)] after:opacity-0 hover:after:opacity-100 after:transition-opacity after:duration-500 hover:scale-[1.05] [box-shadow:0_2px_4px_rgba(255,255,255,0.3)_inset,0_8px_30px_rgba(0,0,0,0.15)] hover:[box-shadow:0_2px_8px_rgba(255,255,255,0.4)_inset,0_15px_40px_rgba(251,146,60,0.4)]"
+            className="rounded-xl px-4 py-3 min-w-[280px] bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-[0_8px_30px_rgb(0,0,0,0.15),inset_0_1px_0_rgba(255,255,255,0.4),inset_0_-1px_0_rgba(0,0,0,0.2)] hover:shadow-[0_15px_40px_rgba(251,146,60,0.4),inset_0_1px_0_rgba(255,255,255,0.5),inset_0_-1px_0_rgba(0,0,0,0.3)] transition-all duration-300 backdrop-blur-xl border-2 border-white/40 relative overflow-hidden before:absolute before:inset-0 before:bg-[linear-gradient(135deg,rgba(255,255,255,0.4)_0%,rgba(255,255,255,0)_30%,rgba(255,255,255,0)_70%,rgba(255,255,255,0.3)_100%)] before:opacity-70 after:absolute after:inset-0 after:bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.6),transparent_60%)] after:opacity-0 hover:after:opacity-100 after:transition-opacity after:duration-500 hover:scale-[1.05] [box-shadow:0_2px_4px_rgba(255,255,255,0.3)_inset,0_8px_30px_rgba(0,0,0,0.15)] hover:[box-shadow:0_2px_8px_rgba(255,255,255,0.4)_inset,0_15px_40px_rgba(251,146,60,0.4)]"
           >
-            <TrendingUp className="w-4 h-4 relative z-10 drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]" />
-            <span className="relative z-10 drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]">Análise das Dificuldades</span>
-          </Button>
+            <div className="flex items-center justify-center gap-2 mb-1 relative z-10">
+              <TrendingUp className="w-4 h-4 drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]" />
+              <span className="font-medium drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]">Análise das Dificuldades</span>
+            </div>
+            {difficulties.length > 0 && (
+              <div className="flex items-center justify-center gap-1 text-xs opacity-90 relative z-10">
+                <Lightbulb className="w-3 h-3" />
+                <span>{difficulties.length} dificuldade{difficulties.length !== 1 ? 's' : ''} rastreada{difficulties.length !== 1 ? 's' : ''}</span>
+              </div>
+            )}
+          </button>
         </div>
 
         {/* Divider */}

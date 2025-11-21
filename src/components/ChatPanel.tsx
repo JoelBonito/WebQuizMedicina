@@ -169,12 +169,6 @@ export function ChatPanel({ projectId, isFullscreenMode = false }: ChatPanelProp
             <FileText className="w-3 h-3 mr-1" />
             {readySources.length} fonte{readySources.length !== 1 ? 's' : ''} disponível{readySources.length !== 1 ? 'is' : ''}
           </Badge>
-          {difficulties.length > 0 && (
-            <Badge className="rounded-lg bg-orange-50 text-orange-700 border-orange-200">
-              <Lightbulb className="w-3 h-3 mr-1" />
-              {difficulties.length} dificuldade{difficulties.length !== 1 ? 's' : ''} rastreada{difficulties.length !== 1 ? 's' : ''}
-            </Badge>
-          )}
         </div>
       </div>
 
