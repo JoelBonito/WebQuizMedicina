@@ -1,7 +1,8 @@
-import { ArrowLeft, LogOut, User, Languages, Palette, BarChart3, BookOpen } from "lucide-react";
+import { ArrowLeft, LogOut, User, Languages, Palette, BarChart3, BookOpen, Shield } from "lucide-react";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { Button } from "./ui/button";
 import { useAuth } from "../hooks/useAuth";
+import { useProfile } from "../hooks/useProfile";
 import { toast } from "sonner";
 import {
   DropdownMenu,
@@ -21,13 +22,17 @@ interface NavbarProps {
   projectName?: string;
   projectId?: string | null;
   onViewStats?: () => void;
+  onAdminClick?: () => void;
 }
 
-export function Navbar({ onBackClick, projectName, projectId, onViewStats }: NavbarProps) {
+export function Navbar({ onBackClick, projectName, projectId, onViewStats, onAdminClick }: NavbarProps) {
   const { user, signOut } = useAuth();
+  const { profile } = useProfile();
   const [profileOpen, setProfileOpen] = useState(false);
   const [languageOpen, setLanguageOpen] = useState(false);
   const [themeOpen, setThemeOpen] = useState(false);
+
+  const isAdmin = profile?.role === 'admin';
 
   const handleSignOut = async () => {
     const { error } = await signOut();
@@ -135,6 +140,17 @@ export function Navbar({ onBackClick, projectName, projectId, onViewStats }: Nav
                   <Palette className="w-4 h-4 mr-2 text-gray-600" />
                   <span className="text-gray-700">Aparência</span>
                 </DropdownMenuItem>
+
+                {/* Admin Button - Only visible for admins */}
+                {isAdmin && onAdminClick && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={onAdminClick} className="cursor-pointer rounded-lg bg-gradient-to-r from-[#0891B2]/10 to-[#7CB342]/10 hover:from-[#0891B2]/20 hover:to-[#7CB342]/20">
+                      <Shield className="w-4 h-4 mr-2 text-[#0891B2]" />
+                      <span className="text-[#0891B2] font-semibold">Admin Dashboard</span>
+                    </DropdownMenuItem>
+                  </>
+                )}
               </div>
 
               <DropdownMenuSeparator />
