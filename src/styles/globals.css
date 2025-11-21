@@ -175,4 +175,302 @@
     scrollbar-width: thin;
     scrollbar-color: #cbd5e1 transparent;
   }
+
+  /* ==================================
+     TIPOGRAFIA OTIMIZADA PARA ESTUDO
+     Baseada em pesquisas de legibilidade
+     ================================== */
+
+  .study-content {
+    /* Fonte: Inter já está configurada globalmente */
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+    /* Tamanho ideal para leitura em tela */
+    font-size: 1.125rem; /* 18px */
+
+    /* Altura de linha para respiração */
+    line-height: 1.6;
+
+    /* Cor suave (não preto puro) */
+    color: #1F2937;
+
+    /* Largura máxima para conforto de leitura */
+    max-width: 65ch;
+
+    /* Anti-aliasing para suavidade */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Espaçamento entre parágrafos */
+  .study-content p {
+    margin-bottom: 1.5rem;
+    margin-top: 0;
+  }
+
+  .study-content p:last-child {
+    margin-bottom: 0;
+  }
+
+  /* Títulos com escala modular clara */
+  .study-content h1 {
+    font-size: 2rem; /* 32px */
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 1rem;
+    margin-top: 2rem;
+    color: #0F172A;
+  }
+
+  .study-content h2 {
+    font-size: 1.625rem; /* 26px */
+    font-weight: 600;
+    line-height: 1.3;
+    margin-bottom: 0.875rem;
+    margin-top: 1.75rem;
+    color: #0F172A;
+  }
+
+  .study-content h3 {
+    font-size: 1.375rem; /* 22px */
+    font-weight: 600;
+    line-height: 1.4;
+    margin-bottom: 0.75rem;
+    margin-top: 1.5rem;
+    color: #1F2937;
+  }
+
+  .study-content h1:first-child,
+  .study-content h2:first-child,
+  .study-content h3:first-child {
+    margin-top: 0;
+  }
+
+  /* Listas com boa respiração */
+  .study-content ul,
+  .study-content ol {
+    margin-bottom: 1.5rem;
+    margin-top: 1rem;
+    padding-left: 1.75rem;
+  }
+
+  .study-content li {
+    margin-bottom: 0.5rem;
+    line-height: 1.6;
+  }
+
+  .study-content li:last-child {
+    margin-bottom: 0;
+  }
+
+  /* Listas aninhadas */
+  .study-content ul ul,
+  .study-content ol ol,
+  .study-content ul ol,
+  .study-content ol ul {
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  /* Destaque de texto (mark/strong) */
+  .study-content strong,
+  .study-content b {
+    font-weight: 600;
+    color: #0891B2; /* Azul escuro para destaque */
+  }
+
+  .study-content mark {
+    background-color: #FEF3C7; /* Amarelo suave estilo marca-texto */
+    padding: 0.125rem 0.25rem;
+    border-radius: 0.25rem;
+    color: #92400E;
+  }
+
+  /* Código inline */
+  .study-content code {
+    background-color: #F1F5F9;
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.25rem;
+    font-size: 0.9em;
+    font-family: 'Monaco', 'Courier New', monospace;
+    color: #0F172A;
+  }
+
+  /* Blocos de código */
+  .study-content pre {
+    background-color: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin: 1.5rem 0;
+    overflow-x: auto;
+    font-size: 0.9375rem;
+  }
+
+  .study-content pre code {
+    background: none;
+    padding: 0;
+  }
+
+  /* Citações/Blockquotes (útil para "pérolas" e dicas) */
+  .study-content blockquote {
+    background: linear-gradient(to right, #F0F9FF, #FFFFFF);
+    border-left: 4px solid #0891B2;
+    border-radius: 0.5rem;
+    padding: 1rem 1.25rem;
+    margin: 1.5rem 0;
+    font-style: normal;
+  }
+
+  .study-content blockquote p:last-child {
+    margin-bottom: 0;
+  }
+
+  /* Tabelas (comum em conteúdo médico) */
+  .study-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5rem 0;
+    font-size: 1rem;
+  }
+
+  .study-content th {
+    background-color: #F0F9FF;
+    padding: 0.75rem;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid #0891B2;
+  }
+
+  .study-content td {
+    padding: 0.75rem;
+    border-bottom: 1px solid #E2E8F0;
+  }
+
+  .study-content tr:last-child td {
+    border-bottom: none;
+  }
+
+  /* Links */
+  .study-content a {
+    color: #0891B2;
+    text-decoration: underline;
+    text-decoration-color: rgba(8, 145, 178, 0.3);
+    text-underline-offset: 2px;
+    transition: all 0.2s ease;
+  }
+
+  .study-content a:hover {
+    color: #0E7490;
+    text-decoration-color: rgba(8, 145, 178, 0.8);
+  }
+
+  /* Imagens */
+  .study-content img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.5rem;
+    margin: 1.5rem 0;
+  }
+
+  /* Separador horizontal */
+  .study-content hr {
+    border: none;
+    border-top: 2px solid #E2E8F0;
+    margin: 2rem 0;
+  }
+
+  /* ==================================
+     TIPOGRAFIA PARA MENSAGENS DO CHAT
+     Versão adaptada para espaço reduzido
+     ================================== */
+
+  .chat-message {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+    /* Ligeiramente menor que study-content mas maior que text-sm */
+    font-size: 1rem; /* 16px */
+
+    /* Altura de linha confortável */
+    line-height: 1.6;
+
+    /* Cor suave */
+    color: #1F2937;
+
+    /* Anti-aliasing */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Parágrafos nas mensagens */
+  .chat-message p {
+    margin-bottom: 0.875rem;
+    margin-top: 0;
+  }
+
+  .chat-message p:last-child {
+    margin-bottom: 0;
+  }
+
+  /* Títulos menores no chat */
+  .chat-message h3,
+  .chat-message strong,
+  .chat-message b {
+    font-weight: 600;
+    color: #0891B2;
+  }
+
+  /* Listas no chat */
+  .chat-message ul,
+  .chat-message ol {
+    margin: 0.75rem 0;
+    padding-left: 1.5rem;
+  }
+
+  .chat-message li {
+    margin-bottom: 0.375rem;
+    line-height: 1.6;
+  }
+
+  .chat-message li:last-child {
+    margin-bottom: 0;
+  }
+
+  /* Código no chat */
+  .chat-message code {
+    background-color: #F1F5F9;
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    font-family: 'Monaco', 'Courier New', monospace;
+    color: #0F172A;
+  }
+
+  .chat-message pre {
+    background-color: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    border-radius: 0.375rem;
+    padding: 0.75rem;
+    margin: 0.75rem 0;
+    overflow-x: auto;
+    font-size: 0.875rem;
+  }
+
+  .chat-message pre code {
+    background: none;
+    padding: 0;
+  }
+
+  /* Links no chat */
+  .chat-message a {
+    color: #0891B2;
+    text-decoration: underline;
+    text-decoration-color: rgba(8, 145, 178, 0.3);
+    text-underline-offset: 2px;
+  }
+
+  .chat-message a:hover {
+    color: #0E7490;
+    text-decoration-color: rgba(8, 145, 178, 0.8);
+  }
 }

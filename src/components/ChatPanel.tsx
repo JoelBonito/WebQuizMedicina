@@ -215,8 +215,8 @@ export function ChatPanel({ projectId, isFullscreenMode = false }: ChatPanelProp
                             <div className="max-w-[90%] glass rounded-2xl p-4 bg-gradient-to-br from-blue-50 via-[#F0F9FF] to-[#F1F8E9] border-2 border-[#0891B2] shadow-lg">
                               <div className="flex items-start gap-3">
                                 <Sparkles className="w-5 h-5 text-[#0891B2] mt-0.5 flex-shrink-0" />
-                                <div className="flex-1">
-                                  <p className="text-sm text-gray-800 whitespace-pre-wrap">
+                                <div className="flex-1 chat-message">
+                                  <p className="whitespace-pre-wrap">
                                     {message.response}
                                   </p>
                                 </div>
@@ -236,7 +236,7 @@ export function ChatPanel({ projectId, isFullscreenMode = false }: ChatPanelProp
                                 <div className="max-w-[85%] glass rounded-2xl rounded-tr-md p-4 bg-gradient-to-br from-[#F0F9FF] to-[#F1F8E9] border border-[#BAE6FD]">
                                   <div className="flex items-start gap-2 mb-2">
                                     <User className="w-4 h-4 text-[#0891B2] mt-0.5" />
-                                    <p className="text-sm text-gray-800 flex-1">{message.message}</p>
+                                    <p className="chat-message flex-1">{message.message}</p>
                                   </div>
                                   <span className="text-xs text-gray-500">
                                     {new Date(message.created_at).toLocaleTimeString('pt-BR', {
@@ -259,7 +259,7 @@ export function ChatPanel({ projectId, isFullscreenMode = false }: ChatPanelProp
                                 <div className="flex items-start gap-2 mb-2">
                                   <Bot className="w-4 h-4 text-[#0891B2] mt-0.5" />
                                   <div className="flex-1">
-                                    <p className="text-sm text-gray-800 whitespace-pre-wrap mb-3">
+                                    <p className="chat-message whitespace-pre-wrap mb-3">
                                       {message.response}
                                     </p>
                                     {message.sources_cited && message.sources_cited.length > 0 && (
