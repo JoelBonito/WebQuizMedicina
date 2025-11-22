@@ -288,9 +288,9 @@ IMPORTANTE: NÃO omita detalhes importantes. Seja completo e educativo.
 
 Retorne APENAS o HTML do resumo detalhado, sem texto adicional.`;
 
-        // Based on empirical data: sections generate 2200-4800 tokens (avg ~3500)
-        // Use 6000 as safe upper limit (allows for variance)
-        const sectionResult = await callGeminiWithUsage(sectionPrompt, 'gemini-2.5-flash', 6000);
+        // Use SAFE_OUTPUT_LIMIT for sections to prevent truncation
+        // SAFE_OUTPUT_LIMIT = 12000 tokens (set in output-limits.ts)
+        const sectionResult = await callGeminiWithUsage(sectionPrompt, 'gemini-2.5-flash', SAFE_OUTPUT_LIMIT);
 
         // Track token usage
         totalInputTokens += sectionResult.usage.inputTokens;
@@ -328,9 +328,9 @@ JSON:
   "topicos": ["string", ...]
 }`;
 
-      // Based on empirical data: combination generates ~8600 tokens for 4 sections
-      // For 2-3 sections, 10000 tokens provides safe headroom
-      const combineResult = await callGeminiWithUsage(combinePrompt, 'gemini-2.5-flash', 10000, true);
+      // Use SAFE_OUTPUT_LIMIT for combination to prevent truncation
+      // SAFE_OUTPUT_LIMIT = 12000 tokens (set in output-limits.ts)
+      const combineResult = await callGeminiWithUsage(combinePrompt, 'gemini-2.5-flash', SAFE_OUTPUT_LIMIT, true);
 
       // Track token usage
       totalInputTokens += combineResult.usage.inputTokens;
