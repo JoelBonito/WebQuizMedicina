@@ -15,6 +15,7 @@ import { AuditEventType, AuditLogger } from "../_shared/audit.ts";
 import { callGemini, parseJsonFromResponse } from "../_shared/gemini.ts";
 import { calculateBatchSizes, SAFE_OUTPUT_LIMIT } from "../_shared/output-limits.ts";
 import { hasAnyEmbeddings, semanticSearch } from "../_shared/embeddings.ts";
+import { createContextCache, safeDeleteCache } from "../_shared/gemini-cache.ts";
 
 // Configuração de Logs
 let auditLogger: AuditLogger | null = null;
@@ -138,17 +139,52 @@ serve(async (req) => {
     const sessionId = crypto.randomUUID();
     const allQuestions: any[] = [];
 
-    for (let i = 0; i < batchSizes.length; i++) {
-      const batchCount = batchSizes[i];
+    // PHASE 1: Create context cache if multiple batches (saves ~95% on input tokens)
+    let cacheName: string | null = null;
+    const useCache = batchSizes.length > 1;
 
-      const prompt = `
+    try {
+      if (useCache) {
+        console.log(`💰 [CACHE] Creating cache for ${batchSizes.length} batches to save ~95% on input tokens`);
+
+        const cacheContent = `CONTEÚDO MÉDICO BASE PARA GERAÇÃO DE QUESTÕES:
+
+${combinedContent}
+
+---
+Este conteúdo será usado como base para gerar questões de medicina.
+Todas as questões devem se basear EXCLUSIVAMENTE neste conteúdo.`;
+
+        const cacheInfo = await createContextCache(
+          cacheContent,
+          'gemini-2.5-flash',
+          {
+            ttlSeconds: 600, // 10 minutes - enough for batch processing
+            displayName: `quiz-${sessionId}`
+          }
+        );
+
+        cacheName = cacheInfo.name;
+        console.log(`✅ [CACHE] Cache created: ${cacheName}`);
+      }
+
+      // PHASE 2: Generate questions in batches
+      for (let i = 0; i < batchSizes.length; i++) {
+        const batchCount = batchSizes[i];
+        const batchNum = i + 1;
+
+        console.log(`🔄 [Batch ${batchNum}/${batchSizes.length}] Generating ${batchCount} questions...`);
+
+        // Prompt WITHOUT content when using cache (content is in cache)
+        // Prompt WITH content when NOT using cache (single batch)
+        const prompt = `
 Você é um professor universitário de MEDICINA criando uma prova.
-Gere ${batchCount} questões baseadas no CONTEÚDO abaixo.
+Gere ${batchCount} questões baseadas no CONTEÚDO ${useCache ? 'já fornecido no contexto' : 'abaixo'}.
 
-CONTEÚDO BASE:
+${!useCache ? `CONTEÚDO BASE:
 ${combinedContent.substring(0, 30000)}
 
-TIPOS DE QUESTÃO (Varie):
+` : ''}TIPOS DE QUESTÃO (Varie):
 1. "multipla_escolha": Conceitos diretos.
 2. "verdadeiro_falso": Julgue a afirmação (Opções: [Verdadeiro, Falso]).
 3. "citar": "Qual destes é um exemplo de..." (4 opções).
@@ -171,7 +207,7 @@ FORMATO JSON:
       "tipo": "multipla_escolha",
       "pergunta": "Qual o tratamento de primeira linha para...",
       "opcoes": ["A) Opção A", "B) Opção B", "C) Opção C", "D) Opção D"],
-      "resposta_correta": "A", 
+      "resposta_correta": "A",
       "justificativa": "Conforme o texto, a Opção A é a primeira linha devido à sua eficácia comprovada na redução da mortalidade. O material destaca que as outras drogas só devem ser usadas se houver contraindicação.",
       "dica": "Pense na droga que reduz a mortalidade a longo prazo.",
       "dificuldade": "médio",
@@ -179,13 +215,28 @@ FORMATO JSON:
     }
   ]
 }
-      `;
+        `;
 
-      const response = await callGemini(prompt, 'gemini-2.5-flash', SAFE_OUTPUT_LIMIT, true);
-      const parsed = parseJsonFromResponse(response);
-      
-      if (parsed.perguntas && Array.isArray(parsed.perguntas)) {
-        allQuestions.push(...parsed.perguntas);
+        const response = await callGemini(
+          prompt,
+          'gemini-2.5-flash',
+          SAFE_OUTPUT_LIMIT,
+          true,
+          cacheName || undefined // Use cache if available
+        );
+
+        const parsed = parseJsonFromResponse(response);
+
+        if (parsed.perguntas && Array.isArray(parsed.perguntas)) {
+          allQuestions.push(...parsed.perguntas);
+          console.log(`✅ [Batch ${batchNum}/${batchSizes.length}] Generated ${parsed.perguntas.length} questions`);
+        }
+      }
+
+    } finally {
+      // PHASE 3: Always cleanup cache (even if error occurs)
+      if (cacheName) {
+        await safeDeleteCache(cacheName);
       }
     }
 

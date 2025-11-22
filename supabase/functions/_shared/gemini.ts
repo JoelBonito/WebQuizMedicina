@@ -18,7 +18,8 @@ export async function callGemini(
   prompt: string,
   model: 'gemini-2.5-flash' | 'gemini-2.5-pro' | 'gemini-2.5-flash-lite' = 'gemini-2.5-flash',
   maxOutputTokens: number = 16384, // Increased from 8192 - Gemini 2.5 supports up to 16k output tokens
-  jsonMode: boolean = false // Enable native JSON mode to save tokens and ensure valid JSON
+  jsonMode: boolean = false, // Enable native JSON mode to save tokens and ensure valid JSON
+  cacheName?: string // Optional: Use cached content to reduce input token costs by ~95%
 ): Promise<string> {
   if (!GEMINI_API_KEY) {
     throw new Error('GEMINI_API_KEY not configured');
@@ -27,10 +28,17 @@ export async function callGemini(
   // Log prompt size for debugging
   const promptChars = prompt.length;
   const estimatedTokens = Math.ceil(promptChars / 4); // Rough estimate: 1 token ≈ 4 characters
-  console.log(`📊 [Gemini] Sending prompt: ${promptChars} chars (~${estimatedTokens} tokens), model: ${model}, maxOutputTokens: ${maxOutputTokens}`);
 
-  if (estimatedTokens > 30000) {
-    console.warn(`⚠️ [Gemini] Very large prompt detected! This may cause API errors. Consider reducing content.`);
+  if (cacheName) {
+    console.log(`📊 [Gemini] Using cached content: ${cacheName}`);
+    console.log(`📊 [Gemini] Prompt only: ${promptChars} chars (~${estimatedTokens} tokens)`);
+    console.log(`💰 [Gemini] Cache reduces input token cost by ~95%`);
+  } else {
+    console.log(`📊 [Gemini] Sending prompt: ${promptChars} chars (~${estimatedTokens} tokens), model: ${model}, maxOutputTokens: ${maxOutputTokens}`);
+
+    if (estimatedTokens > 30000) {
+      console.warn(`⚠️ [Gemini] Very large prompt detected! This may cause API errors. Consider reducing content.`);
+    }
   }
 
   // Build generation config with optional JSON mode
@@ -47,6 +55,35 @@ export async function callGemini(
     console.log('🔧 [Gemini] JSON mode enabled - native JSON output guaranteed');
   }
 
+  // Build request body
+  const requestBody: any = {
+    generationConfig,
+  };
+
+  // Use cached content if provided, otherwise send full prompt
+  if (cacheName) {
+    requestBody.cachedContent = cacheName;
+    requestBody.contents = [
+      {
+        parts: [
+          {
+            text: prompt, // Only instructions when using cache
+          },
+        ],
+      },
+    ];
+  } else {
+    requestBody.contents = [
+      {
+        parts: [
+          {
+            text: prompt,
+          },
+        ],
+      },
+    ];
+  }
+
   const response = await fetch(
     `${GEMINI_API_URL}/${model}:generateContent?key=${GEMINI_API_KEY}`,
     {
@@ -54,18 +91,7 @@ export async function callGemini(
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              {
-                text: prompt,
-              },
-            ],
-          },
-        ],
-        generationConfig,
-      }),
+      body: JSON.stringify(requestBody),
     }
   );
 
