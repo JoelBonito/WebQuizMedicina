@@ -5,7 +5,7 @@ import { validateRequest, generateSummarySchema, sanitizeString, sanitizeHtml } 
 import { AuditLogger, AuditEventType } from '../_shared/audit.ts';
 import { callGemini, parseJsonFromResponse } from '../_shared/gemini.ts';
 import { calculateSummaryStrategy, SAFE_OUTPUT_LIMIT } from '../_shared/output-limits.ts';
-import { hasAnyEmbeddings, semanticSearch } from '../_shared/embeddings.ts';
+import { hasAnyEmbeddings, semanticSearchWithTokenLimit } from '../_shared/embeddings.ts';
 
 // Lazy-initialize AuditLogger to avoid crashes if env vars are missing
 let auditLogger: AuditLogger | null = null;
@@ -129,20 +129,20 @@ serve(async (req) => {
       // Define query optimized for summary generation
       const query = `Gerar resumo abrangente sobre os principais conceitos, tópicos centrais, processos fundamentais, terminologia chave, mecanismos importantes e aplicações práticas do conteúdo médico. Incluir aspectos clínicos, diagnósticos e terapêuticos relevantes.`;
 
-      // Get top 10 most relevant chunks (reduced from 20 to avoid MAX_TOKENS)
-      // Each chunk ~700 tokens, so 10 chunks = ~7000 tokens input + instructions
-      const relevantChunks = await semanticSearch(
+      // PHASE 3: Use token-based limit instead of fixed chunk count (20k tokens for summary - needs comprehensive coverage)
+      const relevantChunks = await semanticSearchWithTokenLimit(
         supabaseClient,
         query,
         sourceIds,
-        10 // top K - reduced to prevent MAX_TOKENS error
+        20000 // Max tokens instead of fixed chunk count
       );
 
       if (relevantChunks.length === 0) {
-        console.warn('⚠️ [PHASE 2] No relevant chunks found, falling back to concatenation');
+        console.warn('⚠️ [PHASE 3] No relevant chunks found, falling back to concatenation');
         useSemanticSearch = false;
       } else {
         // Build context from relevant chunks
+        console.log(`📊 [Summary] Using ${relevantChunks.length} chunks (${relevantChunks.reduce((sum, c) => sum + c.tokenCount, 0)} tokens)`);
         combinedContent = relevantChunks
           .map((chunk, idx) => {
             const similarity = (chunk.similarity * 100).toFixed(1);

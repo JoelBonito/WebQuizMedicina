@@ -5,7 +5,7 @@ import { validateRequest, generateFlashcardsSchema, sanitizeString } from '../_s
 import { AuditLogger, AuditEventType } from '../_shared/audit.ts';
 import { callGemini, parseJsonFromResponse } from '../_shared/gemini.ts';
 import { validateOutputRequest, calculateBatchSizes, formatBatchProgress, SAFE_OUTPUT_LIMIT } from '../_shared/output-limits.ts';
-import { hasAnyEmbeddings, semanticSearch } from '../_shared/embeddings.ts';
+import { hasAnyEmbeddings, semanticSearchWithTokenLimit } from '../_shared/embeddings.ts';
 import { createContextCache, safeDeleteCache } from '../_shared/gemini-cache.ts';
 
 
@@ -131,20 +131,21 @@ serve(async (req) => {
       // Define query optimized for flashcard generation
       const query = `Criar flashcards sobre conceitos médicos fundamentais, terminologia clínica, mecanismos fisiopatológicos, tratamentos, diagnósticos e aplicações práticas. Focar em definições, processos biológicos, comparações entre condições e procedimentos clínicos.`;
 
-      // Get top 8 most relevant chunks (reduced from 15 to avoid MAX_TOKENS on input)
-      const relevantChunks = await semanticSearch(
+      // PHASE 3: Use token-based limit instead of fixed chunk count (15k tokens ≈ 10-20 chunks dynamically)
+      const relevantChunks = await semanticSearchWithTokenLimit(
         supabaseClient,
         query,
         sourceIds,
-        8 // top K - reduced to prevent prompt overflow
+        15000 // Max tokens instead of fixed chunk count
       );
 
       if (relevantChunks.length === 0) {
-        console.warn('⚠️ [PHASE 2] No relevant chunks found, falling back to concatenation');
+        console.warn('⚠️ [PHASE 3] No relevant chunks found, falling back to concatenation');
         // Fallback to old method
         useSemanticSearch = false;
       } else {
         // Build context from relevant chunks
+        console.log(`📊 [Flashcards] Using ${relevantChunks.length} chunks (${relevantChunks.reduce((sum, c) => sum + c.tokenCount, 0)} tokens)`);
         combinedContent = relevantChunks
           .map((chunk, idx) => {
             const similarity = (chunk.similarity * 100).toFixed(1);

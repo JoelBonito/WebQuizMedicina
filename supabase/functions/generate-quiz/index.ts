@@ -14,7 +14,7 @@ import {
 import { AuditEventType, AuditLogger } from "../_shared/audit.ts";
 import { callGemini, parseJsonFromResponse } from "../_shared/gemini.ts";
 import { calculateBatchSizes, SAFE_OUTPUT_LIMIT } from "../_shared/output-limits.ts";
-import { hasAnyEmbeddings, semanticSearch } from "../_shared/embeddings.ts";
+import { hasAnyEmbeddings, semanticSearchWithTokenLimit } from "../_shared/embeddings.ts";
 import { createContextCache, safeDeleteCache } from "../_shared/gemini-cache.ts";
 
 // Configuração de Logs
@@ -107,9 +107,11 @@ serve(async (req) => {
     if (useSemanticSearch) {
       try {
         const query = `Gerar questões de medicina aprofundadas: fisiopatologia, diagnóstico diferencial, tratamento, casos clínicos.`;
-        const relevantChunks = await semanticSearch(supabaseClient, query, sourceIds, 8);
+        // PHASE 3: Use token-based limit instead of fixed chunk count (15k tokens ≈ 10-20 chunks dynamically)
+        const relevantChunks = await semanticSearchWithTokenLimit(supabaseClient, query, sourceIds, 15000);
         if (relevantChunks.length > 0) {
           combinedContent = relevantChunks.map((c) => c.content).join('\n\n---\n\n');
+          console.log(`📊 [Quiz] Using ${relevantChunks.length} chunks (${relevantChunks.reduce((sum, c) => sum + c.tokenCount, 0)} tokens)`);
         } else {
           useSemanticSearch = false;
         }
