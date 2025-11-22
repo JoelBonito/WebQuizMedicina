@@ -26,7 +26,7 @@ SELECT
   SUM((metadata->>'cached_tokens')::int) FILTER (WHERE metadata->>'cached_tokens' IS NOT NULL) as total_cached_tokens,
   ROUND(
     (COUNT(*) FILTER (WHERE (metadata->>'cached_tokens')::int > 0)::float /
-     NULLIF(COUNT(*), 0) * 100), 2
+     NULLIF(COUNT(*), 0) * 100)::numeric, 2
   ) as percentual_ops_com_cache,
   -- Economia estimada (75% de desconto nos tokens cacheados)
   ROUND(
@@ -102,13 +102,13 @@ SELECT
   COUNT(*) FILTER (WHERE (metadata->>'cached_tokens')::int > 0) as ops_com_cache,
   ROUND(
     (COUNT(*) FILTER (WHERE (metadata->>'cached_tokens')::int > 0)::float /
-     NULLIF(COUNT(*), 0) * 100), 2
+     NULLIF(COUNT(*), 0) * 100)::numeric, 2
   ) as percentual_cache,
   SUM(tokens_input) as total_input,
   SUM((metadata->>'cached_tokens')::int) FILTER (WHERE metadata->>'cached_tokens' IS NOT NULL) as total_cached,
   ROUND(
     (SUM((metadata->>'cached_tokens')::int) FILTER (WHERE metadata->>'cached_tokens' IS NOT NULL)::float /
-     NULLIF(SUM(tokens_input), 0) * 100), 2
+     NULLIF(SUM(tokens_input), 0) * 100)::numeric, 2
   ) as percentual_tokens_cached
 FROM token_usage_logs
 WHERE created_at > NOW() - INTERVAL '24 hours'
