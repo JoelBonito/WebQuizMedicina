@@ -12,8 +12,9 @@ import {
   validateRequest,
 } from "../_shared/validation.ts";
 import { AuditEventType, AuditLogger } from "../_shared/audit.ts";
-import { callGemini, parseJsonFromResponse } from "../_shared/gemini.ts";
+import { callGeminiWithUsage, parseJsonFromResponse } from "../_shared/gemini.ts";
 import { calculateBatchSizes, SAFE_OUTPUT_LIMIT } from "../_shared/output-limits.ts";
+import { logTokenUsage, type TokenUsage } from "../_shared/token-logger.ts";
 import { semanticSearchWithTokenLimit, hasAnyEmbeddings } from "../_shared/embeddings.ts";
 import { createContextCache, safeDeleteCache } from "../_shared/gemini-cache.ts";
 import {
@@ -233,6 +234,11 @@ serve(async (req) => {
     const sessionId = crypto.randomUUID();
     const allFlashcards: any[] = [];
 
+    // Track token usage across all batches
+    let totalInputTokens = 0;
+    let totalOutputTokens = 0;
+    let totalCachedTokens = 0;
+
     let cacheName: string | null = null;
     const useCache = batchSizes.length > 1;
 
@@ -327,7 +333,7 @@ IMPORTANTE:
 Retorne APENAS o JSON válido.
         `;
 
-        const response = await callGemini(
+        const result = await callGeminiWithUsage(
           prompt,
           'gemini-2.5-flash',
           SAFE_OUTPUT_LIMIT,
@@ -335,7 +341,12 @@ Retorne APENAS o JSON válido.
           cacheName || undefined
         );
 
-        const parsed = parseJsonFromResponse(response);
+        // Accumulate token usage
+        totalInputTokens += result.usage.inputTokens;
+        totalOutputTokens += result.usage.outputTokens;
+        totalCachedTokens += result.usage.cachedTokens || 0;
+
+        const parsed = parseJsonFromResponse(result.text);
 
         if (parsed.flashcards && Array.isArray(parsed.flashcards)) {
           allFlashcards.push(...parsed.flashcards);
@@ -369,7 +380,27 @@ Retorne APENAS o JSON válido.
 
     console.log(`✅ [Recovery Flashcards] Saved ${insertedFlashcards.length} flashcards to database`);
 
-    // 11. Audit Log
+    // 11. Log Token Usage for Admin Analytics
+    await logTokenUsage(
+      supabaseClient,
+      user.id,
+      project_id,
+      'flashcard',
+      {
+        inputTokens: totalInputTokens,
+        outputTokens: totalOutputTokens,
+        cachedTokens: totalCachedTokens,
+      },
+      'gemini-2.5-flash',
+      {
+        session_id: sessionId,
+        mode: 'recovery',
+        strategy: strategy.strategyType,
+        flashcards_generated: insertedFlashcards.length,
+      }
+    );
+
+    // 12. Audit Log
     await getAuditLogger().log(
       supabaseClient,
       AuditEventType.AI_FLASHCARD_GENERATION,
