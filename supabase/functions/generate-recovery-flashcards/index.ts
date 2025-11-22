@@ -349,7 +349,7 @@ Retorne APENAS o JSON válido.
       }
     }
 
-    // 10. Sanitization and Persistence with Recovery Metadata
+    // 10. Sanitization and Persistence
     const flashcardsToInsert = allFlashcards.map((f: any) => ({
       project_id,
       source_id: null,  // Recovery flashcards span multiple sources
@@ -357,16 +357,7 @@ Retorne APENAS o JSON válido.
       frente: sanitizeString(f.frente || ''),
       verso: sanitizeString(f.verso || ''),
       topico: f.topico ? sanitizeString(f.topico) : null,
-      dificuldade: ['fácil', 'médio', 'difícil'].includes(f.dificuldade) ? f.dificuldade : 'médio',
-
-      // 🆕 RECOVERY METADATA (Phase 4B)
-      metadata: {
-        origin: 'recovery',
-        strategy: strategy.strategyType,
-        focus_percentage: strategy.focusPercentage,
-        difficulties_addressed: difficulties?.map((d: Difficulty) => d.topico) || [],
-        difficulties_count: difficulties?.length || 0
-      }
+      dificuldade: ['fácil', 'médio', 'difícil'].includes(f.dificuldade) ? f.dificuldade : 'médio'
     }));
 
     const { data: insertedFlashcards, error: insertError } = await supabaseClient
