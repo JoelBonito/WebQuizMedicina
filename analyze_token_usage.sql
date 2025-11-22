@@ -171,7 +171,7 @@ SELECT
   -- Custo SEM considerar desconto de cache (simulação)
   ROUND(
     ((SUM(tokens_input) * 0.075 / 1000000) + (SUM(tokens_output) * 0.30 / 1000000))::numeric, 6
-  ) as custo_estimado_usd
+  ) as custo_usd
 FROM token_usage_logs
 WHERE created_at > NOW() - INTERVAL '24 hours'
   AND metadata->>'model' = 'gemini-2.5-flash'
@@ -182,7 +182,7 @@ SELECT
   '=== IMPACTO DO CACHE ===' as section,
   'COM CACHE (ATUAL)' as cenario,
   SUM(tokens_input + tokens_output) as total_tokens,
-  ROUND(SUM(cost_usd)::numeric, 6) as custo_real_usd
+  ROUND(SUM(cost_usd)::numeric, 6) as custo_usd
 FROM token_usage_logs
 WHERE created_at > NOW() - INTERVAL '24 hours'
   AND metadata->>'model' = 'gemini-2.5-flash';
