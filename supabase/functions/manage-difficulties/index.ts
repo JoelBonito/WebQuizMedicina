@@ -93,7 +93,8 @@ serve(async (req) => {
             resolved: difficulties.filter((d: any) => d.resolvido).length,
             unresolved: difficulties.filter((d: any) => !d.resolvido).length
           },
-          getCorsHeadersForPreflight(req)
+          200,
+          req
         );
       }
 
@@ -101,7 +102,7 @@ serve(async (req) => {
         // Get difficulty statistics
         const stats = await getDifficultyStatistics(supabaseClient, user.id, project_id);
 
-        return createSuccessResponse(stats, getCorsHeadersForPreflight(req));
+        return createSuccessResponse(stats, 200, req);
       }
 
       case "resolve": {
@@ -131,7 +132,8 @@ serve(async (req) => {
 
         return createSuccessResponse(
           { success, message: success ? "Difficulty resolved" : "Failed to resolve" },
-          getCorsHeadersForPreflight(req)
+          200,
+          req
         );
       }
 
@@ -158,7 +160,7 @@ serve(async (req) => {
           correct
         );
 
-        return createSuccessResponse(result, getCorsHeadersForPreflight(req));
+        return createSuccessResponse(result, 200, req);
       }
 
       case "normalize_topic": {
@@ -178,7 +180,8 @@ serve(async (req) => {
             normalized,
             changed: normalized !== topic
           },
-          getCorsHeadersForPreflight(req)
+          200,
+          req
         );
       }
 
