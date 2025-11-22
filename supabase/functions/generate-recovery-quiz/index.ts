@@ -231,8 +231,8 @@ serve(async (req) => {
 
     // 9. Generate Quiz with Strategy-Specific Prompt
     const batchSizes = calculateBatchSizes('QUIZ_MULTIPLE_CHOICE', count);
-    // Use 'recovery-' prefix to identify recovery-generated content in UI
-    const sessionId = `recovery-${crypto.randomUUID()}`;
+    // Recovery questions are identified by: source_id = null + mode in token_usage metadata
+    const sessionId = crypto.randomUUID();
     const allQuestions: any[] = [];
 
     // Track token usage across all batches
