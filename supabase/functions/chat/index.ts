@@ -134,6 +134,18 @@ serve(async (req) => {
       .order('nivel', { ascending: false })
       .limit(5);
 
+    // PHASE 2: Get conversation history for context (last 2 exchanges = 4 messages)
+    // This enables the bot to remember recent context without excessive token cost
+    const { data: history } = await supabaseClient
+      .from('chat_messages')
+      .select('role, content')
+      .eq('project_id', project_id)
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(4); // Last 4 messages = 2 user questions + 2 assistant answers
+
+    console.log(`💬 [Chat] Retrieved ${history?.length || 0} previous messages for context`);
+
     // PHASE 2: Check if embeddings exist for semantic search
     const sourceIds = sources.map(s => s.id);
     let useSemanticSearch = await hasAnyEmbeddings(supabaseClient, sourceIds);
@@ -219,19 +231,24 @@ serve(async (req) => {
     // Sanitize user message to prevent prompt injection
     const sanitizedMessage = sanitizeString(message);
 
-    // TODO [FUTURE OPTIMIZATION]: Implement persistent cache for chat sessions
+    // PHASE 2 IMPLEMENTED: Basic conversation memory (last 2 exchanges)
+    // ✅ Chat now remembers recent context for better UX
+    // ✅ Cost increase is controlled: ~1000 tokens per message (acceptable)
+    // ✅ Database table chat_sessions created for future persistent cache
+    //
+    // TODO [PHASE 2B - FUTURE OPTIMIZATION]: Implement persistent cache
     // Currently, chat makes only 1 Gemini call per HTTP request, so in-request caching
     // wouldn't help. To get cache benefits (88% token reduction over 10+ questions),
     // we need to implement:
-    // 1. A chat_sessions table to store cache_id and expiry
+    // 1. Use chat_sessions table to store cache_id and expiry ✅ (table ready)
     // 2. Logic to reuse cache_id across multiple HTTP requests for the same project
     // 3. Auto-renewal of cache before expiry
     // This would reduce costs from ~25k tokens per question to ~3k tokens per question.
     //
-    // For now, we accept the current cost as it's already optimized with:
-    // - Semantic search (only relevant chunks, not full documents)
-    // - Short messages use minimal context
-    // - No unnecessary conversation history (stateless by design)
+    // Current optimizations already in place:
+    // - ✅ Semantic search (only relevant chunks, not full documents)
+    // - ✅ Short messages use minimal context
+    // - ✅ Conversation history (last 2 exchanges for context)
 
     // Build prompt with RAG context
     let prompt = `Você é um assistente de estudos médicos especializado. Você tem acesso às seguintes fontes do projeto "${sanitizeString(project.name)}":\n\n${combinedContext}\n\n`;
@@ -244,7 +261,27 @@ serve(async (req) => {
       prompt += `Ao responder, considere essas dificuldades e ofereça explicações mais detalhadas nesses tópicos quando relevante.\n\n`;
     }
 
-    prompt += `Pergunta do aluno: ${sanitizedMessage}\n\n`;
+    // PHASE 2: Include conversation history for context (if available)
+    if (history && history.length > 0) {
+      // Reverse to chronological order (oldest first)
+      const chronologicalHistory = [...history].reverse();
+
+      // Format conversation history
+      const formattedHistory = chronologicalHistory
+        .map((msg) => {
+          const roleLabel = msg.role === 'user' ? 'Aluno' : 'Assistente';
+          const content = sanitizeString(msg.content || '');
+          return `${roleLabel}: ${content}`;
+        })
+        .join('\n\n');
+
+      prompt += `\nHistórico recente da conversa:\n${formattedHistory}\n\n`;
+      prompt += `IMPORTANTE: Use este histórico para entender o contexto da conversa atual. Se o aluno fizer referência a algo mencionado anteriormente (por exemplo: "explique melhor", "e sobre o que você disse antes"), use o histórico para responder adequadamente.\n\n`;
+
+      console.log(`💬 [Chat] Including ${history.length} messages in conversation history`);
+    }
+
+    prompt += `Pergunta atual do aluno: ${sanitizedMessage}\n\n`;
     prompt += `Instruções:
 0. IMPORTANTE: Responda SEMPRE em Português do Brasil
 1. Responda APENAS com base nas fontes fornecidas acima
@@ -323,6 +360,8 @@ Resposta:`;
         sources_count: sources.length,
         cited_sources_count: citedSources.length,
         has_difficulties_context: difficulties && difficulties.length > 0,
+        has_conversation_history: history && history.length > 0, // PHASE 2: Track if history was used
+        history_messages_count: history?.length || 0, // PHASE 2: How many messages in history
       }
     );
 
