@@ -5,194 +5,228 @@
 -- IMPORTANT: This is for development/testing only
 -- Delete this data before production deployment
 
--- First, check if we need to insert test users
--- We'll assume these users exist or create placeholder data
-
--- Insert sample token usage logs for multiple users
--- Note: Replace UUIDs with actual user_id and project_id from your database
-
--- Sample data structure:
--- User 1 (renata@medicina.com) - Heavy user
--- User 2 (jbento1@gmail.com) - Moderate user
--- User 3 (test@example.com) - Light user
-
 DO $$
 DECLARE
-  -- You'll need to replace these with actual UUIDs from your database
-  user_renata UUID;
-  user_joel UUID;
-  user_test UUID;
-  project_medicina UUID;
-  project_cirurgia UUID;
+  user_record RECORD;
+  user_count INTEGER := 0;
+  total_inserted INTEGER := 0;
 BEGIN
-  -- Get actual user IDs (adjust emails to match your database)
-  SELECT id INTO user_renata FROM auth.users WHERE email = 'renata@medicina.com' LIMIT 1;
-  SELECT id INTO user_joel FROM auth.users WHERE email = 'jbento1@gmail.com' LIMIT 1;
-  SELECT id INTO user_test FROM auth.users WHERE email = 'test@example.com' LIMIT 1;
+  RAISE NOTICE '========================================';
+  RAISE NOTICE 'Starting Admin Dashboard Seed Data';
+  RAISE NOTICE '========================================';
 
-  -- If users don't exist, skip seeding (they need to be created first)
-  IF user_renata IS NULL OR user_joel IS NULL THEN
-    RAISE NOTICE 'Users not found. Skipping seed data.';
-    RAISE NOTICE 'Please ensure users exist: renata@medicina.com, jbento1@gmail.com';
+  -- Check if any users exist
+  SELECT COUNT(*) INTO user_count FROM auth.users;
+
+  IF user_count = 0 THEN
+    RAISE NOTICE '❌ No users found in auth.users';
+    RAISE NOTICE 'Please create at least one user before running this seed';
     RETURN;
   END IF;
 
-  -- Get project IDs (use first available projects for each user)
-  SELECT id INTO project_medicina FROM public.projects WHERE user_id = user_renata LIMIT 1;
-  SELECT id INTO project_cirurgia FROM public.projects WHERE user_id = user_joel LIMIT 1;
+  RAISE NOTICE '✓ Found % user(s) in database', user_count;
 
-  -- Clean existing test data (optional - comment out if you want to keep existing data)
-  -- DELETE FROM public.token_usage_logs WHERE metadata->>'test_data' = 'true';
+  -- Clean existing test data first
+  DELETE FROM public.token_usage_logs WHERE metadata->>'test_data' = 'true';
+  RAISE NOTICE '✓ Cleaned existing test data';
 
-  -- ============================================================================
-  -- User 1: renata@medicina.com - Heavy user (highest token consumption)
-  -- ============================================================================
+  -- Process each user and create token usage data
+  FOR user_record IN
+    SELECT
+      u.id as user_id,
+      u.email,
+      p.id as project_id,
+      ROW_NUMBER() OVER (ORDER BY u.created_at) as user_rank
+    FROM auth.users u
+    LEFT JOIN public.projects p ON p.user_id = u.id
+    WHERE u.email IS NOT NULL
+    LIMIT 3  -- Process up to 3 users
+  LOOP
+    RAISE NOTICE '';
+    RAISE NOTICE '-------------------------------------------';
+    RAISE NOTICE 'Processing user: %', user_record.email;
 
-  -- Quiz generations (10 operations)
-  INSERT INTO public.token_usage_logs (user_id, project_id, operation_type, tokens_input, tokens_output, cost_usd, metadata, created_at)
-  SELECT
-    user_renata,
-    project_medicina,
-    'quiz',
-    5000 + (random() * 2000)::int,  -- 5000-7000 input tokens
-    2000 + (random() * 1000)::int,  -- 2000-3000 output tokens
-    0.001 + (random() * 0.0005),     -- ~$0.001-0.0015 per operation
-    jsonb_build_object(
-      'test_data', 'true',
-      'model', 'gemini-2.5-flash',
-      'session_id', gen_random_uuid(),
-      'questions_generated', 10
-    ),
-    NOW() - (random() * interval '30 days')
-  FROM generate_series(1, 10);
+    -- Skip if user has no projects
+    IF user_record.project_id IS NULL THEN
+      RAISE NOTICE '⚠️  No projects found for this user - skipping';
+      CONTINUE;
+    END IF;
 
-  -- Flashcard generations (15 operations)
-  INSERT INTO public.token_usage_logs (user_id, project_id, operation_type, tokens_input, tokens_output, cost_usd, metadata, created_at)
-  SELECT
-    user_renata,
-    project_medicina,
-    'flashcard',
-    4000 + (random() * 1500)::int,
-    1800 + (random() * 800)::int,
-    0.0008 + (random() * 0.0004),
-    jsonb_build_object(
-      'test_data', 'true',
-      'model', 'gemini-2.5-flash',
-      'session_id', gen_random_uuid(),
-      'flashcards_generated', 20
-    ),
-    NOW() - (random() * interval '30 days')
-  FROM generate_series(1, 15);
+    -- Determine usage level based on user rank
+    -- First user = heavy, second = moderate, third = light
+    DECLARE
+      quiz_count INTEGER;
+      flashcard_count INTEGER;
+      chat_count INTEGER;
+      summary_count INTEGER;
+    BEGIN
+      CASE user_record.user_rank
+        WHEN 1 THEN
+          -- Heavy user
+          quiz_count := 15;
+          flashcard_count := 20;
+          chat_count := 25;
+          summary_count := 8;
+          RAISE NOTICE '📊 Profile: HEAVY user';
+        WHEN 2 THEN
+          -- Moderate user
+          quiz_count := 8;
+          flashcard_count := 12;
+          chat_count := 15;
+          summary_count := 4;
+          RAISE NOTICE '📊 Profile: MODERATE user';
+        ELSE
+          -- Light user
+          quiz_count := 3;
+          flashcard_count := 5;
+          chat_count := 7;
+          summary_count := 2;
+          RAISE NOTICE '📊 Profile: LIGHT user';
+      END CASE;
 
-  -- Chat operations (20 operations)
-  INSERT INTO public.token_usage_logs (user_id, project_id, operation_type, tokens_input, tokens_output, cost_usd, metadata, created_at)
-  SELECT
-    user_renata,
-    project_medicina,
-    'chat',
-    3000 + (random() * 2000)::int,
-    1500 + (random() * 1000)::int,
-    0.0007 + (random() * 0.0005),
-    jsonb_build_object(
-      'test_data', 'true',
-      'model', 'gemini-2.5-flash',
-      'session_id', gen_random_uuid(),
-      'use_cache', (random() > 0.5)
-    ),
-    NOW() - (random() * interval '30 days')
-  FROM generate_series(1, 20);
+      -- Quiz generations
+      INSERT INTO public.token_usage_logs (user_id, project_id, operation_type, tokens_input, tokens_output, cost_usd, metadata, created_at)
+      SELECT
+        user_record.user_id,
+        user_record.project_id,
+        'quiz',
+        4500 + (random() * 2500)::int,  -- 4500-7000 input tokens
+        1800 + (random() * 1200)::int,  -- 1800-3000 output tokens
+        0.0009 + (random() * 0.0006),   -- ~$0.0009-0.0015 per operation
+        jsonb_build_object(
+          'test_data', 'true',
+          'model', 'gemini-2.5-flash',
+          'session_id', gen_random_uuid(),
+          'questions_generated', (5 + (random() * 10)::int)
+        ),
+        NOW() - (random() * interval '30 days')
+      FROM generate_series(1, quiz_count);
 
-  -- Summary generations (5 operations)
-  INSERT INTO public.token_usage_logs (user_id, project_id, operation_type, tokens_input, tokens_output, cost_usd, metadata, created_at)
-  SELECT
-    user_renata,
-    project_medicina,
-    'summary',
-    6000 + (random() * 3000)::int,
-    3000 + (random() * 1500)::int,
-    0.0015 + (random() * 0.001),
-    jsonb_build_object(
-      'test_data', 'true',
-      'model', 'gemini-2.5-flash',
-      'summary_id', gen_random_uuid(),
-      'strategy', (ARRAY['SINGLE', 'BATCHED', 'EXECUTIVE'])[floor(random() * 3 + 1)]
-    ),
-    NOW() - (random() * interval '30 days')
-  FROM generate_series(1, 5);
+      total_inserted := total_inserted + quiz_count;
+      RAISE NOTICE '  ✓ Inserted % quiz operations', quiz_count;
 
-  -- ============================================================================
-  -- User 2: jbento1@gmail.com - Moderate user
-  -- ============================================================================
+      -- Flashcard generations
+      INSERT INTO public.token_usage_logs (user_id, project_id, operation_type, tokens_input, tokens_output, cost_usd, metadata, created_at)
+      SELECT
+        user_record.user_id,
+        user_record.project_id,
+        'flashcard',
+        3800 + (random() * 1700)::int,
+        1600 + (random() * 900)::int,
+        0.0007 + (random() * 0.0005),
+        jsonb_build_object(
+          'test_data', 'true',
+          'model', 'gemini-2.5-flash',
+          'session_id', gen_random_uuid(),
+          'flashcards_generated', (10 + (random() * 15)::int)
+        ),
+        NOW() - (random() * interval '30 days')
+      FROM generate_series(1, flashcard_count);
 
-  -- Quiz generations (5 operations)
-  INSERT INTO public.token_usage_logs (user_id, project_id, operation_type, tokens_input, tokens_output, cost_usd, metadata, created_at)
-  SELECT
-    user_joel,
-    project_cirurgia,
-    'quiz',
-    4500 + (random() * 1500)::int,
-    1800 + (random() * 800)::int,
-    0.0009 + (random() * 0.0004),
-    jsonb_build_object(
-      'test_data', 'true',
-      'model', 'gemini-2.5-flash',
-      'session_id', gen_random_uuid(),
-      'questions_generated', 8
-    ),
-    NOW() - (random() * interval '30 days')
-  FROM generate_series(1, 5);
+      total_inserted := total_inserted + flashcard_count;
+      RAISE NOTICE '  ✓ Inserted % flashcard operations', flashcard_count;
 
-  -- Flashcard generations (8 operations)
-  INSERT INTO public.token_usage_logs (user_id, project_id, operation_type, tokens_input, tokens_output, cost_usd, metadata, created_at)
-  SELECT
-    user_joel,
-    project_cirurgia,
-    'flashcard',
-    3500 + (random() * 1200)::int,
-    1600 + (random() * 700)::int,
-    0.0007 + (random() * 0.0003),
-    jsonb_build_object(
-      'test_data', 'true',
-      'model', 'gemini-2.5-flash',
-      'session_id', gen_random_uuid(),
-      'flashcards_generated', 15
-    ),
-    NOW() - (random() * interval '30 days')
-  FROM generate_series(1, 8);
+      -- Chat operations
+      INSERT INTO public.token_usage_logs (user_id, project_id, operation_type, tokens_input, tokens_output, cost_usd, metadata, created_at)
+      SELECT
+        user_record.user_id,
+        user_record.project_id,
+        'chat',
+        2800 + (random() * 2200)::int,
+        1300 + (random() * 1200)::int,
+        0.0006 + (random() * 0.0006),
+        jsonb_build_object(
+          'test_data', 'true',
+          'model', 'gemini-2.5-flash',
+          'session_id', gen_random_uuid(),
+          'use_cache', (random() > 0.4),
+          'cached_tokens', CASE WHEN random() > 0.4 THEN (1500 + (random() * 1000)::int) ELSE 0 END
+        ),
+        NOW() - (random() * interval '30 days')
+      FROM generate_series(1, chat_count);
 
-  -- Chat operations (10 operations)
-  INSERT INTO public.token_usage_logs (user_id, project_id, operation_type, tokens_input, tokens_output, cost_usd, metadata, created_at)
-  SELECT
-    user_joel,
-    project_cirurgia,
-    'chat',
-    2800 + (random() * 1500)::int,
-    1400 + (random() * 800)::int,
-    0.0006 + (random() * 0.0004),
-    jsonb_build_object(
-      'test_data', 'true',
-      'model', 'gemini-2.5-flash',
-      'session_id', gen_random_uuid(),
-      'use_cache', (random() > 0.5)
-    ),
-    NOW() - (random() * interval '30 days')
-  FROM generate_series(1, 10);
+      total_inserted := total_inserted + chat_count;
+      RAISE NOTICE '  ✓ Inserted % chat operations', chat_count;
 
-  RAISE NOTICE '✅ Seed data inserted successfully';
-  RAISE NOTICE '📊 renata@medicina.com: ~50 operations (highest usage)';
-  RAISE NOTICE '📊 jbento1@gmail.com: ~23 operations (moderate usage)';
+      -- Summary generations
+      INSERT INTO public.token_usage_logs (user_id, project_id, operation_type, tokens_input, tokens_output, cost_usd, metadata, created_at)
+      SELECT
+        user_record.user_id,
+        user_record.project_id,
+        'summary',
+        5500 + (random() * 3500)::int,
+        2800 + (random() * 1700)::int,
+        0.0013 + (random() * 0.0012),
+        jsonb_build_object(
+          'test_data', 'true',
+          'model', CASE WHEN random() > 0.7 THEN 'gemini-2.5-pro' ELSE 'gemini-2.5-flash' END,
+          'summary_id', gen_random_uuid(),
+          'strategy', (ARRAY['SINGLE', 'BATCHED', 'EXECUTIVE'])[floor(random() * 3 + 1)],
+          'summary_type', CASE WHEN random() > 0.6 THEN 'focused' ELSE 'normal' END
+        ),
+        NOW() - (random() * interval '30 days')
+      FROM generate_series(1, summary_count);
 
+      total_inserted := total_inserted + summary_count;
+      RAISE NOTICE '  ✓ Inserted % summary operations', summary_count;
+
+      -- Embeddings (occasional heavy operation)
+      IF user_record.user_rank <= 2 THEN
+        INSERT INTO public.token_usage_logs (user_id, project_id, operation_type, tokens_input, tokens_output, cost_usd, metadata, created_at)
+        VALUES (
+          user_record.user_id,
+          user_record.project_id,
+          'embedding',
+          45000 + (random() * 35000)::int,  -- 45k-80k tokens for embeddings
+          0,  -- Embeddings have no output tokens
+          0.0006 + (random() * 0.0008),  -- Embeddings are cheaper per token
+          jsonb_build_object(
+            'test_data', 'true',
+            'model', 'text-embedding-004',
+            'source_id', gen_random_uuid(),
+            'chunks_created', (50 + (random() * 100)::int)
+          ),
+          NOW() - (random() * interval '30 days')
+        );
+
+        total_inserted := total_inserted + 1;
+        RAISE NOTICE '  ✓ Inserted 1 embedding operation';
+      END IF;
+    END;
+  END LOOP;
+
+  RAISE NOTICE '';
+  RAISE NOTICE '========================================';
+  RAISE NOTICE '✅ Seed data completed successfully';
+  RAISE NOTICE '📊 Total operations inserted: %', total_inserted;
+  RAISE NOTICE '========================================';
+
+  -- Show summary of inserted data
+  RAISE NOTICE '';
+  RAISE NOTICE 'Summary by user:';
+  FOR user_record IN
+    SELECT
+      u.email,
+      COUNT(*) as total_operations,
+      SUM(tul.tokens_input + tul.tokens_output) as total_tokens,
+      ROUND((SUM(tul.cost_usd) * 5.5)::numeric, 4) as total_cost_brl
+    FROM public.token_usage_logs tul
+    LEFT JOIN auth.users u ON tul.user_id = u.id
+    WHERE tul.metadata->>'test_data' = 'true'
+    GROUP BY u.email
+    ORDER BY total_tokens DESC
+  LOOP
+    RAISE NOTICE '  % - % ops, % tokens, R$ %',
+      user_record.email,
+      user_record.total_operations,
+      user_record.total_tokens,
+      user_record.total_cost_brl;
+  END LOOP;
+
+EXCEPTION
+  WHEN OTHERS THEN
+    RAISE NOTICE '';
+    RAISE NOTICE '❌ ERROR: %', SQLERRM;
+    RAISE NOTICE 'Rolling back seed data...';
+    RAISE;
 END $$;
-
--- Verify the data was inserted
-SELECT
-  u.email,
-  COUNT(*) as total_operations,
-  SUM(tul.tokens_input + tul.tokens_output) as total_tokens,
-  SUM(tul.cost_usd) as total_cost_usd,
-  SUM(tul.cost_usd) * 5.5 as total_cost_brl
-FROM public.token_usage_logs tul
-LEFT JOIN auth.users u ON tul.user_id = u.id
-WHERE tul.metadata->>'test_data' = 'true'
-GROUP BY u.email
-ORDER BY total_tokens DESC;
