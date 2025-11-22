@@ -77,7 +77,7 @@ UNION ALL
 
 SELECT
   '💾 CACHE STATUS',
-  ROUND((s.ops_com_cache::float / NULLIF(s.total_ops, 0) * 100), 2)::text || '%',
+  ROUND((s.ops_com_cache::float / NULLIF(s.total_ops, 0) * 100)::numeric, 2)::text || '%',
   s.total_cached::text || ' tokens cached',
   CASE
     WHEN s.ops_com_cache::float / NULLIF(s.total_ops, 0) > 0.7 THEN '🟢 ÓTIMO'
@@ -90,7 +90,7 @@ UNION ALL
 
 SELECT
   '🤖 MODELO FLASH',
-  ROUND((s.ops_flash::float / NULLIF(s.total_ops, 0) * 100), 2)::text || '%',
+  ROUND((s.ops_flash::float / NULLIF(s.total_ops, 0) * 100)::numeric, 2)::text || '%',
   s.ops_flash::text || ' ops',
   CASE
     WHEN s.ops_flash::float / NULLIF(s.total_ops, 0) > 0.85 THEN '🟢 ÓTIMO'
@@ -103,7 +103,7 @@ UNION ALL
 
 SELECT
   '⚡ MODELO PRO',
-  ROUND((s.ops_pro::float / NULLIF(s.total_ops, 0) * 100), 2)::text || '%',
+  ROUND((s.ops_pro::float / NULLIF(s.total_ops, 0) * 100)::numeric, 2)::text || '%',
   s.ops_pro::text || ' ops',
   CASE
     WHEN s.ops_pro::float / NULLIF(s.total_ops, 0) < 0.15 THEN '🟢 OK'
@@ -226,7 +226,7 @@ UNION ALL
 SELECT
   CASE
     WHEN d.ops_pro::float / NULLIF(d.total_ops, 0) > 0.15
-    THEN '🔴 Uso de Pro alto (>' || ROUND((d.ops_pro::float / d.total_ops * 100), 0)::text || '%)'
+    THEN '🔴 Uso de Pro alto (>' || ROUND((d.ops_pro::float / d.total_ops * 100)::numeric, 0)::text || '%)'
     ELSE '🟢 Uso de Pro adequado'
   END,
   CASE
