@@ -42,17 +42,18 @@ export const OUTPUT_LIMITS = {
 } as const;
 
 /**
- * Safe output limit: 50% of Gemini's 16k token limit
+ * Safe output limit: 75% of Gemini's 16k token limit
  * Leaves buffer for:
  * - JSON formatting variations
  * - Gemini's conservative token counting
  * - Unexpected verbosity
  * - Large input contexts
  *
- * Reduced from 12000 to 8000 to prevent MAX_TOKENS errors with large inputs.
- * This more conservative limit ensures stable generation even with extensive source material.
+ * Increased from 8000 to 12000 to handle extensive medical content summaries.
+ * With proper chunking (12k chars/section), this allows comprehensive summaries
+ * without truncation while maintaining a safe margin.
  */
-export const SAFE_OUTPUT_LIMIT = 8000;
+export const SAFE_OUTPUT_LIMIT = 12000;
 
 /**
  * Maximum output tokens Gemini 2.5 can generate

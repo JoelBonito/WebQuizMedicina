@@ -454,7 +454,7 @@ function recoverPartialObject(text: string): any | null {
 
   const recovered: any = {};
 
-  // Find all complete string fields
+  // Find all complete string fields (including those with proper closing quotes)
   const stringFieldPattern = /"([^"]+)"\s*:\s*"((?:[^"\\]|\\.)*)"/g;
   let match;
 
@@ -471,6 +471,34 @@ function recoverPartialObject(text: string): any | null {
     }
   }
 
+  // IMPROVED: Try to recover truncated string fields (without closing quote)
+  // This helps with long HTML content that gets cut off
+  if (Object.keys(recovered).length === 0 || !recovered.conteudo_html) {
+    const truncatedStringPattern = /"([^"]+)"\s*:\s*"([^"]*?)$/;
+    const truncMatch = text.match(truncatedStringPattern);
+    if (truncMatch) {
+      const key = truncMatch[1];
+      let value = truncMatch[2];
+
+      // Try to extract more content by looking backwards for the field start
+      const fieldStart = text.lastIndexOf(`"${key}"`);
+      if (fieldStart !== -1) {
+        const colonPos = text.indexOf(':', fieldStart);
+        const quotePos = text.indexOf('"', colonPos + 1);
+        if (quotePos !== -1) {
+          value = text.substring(quotePos + 1);
+          // Clean up any trailing incomplete escape sequences
+          value = value.replace(/\\+$/, '');
+        }
+      }
+
+      if (value.length > 10) { // Only recover if we got substantial content
+        recovered[key] = value.replace(/\\"/g, '"').replace(/\\n/g, '\n').replace(/\\\\/g, '\\');
+        console.log(`✅ Recovered TRUNCATED field: "${key}" (${value.length} chars, incomplete)`);
+      }
+    }
+  }
+
   // Find complete array fields
   const arrayFieldPattern = /"([^"]+)"\s*:\s*\[((?:[^\[\]]*(?:\[[^\]]*\])?)*)\]/g;
   while ((match = arrayFieldPattern.exec(text)) !== null) {
@@ -482,6 +510,26 @@ function recoverPartialObject(text: string): any | null {
       console.log(`✅ Recovered array field: "${key}" (${recovered[key].length} items)`);
     } catch (e) {
       console.warn(`⚠️ Failed to parse array field "${key}": ${e.message}`);
+    }
+  }
+
+  // IMPROVED: Try to recover partial arrays for topicos
+  if (!recovered.topicos) {
+    const partialArrayPattern = /"topicos"\s*:\s*\[(.*?)(?:\]|$)/;
+    const partialMatch = text.match(partialArrayPattern);
+    if (partialMatch) {
+      const arrayContent = partialMatch[1];
+      // Extract all complete string items
+      const items: string[] = [];
+      const itemPattern = /"([^"]+)"/g;
+      let itemMatch;
+      while ((itemMatch = itemPattern.exec(arrayContent)) !== null) {
+        items.push(itemMatch[1]);
+      }
+      if (items.length > 0) {
+        recovered.topicos = items;
+        console.log(`✅ Recovered partial array "topicos" (${items.length} items)`);
+      }
     }
   }
 
@@ -525,8 +573,8 @@ function recoverItemsFromTruncatedJson(text: string, arrayKey?: string): any[] {
   // Auto-detect array key if not provided
   let detectedKey = arrayKey;
   if (!detectedKey) {
-    // Try common array names
-    const commonKeys = ['perguntas', 'flashcards', 'items', 'data', 'results'];
+    // Try common array names (including topicos for summaries)
+    const commonKeys = ['perguntas', 'flashcards', 'topicos', 'items', 'data', 'results'];
     for (const key of commonKeys) {
       if (text.indexOf(`"${key}"`) !== -1) {
         detectedKey = key;

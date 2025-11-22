@@ -370,7 +370,19 @@ JSON:
     }
 
     if (!parsed.titulo || !parsed.conteudo_html) {
+      console.error('❌ Invalid response format from AI:', {
+        hasTitulo: !!parsed.titulo,
+        hasConteudo: !!parsed.conteudo_html,
+        conteudoLength: parsed.conteudo_html?.length || 0,
+        recoveredFields: Object.keys(parsed),
+      });
       throw new Error('Invalid response format from AI');
+    }
+
+    // Validate minimum content length (allow truncated but substantial content)
+    if (parsed.conteudo_html.length < 500) {
+      console.warn(`⚠️ Content seems too short (${parsed.conteudo_html.length} chars). May be truncated.`);
+      console.warn('Proceeding anyway as this may be a very concise summary.');
     }
 
     // Save summary to database (sanitize HTML to prevent XSS)
