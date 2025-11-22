@@ -278,7 +278,8 @@ INSTRUÇÕES:
 
 Retorne APENAS o HTML do resumo, sem texto adicional.`;
 
-        const sectionResult = await callGeminiWithUsage(sectionPrompt, 'gemini-2.5-flash', 4000);
+        // Reduced from 4000 to 2500 to prevent MAX_TOKENS errors with large section inputs
+        const sectionResult = await callGeminiWithUsage(sectionPrompt, 'gemini-2.5-flash', 2500);
 
         // Track token usage
         totalInputTokens += sectionResult.usage.inputTokens;
