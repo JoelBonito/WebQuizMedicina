@@ -163,6 +163,118 @@ OBJETIVO: Fechar múltiplas lacunas de forma eficiente e interconectada.
 }
 
 /**
+ * Calculate recovery strategy specifically for FLASHCARDS
+ *
+ * Flashcards tolerate repetition better than quizzes because:
+ * - They are atomic (1 card = 1 fact)
+ * - Different angles on same topic don't feel repetitive
+ * - Memorization benefits from multiple exposures
+ *
+ * Strategy Rules:
+ * - 0 difficulties: MASTERY mode (advanced terminology and mechanisms)
+ * - 1+ difficulties: FOCUSED mode (100% on difficulties, atomized into facts)
+ *
+ * @param difficulties - Array of unresolved student difficulties
+ * @param projectName - Name of the project
+ * @returns RecoveryStrategy object optimized for flashcard generation
+ */
+export function calculateRecoveryStrategyForFlashcards(
+  difficulties: Difficulty[] | null,
+  projectName: string
+): RecoveryStrategy {
+
+  if (!difficulties || difficulties.length === 0) {
+    // ========================================
+    // CASE 0: NO DIFFICULTIES (MASTERY MODE)
+    // ========================================
+    console.log(`✅ [Recovery Flashcards] No difficulties - activating MASTERY mode`);
+
+    return {
+      searchQueries: [
+        `terminologia médica avançada de ${projectName}`,
+        `mecanismos moleculares`,
+        `valores de referência e diagnóstico`
+      ],
+      systemInstruction: `
+O aluno NÃO TEM dificuldades registradas neste projeto.
+Isso indica domínio dos conceitos básicos.
+
+MODO: MASTERY (Memorização Avançada)
+
+REGRAS PARA FLASHCARDS:
+- Foque em terminologia AVANÇADA e específica
+- Mecanismos moleculares e fisiopatológicos detalhados
+- Valores de referência precisos e critérios diagnósticos
+- Associações e correlações entre conceitos
+- Mnemonics e truques de memorização para residência
+
+FORMATO:
+- Front: Pergunta direta e objetiva
+- Back: Resposta concisa (1-3 frases máximo)
+- Tags: Categorização por especialidade e sistema
+
+OBJETIVO: Consolidar conhecimento avançado através de memorização ativa.
+      `.trim(),
+      focusPercentage: 0,
+      strategyType: 'mastery'
+    };
+  }
+
+  else {
+    // ========================================
+    // CASE 1+: FOCUSED MODE (FLASHCARDS TOLERATE REPETITION)
+    // ========================================
+    // Unlike quizzes, flashcards can be 100% focused even with 1-2 topics
+    const topicList = difficulties.map(d => d.topico);
+    const topicCount = topicList.length;
+
+    console.log(`🎯 [Recovery Flashcards] FOCUSED Strategy activated`);
+    console.log(`   Difficulties: ${topicList.join(', ')}`);
+    console.log(`   Total topics: ${topicCount}`);
+    console.log(`   Note: Flashcards tolerate 100% focus (atomic nature)`);
+
+    return {
+      searchQueries: topicList,
+      systemInstruction: `
+O aluno demonstrou dificuldade em: ${topicList.join(', ')}.
+
+MODO: FOCUSED (Memorização Intensiva)
+
+REGRAS PARA FLASHCARDS DE RECUPERAÇÃO:
+- ATOMIZE o conhecimento: 1 flashcard = 1 fato/conceito isolado
+- Para cada tópico "${topicList[0]}", crie flashcards sobre ÂNGULOS DIFERENTES:
+  * Definição (O que é?)
+  * Valor de referência (Quando aplicável)
+  * Sintoma/sinal principal
+  * Fisiopatologia (Mecanismo básico)
+  * Tratamento de primeira linha
+  * Contraindicação mais importante
+  * Diagnóstico diferencial principal
+
+${topicCount > 1 ? `- Distribua EQUITATIVAMENTE entre os ${topicCount} tópicos` : ''}
+- Cada flashcard deve ser AUTOCONTIDO (não depender de outro card)
+- Use linguagem OBJETIVA e PRECISA
+
+IMPORTANTE - Flashcards são para MEMORIZAÇÃO, não raciocínio:
+- Evite casos clínicos complexos (use perguntas diretas)
+- Prefira "Qual é..." sobre "Por que..."
+- Resposta back deve ser memorável e concisa (máximo 3 frases)
+- Se o conceito é complexo, quebre em múltiplos flashcards simples
+
+FORMATO:
+- Front: Pergunta direta e objetiva (sem contexto longo)
+- Back: Resposta concisa e memorável
+- Tags: Incluir o tópico de dificuldade + categoria geral
+
+OBJETIVO: Fechar lacunas através de memorização ativa e repetição espaçada.
+      `.trim(),
+      focusPercentage: 100,
+      strategyType: 'focused'
+    };
+  }
+}
+
+/**
  * Estimate token count (rough approximation)
  * 1 token ≈ 4 characters for Portuguese/English
  */
