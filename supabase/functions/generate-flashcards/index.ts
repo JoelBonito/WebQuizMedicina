@@ -3,8 +3,9 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
 import { securityHeaders, createErrorResponse, createSuccessResponse, RATE_LIMITS, checkRateLimit, authenticateRequest } from '../_shared/security.ts';
 import { validateRequest, generateFlashcardsSchema, sanitizeString } from '../_shared/validation.ts';
 import { AuditLogger, AuditEventType } from '../_shared/audit.ts';
-import { callGemini, parseJsonFromResponse } from '../_shared/gemini.ts';
+import { callGeminiWithUsage, parseJsonFromResponse } from '../_shared/gemini.ts';
 import { validateOutputRequest, calculateBatchSizes, formatBatchProgress, SAFE_OUTPUT_LIMIT } from '../_shared/output-limits.ts';
+import { logTokenUsage, type TokenUsage } from '../_shared/token-logger.ts';
 import { hasAnyEmbeddings, semanticSearchWithTokenLimit } from '../_shared/embeddings.ts';
 import { createContextCache, safeDeleteCache } from '../_shared/gemini-cache.ts';
 
@@ -219,6 +220,11 @@ serve(async (req) => {
     // Generate flashcards in batches
     const allFlashcards: any[] = [];
 
+    // Track token usage across all batches
+    let totalInputTokens = 0;
+    let totalOutputTokens = 0;
+    let totalCachedTokens = 0;
+
     // PHASE 1: Create context cache if multiple batches (saves ~95% on input tokens)
     let cacheName: string | null = null;
     const useCache = totalBatches > 1;
@@ -289,7 +295,7 @@ FORMATO DE SAÍDA (JSON estrito):
 Retorne APENAS o JSON, sem texto adicional antes ou depois.`;
 
         // Enable JSON mode to save tokens and ensure valid JSON output
-        const response = await callGemini(
+        const result = await callGeminiWithUsage(
           prompt,
           'gemini-2.5-flash',
           SAFE_OUTPUT_LIMIT,
@@ -297,7 +303,12 @@ Retorne APENAS o JSON, sem texto adicional antes ou depois.`;
           cacheName || undefined // Use cache if available
         );
 
-        const parsed = parseJsonFromResponse(response);
+        // Accumulate token usage
+        totalInputTokens += result.usage.inputTokens;
+        totalOutputTokens += result.usage.outputTokens;
+        totalCachedTokens += result.usage.cachedTokens || 0;
+
+        const parsed = parseJsonFromResponse(result.text);
 
         if (!parsed.flashcards || !Array.isArray(parsed.flashcards)) {
           throw new Error(`Invalid response format from AI in batch ${batchNum}`);
@@ -333,6 +344,25 @@ Retorne APENAS o JSON, sem texto adicional antes ou depois.`;
       .select();
 
     if (insertError) throw insertError;
+
+    // Log Token Usage for Admin Analytics
+    await logTokenUsage(
+      supabaseClient,
+      user.id,
+      project_id || sources[0].project_id,
+      'flashcard',
+      {
+        inputTokens: totalInputTokens,
+        outputTokens: totalOutputTokens,
+        cachedTokens: totalCachedTokens,
+      },
+      'gemini-2.5-flash',
+      {
+        session_id: sessionId,
+        flashcards_generated: insertedFlashcards.length,
+        source_id: source_id,
+      }
+    );
 
     // Audit log: AI flashcard generation
     await getAuditLogger().logAIGeneration(

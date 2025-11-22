@@ -12,6 +12,21 @@ export interface GeminiResponse {
     };
     finishReason?: string; // COMPLETE, MAX_TOKENS, SAFETY, RECITATION, OTHER
   }[];
+  usageMetadata?: {
+    promptTokenCount: number;
+    candidatesTokenCount: number;
+    totalTokenCount: number;
+    cachedContentTokenCount?: number;
+  };
+}
+
+export interface GeminiResult {
+  text: string;
+  usage: {
+    inputTokens: number;
+    outputTokens: number;
+    cachedTokens?: number;
+  };
 }
 
 export async function callGemini(
@@ -157,7 +172,184 @@ export async function callGemini(
     throw new Error(`Gemini candidate has no content. Response: ${JSON.stringify(candidate).substring(0, 500)}`);
   }
 
+  // Extract usage metadata if available
+  const usageMetadata = data.usageMetadata;
+  if (usageMetadata) {
+    console.log(`📊 [Gemini Usage] Input: ${usageMetadata.promptTokenCount}, Output: ${usageMetadata.candidatesTokenCount}, Total: ${usageMetadata.totalTokenCount}`);
+    if (usageMetadata.cachedContentTokenCount) {
+      console.log(`💰 [Gemini Cache] Cached tokens: ${usageMetadata.cachedContentTokenCount} (75% discount)`);
+    }
+  }
+
   return candidate.content.parts[0].text;
+}
+
+/**
+ * Call Gemini and return both text and token usage metadata
+ * Use this when you need to log token usage for admin analytics
+ */
+export async function callGeminiWithUsage(
+  prompt: string,
+  model: 'gemini-2.5-flash' | 'gemini-2.5-pro' | 'gemini-2.5-flash-lite' = 'gemini-2.5-flash',
+  maxOutputTokens: number = 16384,
+  jsonMode: boolean = false,
+  cacheName?: string
+): Promise<GeminiResult> {
+  if (!GEMINI_API_KEY) {
+    throw new Error('GEMINI_API_KEY not configured');
+  }
+
+  // Log prompt size for debugging
+  const promptChars = prompt.length;
+  const estimatedTokens = Math.ceil(promptChars / 4);
+
+  if (cacheName) {
+    console.log(`📊 [Gemini] Using cached content: ${cacheName}`);
+    console.log(`📊 [Gemini] Prompt only: ${promptChars} chars (~${estimatedTokens} tokens)`);
+    console.log(`💰 [Gemini] Cache reduces input token cost by ~95%`);
+  } else {
+    console.log(`📊 [Gemini] Sending prompt: ${promptChars} chars (~${estimatedTokens} tokens), model: ${model}, maxOutputTokens: ${maxOutputTokens}`);
+
+    if (estimatedTokens > 30000) {
+      console.warn(`⚠️ [Gemini] Very large prompt detected! This may cause API errors. Consider reducing content.`);
+    }
+  }
+
+  // Build generation config with optional JSON mode
+  const generationConfig: any = {
+    temperature: 0.7,
+    topK: 40,
+    topP: 0.95,
+    maxOutputTokens,
+  };
+
+  if (jsonMode) {
+    generationConfig.responseMimeType = "application/json";
+    console.log('🔧 [Gemini] JSON mode enabled - native JSON output guaranteed');
+  }
+
+  // Build request body
+  const requestBody: any = {
+    generationConfig,
+  };
+
+  // Use cached content if provided, otherwise send full prompt
+  if (cacheName) {
+    requestBody.cachedContent = cacheName;
+    requestBody.contents = [
+      {
+        parts: [
+          {
+            text: prompt,
+          },
+        ],
+      },
+    ];
+  } else {
+    requestBody.contents = [
+      {
+        parts: [
+          {
+            text: prompt,
+          },
+        ],
+      },
+    ];
+  }
+
+  const response = await fetch(
+    `${GEMINI_API_URL}/${model}:generateContent?key=${GEMINI_API_KEY}`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Gemini API error: ${error}`);
+  }
+
+  const data: GeminiResponse = await response.json();
+
+  // Validate response structure
+  if (!data.candidates || !Array.isArray(data.candidates) || data.candidates.length === 0) {
+    console.error('❌ Invalid Gemini response structure:', JSON.stringify(data, null, 2));
+    throw new Error(
+      `Gemini returned invalid response. This may be due to:\n` +
+      `- Prompt too large (try reducing content or number of items)\n` +
+      `- Content safety filters triggered\n` +
+      `- API quota exceeded\n` +
+      `Response: ${JSON.stringify(data).substring(0, 500)}`
+    );
+  }
+
+  const candidate = data.candidates[0];
+  const finishReason = candidate.finishReason;
+
+  // Check for problematic finish reasons
+  if (finishReason === 'SAFETY') {
+    throw new Error('Response blocked by safety filters. Content may contain sensitive medical information.');
+  }
+
+  if (finishReason === 'MAX_TOKENS') {
+    console.error('❌ Gemini response was truncated due to MAX_TOKENS limit');
+    console.error('Candidate:', JSON.stringify(candidate, null, 2));
+
+    if (candidate.content && candidate.content.parts && candidate.content.parts.length > 0) {
+      const partialText = candidate.content.parts[0].text;
+      console.warn(`⚠️ MAX_TOKENS hit, but recovered ${partialText.length} characters of partial content`);
+      console.warn('This will likely cause JSON parsing errors. Consider:');
+      console.warn('  1. Reducing the number of items requested');
+      console.warn('  2. Increasing maxOutputTokens parameter');
+      console.warn('  3. Using batched processing for large requests');
+      // Still return partial content with usage metadata
+      const usage = {
+        inputTokens: data.usageMetadata?.promptTokenCount || estimatedTokens,
+        outputTokens: data.usageMetadata?.candidatesTokenCount || 0,
+        cachedTokens: data.usageMetadata?.cachedContentTokenCount || 0,
+      };
+      return { text: partialText, usage };
+    }
+
+    throw new Error(
+      'Resposta truncada: O modelo atingiu o limite de tokens antes de completar. ' +
+      'Por favor, tente:\n' +
+      '  • Reduzir o número de questões solicitadas\n' +
+      '  • Selecionar menos conteúdo/fontes\n' +
+      'Candidato: ' + JSON.stringify(candidate).substring(0, 200)
+    );
+  }
+
+  if (finishReason === 'RECITATION') {
+    console.warn('⚠️ Response flagged for recitation. Content may be too similar to training data.');
+  }
+
+  // Validate content structure
+  if (!candidate.content || !candidate.content.parts || candidate.content.parts.length === 0) {
+    console.error('❌ Invalid candidate structure:', JSON.stringify(candidate, null, 2));
+    throw new Error(`Gemini candidate has no content. Response: ${JSON.stringify(candidate).substring(0, 500)}`);
+  }
+
+  // Extract usage metadata
+  const usage = {
+    inputTokens: data.usageMetadata?.promptTokenCount || estimatedTokens,
+    outputTokens: data.usageMetadata?.candidatesTokenCount || 0,
+    cachedTokens: data.usageMetadata?.cachedContentTokenCount || 0,
+  };
+
+  console.log(`📊 [Gemini Usage] Input: ${usage.inputTokens}, Output: ${usage.outputTokens}, Total: ${usage.inputTokens + usage.outputTokens}`);
+  if (usage.cachedTokens > 0) {
+    console.log(`💰 [Gemini Cache] Cached tokens: ${usage.cachedTokens} (75% discount)`);
+  }
+
+  return {
+    text: candidate.content.parts[0].text,
+    usage,
+  };
 }
 
 export async function callGeminiWithFile(
