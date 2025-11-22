@@ -57,6 +57,7 @@ interface GeneratedContent {
   sourceCount: number;
   createdAt: Date;
   difficulty?: 'fácil' | 'médio' | 'difícil' | 'misto';
+  isRecovery?: boolean; // Indicates if content was generated from recovery mode
 }
 
 const ACTION_CARDS = [
@@ -240,6 +241,8 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
       const mostRecent = sessionQuestions[0];
       const difficulty = getDifficultyLevel(sessionQuestions);
       const contentId = `quiz-${sessionId}`;
+      // Check if this is recovery content (all questions have null source_id)
+      const isRecovery = sessionQuestions.every(q => q.source_id === null);
       newContent.push({
         id: contentId,
         type: 'quiz',
@@ -247,6 +250,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
         sourceCount: selectedSourceIds.length,
         createdAt: new Date(mostRecent.created_at || new Date()),
         difficulty,
+        isRecovery,
       });
     });
 
@@ -265,6 +269,8 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
       const mostRecent = sessionFlashcards[0];
       const difficulty = getDifficultyLevel(sessionFlashcards);
       const contentId = `flashcards-${sessionId}`;
+      // Check if this is recovery content (all flashcards have null source_id)
+      const isRecovery = sessionFlashcards.every(f => f.source_id === null);
       newContent.push({
         id: contentId,
         type: 'flashcards',
@@ -272,17 +278,21 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
         sourceCount: selectedSourceIds.length,
         createdAt: new Date(mostRecent.created_at || new Date()),
         difficulty,
+        isRecovery,
       });
     });
 
     // Add summaries
     summaries.forEach(summary => {
+      // Check if this is recovery/focused content (tipo === 'personalizado')
+      const isRecovery = summary.tipo === 'personalizado';
       newContent.push({
         id: summary.id,
         type: 'summary',
         title: customNames[summary.id] || summary.titulo,
         sourceCount: summary.source_ids?.length || 0,
         createdAt: new Date(summary.created_at || new Date()),
+        isRecovery,
       });
     });
 
@@ -302,9 +312,12 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
   // Listen for content generation events from DifficultiesPanel
   useEffect(() => {
     const handleContentGenerated = () => {
-      fetchQuestions();
-      fetchFlashcards();
-      fetchSummaries();
+      // Add a small delay to ensure database has finished processing
+      setTimeout(() => {
+        fetchQuestions();
+        fetchFlashcards();
+        fetchSummaries();
+      }, 800); // 800ms delay to ensure data is available
     };
 
     window.addEventListener('content-generated', handleContentGenerated);
@@ -681,9 +694,18 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
 
                     {/* Informações */}
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-gray-900 truncate">
-                        {content.title}
-                      </h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-medium text-gray-900 truncate">
+                          {content.title}
+                        </h3>
+                        {/* Recovery Badge */}
+                        {content.isRecovery && (
+                          <Badge className="text-xs px-2 py-0.5 rounded-md bg-gradient-to-r from-orange-100 to-amber-100 text-orange-700 border border-orange-200 shrink-0 flex items-center gap-1">
+                            <TrendingUp className="w-3 h-3" />
+                            Recovery
+                          </Badge>
+                        )}
+                      </div>
                       <p className="text-sm text-gray-500">
                         {style.label} · {content.sourceCount} fontes · {formatTimeAgo(content.createdAt)}
                       </p>
