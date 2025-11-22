@@ -13,6 +13,7 @@ import {
   hasEmbeddings
 } from '../_shared/embeddings.ts';
 import { AuditLogger, AuditEventType } from '../_shared/audit.ts';
+import { logTokenUsage, estimateTokenCount } from '../_shared/token-logger.ts';
 
 // Lazy-initialize AuditLogger
 let auditLogger: AuditLogger | null = null;
@@ -159,7 +160,29 @@ serve(async (req) => {
     console.log(`📊 [Stats] Chunks: ${chunksWithEmbeddings.length}`);
     console.log(`📊 [Stats] Avg tokens/chunk: ${avgTokensPerChunk}`);
 
-    // 11. Audit log
+    // 11. Log Token Usage for Admin Analytics
+    // Note: Embeddings API doesn't return usage metadata, so we estimate
+    const totalTokens = chunksWithEmbeddings.reduce((sum, c) => sum + c.tokenCount, 0);
+    await logTokenUsage(
+      supabaseClient,
+      user.id,
+      source.project_id,
+      'embedding',
+      {
+        inputTokens: totalTokens, // All tokens are input for embeddings
+        outputTokens: 0, // Embeddings don't have output tokens
+        cachedTokens: 0,
+      },
+      'gemini-2.5-flash', // Using same model name for consistency (embeddings use text-embedding-004)
+      {
+        source_id: source_id,
+        chunks_created: chunksWithEmbeddings.length,
+        avg_tokens_per_chunk: avgTokensPerChunk,
+        duration_ms: duration,
+      }
+    );
+
+    // 12. Audit log
     await getAuditLogger().logAIGeneration(
       AuditEventType.AI_EMBEDDINGS_GENERATED,
       user.id,
