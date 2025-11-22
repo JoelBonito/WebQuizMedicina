@@ -7,6 +7,7 @@ import { callGeminiWithUsage, parseJsonFromResponse } from '../_shared/gemini.ts
 import { calculateSummaryStrategy, SAFE_OUTPUT_LIMIT } from '../_shared/output-limits.ts';
 import { logTokenUsage } from '../_shared/token-logger.ts';
 import { hasAnyEmbeddings, semanticSearchWithTokenLimit } from '../_shared/embeddings.ts';
+import { getOrCreateProjectCache } from '../_shared/project-cache.ts';
 
 // Lazy-initialize AuditLogger to avoid crashes if env vars are missing
 let auditLogger: AuditLogger | null = null;
@@ -283,9 +284,8 @@ IMPORTANTE: NÃO omita detalhes importantes. Seja completo e educativo.
 
 Retorne APENAS o HTML do resumo detalhado, sem texto adicional.`;
 
-        // With 12k char chunks (~3k tokens input), we can safely use 4k output tokens
-        // This allows comprehensive, high-quality section summaries
-        const sectionResult = await callGeminiWithUsage(sectionPrompt, 'gemini-2.5-flash', 4000);
+        // FIXED: Use SAFE_OUTPUT_LIMIT (12000) instead of 4000 to avoid truncation
+        const sectionResult = await callGeminiWithUsage(sectionPrompt, 'gemini-2.5-flash', SAFE_OUTPUT_LIMIT);
 
         // Track token usage
         totalInputTokens += sectionResult.usage.inputTokens;
