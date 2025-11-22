@@ -241,8 +241,8 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
       const mostRecent = sessionQuestions[0];
       const difficulty = getDifficultyLevel(sessionQuestions);
       const contentId = `quiz-${sessionId}`;
-      // Check if this is recovery content (all questions have null source_id)
-      const isRecovery = sessionQuestions.every(q => q.source_id === null);
+      // Check if this is recovery content (session_id starts with 'recovery-')
+      const isRecovery = sessionId.startsWith('recovery-');
       newContent.push({
         id: contentId,
         type: 'quiz',
@@ -269,8 +269,8 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
       const mostRecent = sessionFlashcards[0];
       const difficulty = getDifficultyLevel(sessionFlashcards);
       const contentId = `flashcards-${sessionId}`;
-      // Check if this is recovery content (all flashcards have null source_id)
-      const isRecovery = sessionFlashcards.every(f => f.source_id === null);
+      // Check if this is recovery content (session_id starts with 'recovery-')
+      const isRecovery = sessionId.startsWith('recovery-');
       newContent.push({
         id: contentId,
         type: 'flashcards',
