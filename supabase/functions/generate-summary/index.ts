@@ -248,8 +248,10 @@ JSON:
       // Strategy 2: Batched sections summary
       console.log(`🔄 [PHASE 1] Generating summary in sections...`);
 
-      // Split content into chunks (approximately 25k chars each)
-      const chunkSize = 25000;
+      // Split content into smaller chunks to prevent MAX_TOKENS
+      // 12k chars (~3k tokens input) allows 4k-5k tokens output without hitting limits
+      // More chunks = better quality summaries for each section
+      const chunkSize = 12000;
       const chunks: string[] = [];
       for (let i = 0; i < combinedContent.length; i += chunkSize) {
         chunks.push(combinedContent.substring(i, i + chunkSize));
@@ -263,23 +265,27 @@ JSON:
         const chunkNum = i + 1;
         console.log(`🔄 [PHASE 1] [Seção ${chunkNum}/${chunks.length}] Generating section summary...`);
 
-        const sectionPrompt = `Você é um professor especialista em medicina. Resuma esta seção do conteúdo de forma estruturada.
-
-IMPORTANTE: Todo o conteúdo deve ser em Português do Brasil.
+        const sectionPrompt = `Você é um professor especialista em medicina. Crie um resumo COMPLETO e DETALHADO desta seção do conteúdo.
 
 SEÇÃO ${chunkNum} DE ${chunks.length}:
 ${chunks[i]}
 
 INSTRUÇÕES:
-1. Crie um resumo estruturado em HTML desta seção
-2. Use <h3> para subtítulos, <p> para parágrafos, <ul>/<li> para listas
-3. Mantenha informações importantes e terminologia médica correta
-4. Seja conciso mas completo
+1. Crie um resumo estruturado em HTML com TODO o conteúdo importante
+2. Use <h3> para subtítulos principais, <h4> para subtópicos se necessário
+3. Use <p> para parágrafos explicativos, <ul>/<li> para listas de conceitos
+4. Use <strong> para destacar termos médicos importantes
+5. Mantenha: conceitos fundamentais, mecanismos, processos, terminologia, aplicações clínicas
+6. Seja ABRANGENTE - este é material educacional médico, não um resumo superficial
+7. Todo o conteúdo em Português do Brasil
 
-Retorne APENAS o HTML do resumo, sem texto adicional.`;
+IMPORTANTE: NÃO omita detalhes importantes. Seja completo e educativo.
 
-        // Reduced from 4000 to 2500 to prevent MAX_TOKENS errors with large section inputs
-        const sectionResult = await callGeminiWithUsage(sectionPrompt, 'gemini-2.5-flash', 2500);
+Retorne APENAS o HTML do resumo detalhado, sem texto adicional.`;
+
+        // With 12k char chunks (~3k tokens input), we can safely use 4k output tokens
+        // This allows comprehensive, high-quality section summaries
+        const sectionResult = await callGeminiWithUsage(sectionPrompt, 'gemini-2.5-flash', 4000);
 
         // Track token usage
         totalInputTokens += sectionResult.usage.inputTokens;
@@ -294,22 +300,26 @@ Retorne APENAS o HTML do resumo, sem texto adicional.`;
       console.log(`🔄 [PHASE 1] Combining section summaries...`);
 
       // Optimized: Use Flash instead of Pro for combining (10x cheaper, sufficient for formatting task)
-      const combinePrompt = `Combine os resumos abaixo em um resumo final estruturado e coerente.
+      const combinePrompt = `Você é um professor especialista em medicina. Combine os resumos de seção abaixo em um resumo final COMPLETO, estruturado e coerente.
 
-RESUMOS:
+RESUMOS DAS SEÇÕES:
 ${sectionSummaries.map((s, i) => `\n=== SEÇÃO ${i + 1} ===\n${s}`).join('\n')}
 
-REGRAS:
-- Título geral descritivo
-- HTML bem estruturado
-- Elimine redundâncias
-- Identifique tópicos principais
-- Português do Brasil
+INSTRUÇÕES IMPORTANTES:
+1. Mantenha TODO o conteúdo importante de todas as seções
+2. Organize em uma estrutura lógica e fluida com <h2> para seções principais, <h3> para subseções
+3. Use <p> para parágrafos, <ul>/<li> para listas, <strong> para termos importantes
+4. Elimine apenas repetições óbvias, mas preserve detalhes clínicos, mecanismos, terminologia
+5. Crie um título descritivo que reflita o conteúdo completo
+6. Liste os principais tópicos abordados
+7. Todo o conteúdo em Português do Brasil
+
+IMPORTANTE: Este é um resumo médico educacional. Seja ABRANGENTE e DETALHADO, não superficial.
 
 JSON:
 {
   "titulo": "string",
-  "conteudo_html": "string (HTML)",
+  "conteudo_html": "string (HTML completo e detalhado)",
   "topicos": ["string", ...]
 }`;
 
