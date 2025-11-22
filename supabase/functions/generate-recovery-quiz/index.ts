@@ -407,7 +407,8 @@ FORMATO JSON:
           total_difficulties: difficulties?.length || 0
         }
       },
-      getCorsHeadersForPreflight(req)
+      200,
+      req
     );
 
   } catch (error: any) {
