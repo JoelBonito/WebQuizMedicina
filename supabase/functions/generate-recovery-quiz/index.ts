@@ -353,25 +353,15 @@ FORMATO JSON:
 
       return {
         project_id,
-        user_id: user.id,
         session_id: sessionId,
-        question: sanitizeString(q.pergunta || q.question || ""),
-        options: Array.isArray(q.opcoes) ? q.opcoes.map(sanitizeString) : [],
-        correct_answer: respostaLimpa,
-        justification: sanitizeString(q.justificativa || ""),
-        hint: q.dica ? sanitizeString(q.dica) : null,
+        pergunta: sanitizeString(q.pergunta || q.question || ""),
+        opcoes: Array.isArray(q.opcoes) ? q.opcoes.map(sanitizeString) : [],
+        resposta_correta: respostaLimpa,
+        justificativa: sanitizeString(q.justificativa || ""),
+        dica: q.dica ? sanitizeString(q.dica) : null,
         tipo,
-        difficulty: q.dificuldade || difficulty || "médio",
-        topic: q.topico ? sanitizeString(q.topico) : null,
-
-        // 🆕 RECOVERY METADATA (Phase 4)
-        metadata: {
-          origin: 'recovery',
-          strategy: strategy.strategyType,
-          focus_percentage: strategy.focusPercentage,
-          difficulties_addressed: difficulties?.map((d: Difficulty) => d.topico) || [],
-          difficulties_count: difficulties?.length || 0
-        }
+        dificuldade: q.dificuldade || difficulty || "médio",
+        topico: q.topico ? sanitizeString(q.topico) : null
       };
     });
 
