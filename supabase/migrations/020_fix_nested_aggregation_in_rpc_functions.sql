@@ -58,10 +58,10 @@ BEGIN
   ),
   operation_aggregated AS (
     SELECT
-      user_id,
-      jsonb_object_agg(operation_type, op_count) as operation_counts
-    FROM operation_stats
-    GROUP BY user_id
+      ops.user_id,
+      jsonb_object_agg(ops.operation_type, ops.op_count) as operation_counts
+    FROM operation_stats ops
+    GROUP BY ops.user_id
   )
   SELECT
     ts.user_id::uuid,
@@ -130,10 +130,10 @@ BEGIN
   ),
   operation_aggregated AS (
     SELECT
-      project_id,
-      jsonb_object_agg(operation_type, op_count) as operation_counts
-    FROM operation_stats
-    GROUP BY project_id
+      ops.project_id,
+      jsonb_object_agg(ops.operation_type, ops.op_count) as operation_counts
+    FROM operation_stats ops
+    GROUP BY ops.project_id
   )
   SELECT
     ts.project_id::uuid,
