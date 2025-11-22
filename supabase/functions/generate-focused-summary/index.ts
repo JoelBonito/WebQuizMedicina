@@ -5,7 +5,6 @@ import { validateRequest, generateFocusedSummarySchema, sanitizeString, sanitize
 import { AuditLogger, AuditEventType } from '../_shared/audit.ts';
 import { callGeminiWithUsage } from '../_shared/gemini.ts';
 import { logTokenUsage } from '../_shared/token-logger.ts';
-import { hasAnyEmbeddings, semanticSearchWithTokenLimit } from '../_shared/embeddings.ts';
 import { getOrCreateProjectCache } from '../_shared/project-cache.ts';
 
 // Lazy-initialize AuditLogger to avoid crashes if env vars are missing
@@ -160,72 +159,23 @@ serve(async (req) => {
 
     const topTopics = difficulties.slice(0, 5).map(d => sanitizeString(d.topico));
 
-    // OPTIMIZATION 1: Semantic search to reduce input tokens
-    // Check if embeddings are available for semantic search
-    const hasEmbeddings = await hasAnyEmbeddings(
-      supabaseClient,
-      sources.map(s => s.id)
-    );
+    // STRATEGY: Use FULL sources (not semantic search)
+    // With Flash being so cheap, full context gives better quality
+    // Cost difference: ~$0.0003 USD per operation (negligible)
+    // Quality gain: LLM sees complete context and makes better connections
+    console.log('📚 [FULL-SOURCES] Using complete sources for maximum quality');
 
-    let combinedContext: string;
-    let actualTokensUsed = 0;
-    let usedSemanticSearch = false;
+    const combinedContext = sources
+      .map((source) => {
+        const sanitizedName = sanitizeString(source.name || 'Unknown');
+        const sanitizedContent = sanitizeString(source.extracted_content || '');
+        return `[Fonte: ${sanitizedName}]\n${sanitizedContent}`;
+      })
+      .join('\n\n---\n\n');
 
-    if (hasEmbeddings) {
-      console.log('🔍 [SEMANTIC] Using semantic search for focused content');
+    console.log(`📊 [FULL-SOURCES] ${sources.length} sources, ~${Math.ceil(combinedContext.length / 4)} tokens`);
 
-      // Create search query from student's difficulties
-      const searchQuery = difficulties
-        .map(d => d.topico)
-        .join(' ');
-
-      console.log(`🎯 [SEMANTIC] Query: "${searchQuery.substring(0, 100)}..."`);
-
-      // Fetch only relevant chunks (targeting 5k tokens instead of 13k+)
-      const relevantChunks = await semanticSearchWithTokenLimit(
-        supabaseClient,
-        searchQuery,
-        sources.map(s => s.id),
-        5000, // Target 5k tokens (62% reduction from typical 13k)
-        0.6   // Minimum 60% similarity
-      );
-
-      if (relevantChunks.length > 0) {
-        actualTokensUsed = relevantChunks.reduce((sum, c) => sum + c.tokenCount, 0);
-
-        combinedContext = relevantChunks
-          .map((chunk, i) =>
-            `[Trecho ${i+1} - Relevância ${(chunk.similarity * 100).toFixed(0)}%]\n${chunk.content}`
-          )
-          .join('\n\n---\n\n');
-
-        usedSemanticSearch = true;
-        console.log(`✅ [SEMANTIC] ${relevantChunks.length} relevant chunks (~${actualTokensUsed} tokens)`);
-      } else {
-        console.warn('⚠️ [SEMANTIC] No relevant chunks found, falling back to full sources');
-        // Fallback to full sources
-        combinedContext = sources
-          .map((source) => {
-            const sanitizedName = sanitizeString(source.name || 'Unknown');
-            const sanitizedContent = sanitizeString(source.extracted_content || '');
-            return `[Fonte: ${sanitizedName}]\n${sanitizedContent}`;
-          })
-          .join('\n\n---\n\n');
-      }
-    } else {
-      console.log('📚 [SOURCES] No embeddings available, using all sources');
-
-      // Combine all sources (sanitize to prevent prompt injection)
-      combinedContext = sources
-        .map((source) => {
-          const sanitizedName = sanitizeString(source.name || 'Unknown');
-          const sanitizedContent = sanitizeString(source.extracted_content || '');
-          return `[Fonte: ${sanitizedName}]\n${sanitizedContent}`;
-        })
-        .join('\n\n---\n\n');
-    }
-
-    // OPTIMIZATION 2: Use project-level cache (reuse across operations)
+    // OPTIMIZATION: Use project-level cache (reuse across operations)
     // Create or retrieve cached content for this project
     let cacheName: string | null = null;
 
@@ -235,7 +185,7 @@ serve(async (req) => {
         project_id,
         'focused-summary-sources',
         combinedContext,
-        'gemini-2.5-pro', // Cache works with Pro too!
+        'gemini-2.5-flash', // Flash is 32x cheaper than Pro!
         1800 // 30 minutes TTL
       );
     } catch (error) {
@@ -243,41 +193,214 @@ serve(async (req) => {
       // Continue without cache rather than failing
     }
 
-    // OPTIMIZATION 3: Optimized prompt (reduced from ~450 tokens to ~180 tokens)
-    const prompt = `Você é professor médico criando material didático personalizado.
+    // EXPANDED PROMPT: With Flash being cheap, we can afford detailed instructions
+    // Cost: ~500 tokens × $0.075/1M = $0.0000375 USD (negligible)
+    // Benefit: Much better quality from Flash model
+    const prompt = `Você é um professor médico EXPERIENTE e DIDÁTICO criando material de estudo personalizado.
 
-CONTEXTO: Aluno estudando "${sanitizeString(project.name)}" com ${difficulties.length} dificuldades identificadas.
+SEU OBJETIVO: Criar resumos que REALMENTE ajudem alunos que NÃO entenderam o tópico na primeira vez.
 
-${!cacheName ? `MATERIAL DISPONÍVEL:\n${combinedContext}\n\n` : ''}🎯 DIFICULDADES (por prioridade):
+PERFIL DO ALUNO:
+- Estudando: "${sanitizeString(project.name)}"
+- Identificou ${difficulties.length} dificuldades durante estudos com quiz/flashcards
+- Precisa de explicações SIMPLES, não muito técnicas
+- Aprende melhor com analogias, exemplos práticos e conexões
+- Está buscando COMPREENDER, não decorar
+
+${!cacheName ? `MATERIAL DE ESTUDO COMPLETO:\n${combinedContext}\n\n` : ''}🎯 DIFICULDADES IDENTIFICADAS (ordenadas por prioridade):
 ${difficultiesList}
 
-TAREFA: Crie resumo didático FOCADO nos tópicos acima. Para CADA tópico inclua:
-1. Explicação simples e clara (linguagem acessível)
-2. Analogia ou exemplo prático
-3. 3-5 pontos-chave para memorizar (frases curtas, dicas mnemônicas)
-4. Aplicação clínica (se aplicável)
-5. Conexões com outros conceitos
+---
 
-HTML: Use estrutura semântica:
-- <div class="focused-summary"> container principal
-- <div class="summary-header"> com h1, p.subtitle, p.meta
-- <section class="difficulty-topic" data-nivel="X"> para cada tópico
-- Dentro: divs com classes explanation, analogy, key-points, clinical-application, connections
-- Use h2/h3 para títulos, <ul>/<li> para listas, <strong> para ênfase
+TAREFA: Criar resumo didático FOCADO EXCLUSIVAMENTE nos tópicos de dificuldade acima.
 
-INSTRUÇÕES:
-- HTML válido e bem formatado
-- PRIORIZE tópicos com mais ⚠️
-- Seja DIDÁTICO, não técnico demais
-- Tom encorajador e positivo
-- Foque em COMPREENSÃO
+Para CADA tópico de dificuldade, você DEVE incluir as 5 seções abaixo:
 
-Responda APENAS com HTML formatado.`;
+📖 SEÇÃO 1 - Explicação Simples e Clara
+Objetivo: Fazer o aluno ENTENDER, não decorar
+- Nível de linguagem: Como explicaria para um colega que está aprendendo
+- Evite jargões técnicos sem explicação
+- Use frases curtas e diretas
+- Comece com "Em termos simples..." ou "Basicamente..." ou "O que acontece é..."
+- Dê contexto: POR QUE isso importa? QUANDO acontece?
+- 2-3 parágrafos curtos
 
-    // Call Gemini Pro with optimized prompt and cache
+💡 SEÇÃO 2 - Analogia ou Exemplo Prático
+Objetivo: Tornar o conceito MEMORÁVEL e VISUAL
+- Compare com situações do cotidiano
+- Use metáforas que criam imagens mentais
+- Exemplo clínico prático quando aplicável
+- Formato sugerido: "Pense nisso como..." ou "É como quando..." ou "Imagine que..."
+- Seja criativo mas preciso
+- 1-2 parágrafos
+
+📌 SEÇÃO 3 - Pontos-Chave para Memorizar
+Objetivo: Dar "ganchos" para fixação
+- 3-5 bullet points essenciais
+- Cada ponto: MÁXIMO 1 linha
+- Use negrito para palavras-chave
+- Inclua números, valores, critérios específicos
+- Se possível, crie dica mnemônica ou frase de efeito
+- Formato: <li><strong>[Conceito]:</strong> [Explicação curta]</li>
+
+🏥 SEÇÃO 4 - Aplicação Clínica (se aplicável)
+Objetivo: Mostrar QUANDO e COMO usar na prática
+- Em que situações você precisa lembrar disso?
+- Qual a importância prática desse conhecimento?
+- Exemplos de casos reais ou questões de prova
+- Como evitar erros comuns?
+- Por que isso cai em concursos/residência?
+- 1-2 parágrafos
+
+🔗 SEÇÃO 5 - Conexões com Outros Conceitos
+Objetivo: Integrar conhecimento, não isolar
+- Como este tópico se conecta com outros assuntos?
+- Relações de causa-efeito
+- Quadro geral: onde isso se encaixa?
+- O que estudar em seguida para consolidar?
+- Use lista de bullet points para clareza
+
+---
+
+FORMATO HTML - Estrutura Semântica:
+
+ESTRUTURA GERAL:
+<div class="focused-summary">
+  <div class="summary-header">
+    <h1>🎯 Resumo Focado nas Suas Dificuldades</h1>
+    <p class="subtitle">Material personalizado para ${sanitizeString(project.name)}</p>
+    <p class="meta">Baseado em ${difficulties.length} tópicos identificados durante seus estudos</p>
+  </div>
+
+  <!-- Repetir seção abaixo para CADA tópico de dificuldade -->
+  <section class="difficulty-topic" data-nivel="[nível]">
+    ...
+  </section>
+</div>
+
+ESTRUTURA DE CADA TÓPICO:
+<section class="difficulty-topic" data-nivel="[nível]">
+  <div class="topic-header">
+    <h2>[número]. [Nome do Tópico] [⚠️ símbolos correspondentes ao nível]</h2>
+    <span class="origin-badge">[origem: quiz/flashcard/chat]</span>
+  </div>
+
+  <div class="explanation">
+    <h3>🔍 Explicação Simples</h3>
+    <p>[Primeiro parágrafo: conceito básico]</p>
+    <p>[Segundo parágrafo: por que importa]</p>
+  </div>
+
+  <div class="analogy">
+    <h3>💡 Analogia/Exemplo Prático</h3>
+    <p>[Analogia concreta e memorável]</p>
+  </div>
+
+  <div class="key-points">
+    <h3>📌 Pontos-Chave</h3>
+    <ul>
+      <li><strong>Conceito 1:</strong> Explicação curta</li>
+      <li><strong>Conceito 2:</strong> Explicação curta</li>
+      <li><strong>Conceito 3:</strong> Explicação curta</li>
+      <li>💡 <strong>Dica:</strong> Mnemônico ou frase de efeito (se aplicável)</li>
+    </ul>
+  </div>
+
+  <div class="clinical-application">
+    <h3>🏥 Aplicação Clínica</h3>
+    <p>[Quando/como isso importa na prática médica]</p>
+  </div>
+
+  <div class="connections">
+    <h3>🔗 Conexões com Outros Conceitos</h3>
+    <ul>
+      <li><strong>[Tópico relacionado 1]:</strong> Como se conecta</li>
+      <li><strong>[Tópico relacionado 2]:</strong> Como se conecta</li>
+    </ul>
+  </div>
+</section>
+
+---
+
+INSTRUÇÕES CRÍTICAS - LEIA COM ATENÇÃO:
+
+✅ QUALIDADE DO HTML:
+- HTML VÁLIDO e bem estruturado
+- Feche todas as tags corretamente
+- Use classes CSS descritivas (explanation, analogy, key-points, clinical-application, connections)
+- Estrutura bem indentada e organizada
+- Não use atributos inline style
+
+✅ PRIORIZAÇÃO:
+- Tópicos com MAIS ⚠️ (maior nível) devem vir PRIMEIRO
+- Dedique mais detalhes e exemplos aos tópicos mais difíceis
+- Se tópicos forem relacionados, mencione as conexões
+
+✅ TOM E LINGUAGEM:
+- Tom ENCORAJADOR e POSITIVO
+- "Você consegue entender isso!" não "Isso é complicado"
+- Linguagem ACESSÍVEL, não muito técnica
+- Explique termos médicos quando usá-los
+- Use negrito <strong> para dar ênfase
+- Emojis apenas nos títulos das seções (🔍💡📌🏥🔗)
+
+✅ FOCO:
+- COMPREENSÃO > memorização mecânica
+- POR QUÊ e QUANDO > decoreba de fatos
+- APLICAÇÃO PRÁTICA > teoria abstrata
+- CONEXÕES > tópicos isolados
+
+❌ NÃO FAÇA:
+- Não use jargão médico sem explicar
+- Não presuma que o aluno já sabe conceitos básicos
+- Não seja vago ou genérico ("isso é importante", "estude bem")
+- Não ignore nenhum tópico da lista de dificuldades
+- Não copie texto do material sem adaptar para linguagem didática
+- Não crie seções vazias
+
+---
+
+EXEMPLO DE BOA EXPLICAÇÃO (para você seguir):
+
+❌ RUIM (técnico demais, sem contexto):
+"A fibrilação atrial é uma arritmia cardíaca caracterizada por despolarização atrial descoordenada resultante de múltiplos focos ectópicos."
+
+✅ BOM (simples, com contexto, memorável):
+
+<div class="explanation">
+  <h3>🔍 Explicação Simples</h3>
+  <p>Em termos simples: A fibrilação atrial (FA) acontece quando as câmaras superiores do coração (os átrios) começam a bater de forma completamente descoordenada e muito rápida - tipo um motor falhando. Em vez de contrair de forma organizada, eles "tremem" ou "fibrilam", daí o nome.</p>
+  <p>Por que isso importa? Quando os átrios não contraem direito, o sangue fica "parado" lá dentro e pode formar coágulos. Esses coágulos podem soltar e ir para o cérebro, causando AVC. Essa é a complicação mais temida da FA!</p>
+</div>
+
+<div class="analogy">
+  <h3>💡 Analogia Prática</h3>
+  <p>Pense nos átrios como uma orquestra. Normalmente, todos os músicos tocam em sincronia perfeita, seguindo o maestro (nó sinusal). Na fibrilação atrial, cada músico resolve tocar no seu próprio ritmo - vira uma bagunça total! O coração até continua funcionando, mas de forma muito ineficiente.</p>
+</div>
+
+<div class="key-points">
+  <h3>📌 Pontos-Chave</h3>
+  <ul>
+    <li><strong>Ritmo:</strong> Irregularmente irregular (sem nenhum padrão)</li>
+    <li><strong>Principal risco:</strong> Formação de coágulos → AVC (15-20% ao ano sem anticoagulação)</li>
+    <li><strong>Sintomas comuns:</strong> Palpitações, cansaço, falta de ar</li>
+    <li><strong>ECG clássico:</strong> Ausência de onda P + intervalos R-R completamente irregulares</li>
+    <li>💡 <strong>Mnemônico:</strong> "FA = Falta de Atividade atrial coordenada"</li>
+  </ul>
+</div>
+
+---
+
+AGORA É COM VOCÊ:
+
+Crie o resumo focado seguindo EXATAMENTE o formato acima para TODOS os ${difficulties.length} tópicos de dificuldade listados.
+
+Responda APENAS com o HTML completo e bem formatado. Não adicione explicações fora do HTML.`;
+
+    // Call Gemini FLASH with expanded prompt and cache
     const result = await callGeminiWithUsage(
       prompt,
-      'gemini-2.5-pro',
+      'gemini-2.5-flash', // ✅ Flash is 32x cheaper and fully capable!
       undefined, // maxTokens (use default)
       undefined, // systemInstruction
       cacheName || undefined // Use cache if available
@@ -313,14 +436,13 @@ Responda APENAS com HTML formatado.`;
         outputTokens: result.usage.outputTokens,
         cachedTokens: result.usage.cachedTokens || 0,
       },
-      'gemini-2.5-pro',
+      'gemini-2.5-flash',
       {
         summary_id: summary.id,
         summary_type: 'focused',
         difficulties_count: difficulties.length,
         sources_count: sources.length,
-        used_semantic_search: usedSemanticSearch,
-        semantic_tokens_used: usedSemanticSearch ? actualTokensUsed : null,
+        strategy: 'full-sources', // Using all sources for best quality
         used_cache: cacheName !== null,
         cache_hit: (result.usage.cachedTokens || 0) > 0,
       }

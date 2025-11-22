@@ -238,6 +238,7 @@ export async function callGeminiWithUsage(
     requestBody.cachedContent = cacheName;
     requestBody.contents = [
       {
+        role: 'user',  // Required when using cachedContent
         parts: [
           {
             text: prompt,
@@ -248,6 +249,7 @@ export async function callGeminiWithUsage(
   } else {
     requestBody.contents = [
       {
+        role: 'user',
         parts: [
           {
             text: prompt,
