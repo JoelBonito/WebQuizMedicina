@@ -5,6 +5,7 @@ import { validateRequest, chatMessageSchema, sanitizeString } from '../_shared/v
 import { AuditLogger, AuditEventType } from '../_shared/audit.ts';
 import { callGemini } from '../_shared/gemini.ts';
 import { hasAnyEmbeddings, semanticSearch } from '../_shared/embeddings.ts';
+import { createContextCache, safeDeleteCache } from '../_shared/gemini-cache.ts';
 
 // Lazy-initialize AuditLogger to avoid crashes if env vars are missing
 let auditLogger: AuditLogger | null = null;
@@ -217,6 +218,20 @@ serve(async (req) => {
 
     // Sanitize user message to prevent prompt injection
     const sanitizedMessage = sanitizeString(message);
+
+    // TODO [FUTURE OPTIMIZATION]: Implement persistent cache for chat sessions
+    // Currently, chat makes only 1 Gemini call per HTTP request, so in-request caching
+    // wouldn't help. To get cache benefits (88% token reduction over 10+ questions),
+    // we need to implement:
+    // 1. A chat_sessions table to store cache_id and expiry
+    // 2. Logic to reuse cache_id across multiple HTTP requests for the same project
+    // 3. Auto-renewal of cache before expiry
+    // This would reduce costs from ~25k tokens per question to ~3k tokens per question.
+    //
+    // For now, we accept the current cost as it's already optimized with:
+    // - Semantic search (only relevant chunks, not full documents)
+    // - Short messages use minimal context
+    // - No unnecessary conversation history (stateless by design)
 
     // Build prompt with RAG context
     let prompt = `Você é um assistente de estudos médicos especializado. Você tem acesso às seguintes fontes do projeto "${sanitizeString(project.name)}":\n\n${combinedContext}\n\n`;

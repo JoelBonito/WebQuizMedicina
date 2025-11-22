@@ -6,6 +6,7 @@ import { AuditLogger, AuditEventType } from '../_shared/audit.ts';
 import { callGemini, parseJsonFromResponse } from '../_shared/gemini.ts';
 import { validateOutputRequest, calculateBatchSizes, formatBatchProgress, SAFE_OUTPUT_LIMIT } from '../_shared/output-limits.ts';
 import { hasAnyEmbeddings, semanticSearch } from '../_shared/embeddings.ts';
+import { createContextCache, safeDeleteCache } from '../_shared/gemini-cache.ts';
 
 
 // Lazy-initialize AuditLogger to avoid crashes if env vars are missing
@@ -217,20 +218,52 @@ serve(async (req) => {
     // Generate flashcards in batches
     const allFlashcards: any[] = [];
 
-    for (let i = 0; i < batchSizes.length; i++) {
-      const batchCount = batchSizes[i];
-      const batchNum = i + 1;
+    // PHASE 1: Create context cache if multiple batches (saves ~95% on input tokens)
+    let cacheName: string | null = null;
+    const useCache = totalBatches > 1;
 
-      console.log(`${formatBatchProgress(batchNum, totalBatches)} Generating ${batchCount} flashcards...`);
+    try {
+      if (useCache) {
+        console.log(`💰 [CACHE] Creating cache for ${totalBatches} batches to save ~95% on input tokens`);
 
-      const prompt = `Você é um professor especialista em medicina. Analise o conteúdo abaixo e crie ${batchCount} flashcards de alta qualidade para estudantes de medicina.
+        const cacheContent = `CONTEÚDO MÉDICO BASE PARA GERAÇÃO DE FLASHCARDS:
+
+${combinedContent}
+
+---
+Este conteúdo será usado como base para criar flashcards de medicina.
+Todos os flashcards devem se basear EXCLUSIVAMENTE neste conteúdo.`;
+
+        const cacheInfo = await createContextCache(
+          cacheContent,
+          'gemini-2.5-flash',
+          {
+            ttlSeconds: 600, // 10 minutes - enough for batch processing
+            displayName: `flashcards-${sessionId}`
+          }
+        );
+
+        cacheName = cacheInfo.name;
+        console.log(`✅ [CACHE] Cache created: ${cacheName}`);
+      }
+
+      // PHASE 2: Generate flashcards in batches
+      for (let i = 0; i < batchSizes.length; i++) {
+        const batchCount = batchSizes[i];
+        const batchNum = i + 1;
+
+        console.log(`${formatBatchProgress(batchNum, totalBatches)} Generating ${batchCount} flashcards...`);
+
+        // Prompt WITHOUT content when using cache (content is in cache)
+        // Prompt WITH content when NOT using cache (single batch)
+        const prompt = `Você é um professor especialista em medicina. Analise o conteúdo ${useCache ? 'já fornecido no contexto' : 'abaixo'} e crie ${batchCount} flashcards de alta qualidade para estudantes de medicina.
 
 IMPORTANTE: Toda a frente e verso dos flashcards devem ser em Português do Brasil.
 
-CONTEÚDO:
+${!useCache ? `CONTEÚDO:
 ${combinedContent}
 
-INSTRUÇÕES:
+` : ''}INSTRUÇÕES:
 1. Cada flashcard deve ter uma FRENTE (pergunta/conceito) e VERSO (resposta/explicação)
 2. Foque em conceitos-chave, definições, mecanismos e fatos importantes
 3. A frente deve ser concisa e clara (pergunta ou termo)
@@ -254,19 +287,33 @@ FORMATO DE SAÍDA (JSON estrito):
 
 Retorne APENAS o JSON, sem texto adicional antes ou depois.`;
 
-      // Enable JSON mode to save tokens and ensure valid JSON output
-      const response = await callGemini(prompt, 'gemini-2.5-flash', SAFE_OUTPUT_LIMIT, true);
-      const parsed = parseJsonFromResponse(response);
+        // Enable JSON mode to save tokens and ensure valid JSON output
+        const response = await callGemini(
+          prompt,
+          'gemini-2.5-flash',
+          SAFE_OUTPUT_LIMIT,
+          true,
+          cacheName || undefined // Use cache if available
+        );
 
-      if (!parsed.flashcards || !Array.isArray(parsed.flashcards)) {
-        throw new Error(`Invalid response format from AI in batch ${batchNum}`);
+        const parsed = parseJsonFromResponse(response);
+
+        if (!parsed.flashcards || !Array.isArray(parsed.flashcards)) {
+          throw new Error(`Invalid response format from AI in batch ${batchNum}`);
+        }
+
+        allFlashcards.push(...parsed.flashcards);
+        console.log(`✅ ${formatBatchProgress(batchNum, totalBatches)} Generated ${parsed.flashcards.length} flashcards`);
       }
 
-      allFlashcards.push(...parsed.flashcards);
-      console.log(`✅ ${formatBatchProgress(batchNum, totalBatches)} Generated ${parsed.flashcards.length} flashcards`);
-    }
+      console.log(`✅ [PHASE 1] Total flashcards generated: ${allFlashcards.length}`);
 
-    console.log(`✅ [PHASE 1] Total flashcards generated: ${allFlashcards.length}`);
+    } finally {
+      // PHASE 3: Always cleanup cache (even if error occurs)
+      if (cacheName) {
+        await safeDeleteCache(cacheName);
+      }
+    }
 
     // Save all flashcards to database (sanitize all text fields)
     const flashcardsToInsert = allFlashcards.map((f: any) => ({
