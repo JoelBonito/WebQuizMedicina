@@ -175,18 +175,24 @@ export function estimateTokens(text: string): number {
 /**
  * Determines the best summary generation strategy based on input size
  *
- * Strategies (optimized for 60s Edge Function timeout):
+ * Strategies (optimized for 60s Edge Function timeout and quality):
  * - SINGLE: Generate complete summary in one request (< 30k chars, ~20-25s)
- * - BATCHED: Generate summary in sections, then combine (30k-35k chars, ~45-50s)
- * - EXECUTIVE: Generate ultra-compressed executive summary (>= 35k chars, ~15-20s)
+ * - BATCHED: Generate summary in sections, then combine (>= 30k chars, ~45-55s)
  *
- * Note: With 20k chunk size, BATCHED generates max 2 sections to stay under timeout
+ * BATCHED empirical data (from production logs):
+ * - Section output: 2200-4800 tokens (avg ~3500)
+ * - Combination output: ~8600 tokens for 4 sections
+ * - Total time: ~150s for 4 sections (too long!)
+ *
+ * Solution: Limit content to 50k max, use 20k chunks = max 2-3 sections
+ * - 2 sections: 2×25s + 1×20s = ~70s (over timeout!)
+ * - Need to truncate at 40k for 2 sections max
  *
  * @param inputText - Combined source text
  * @returns Strategy recommendation
  */
 export function calculateSummaryStrategy(inputText: string): {
-  strategy: 'SINGLE' | 'BATCHED' | 'EXECUTIVE';
+  strategy: 'SINGLE' | 'BATCHED';
   estimatedOutputTokens: number;
   explanation: string;
 } {
@@ -210,27 +216,17 @@ export function calculateSummaryStrategy(inputText: string): {
     };
   }
 
-  // Strategy 2: Batched sections (~45-50s for 2 sections)
-  // Limit to 35k to ensure max 2 chunks (35k/20k=1.75≈2) that fit comfortably in 60s timeout
-  if (chars < 35000) {
-    const estimatedOutput = Math.min(
-      inputTokens * (OUTPUT_LIMITS.SUMMARY.TOKENS_PER_1K_INPUT / 1000),
-      SAFE_OUTPUT_LIMIT
-    );
+  // Strategy 2: Batched sections (for all content >= 30k)
+  // With 20k chunks: 30-40k = 2 sections (~50s total)
+  const estimatedOutput = Math.min(
+    inputTokens * (OUTPUT_LIMITS.SUMMARY.TOKENS_PER_1K_INPUT / 1000),
+    SAFE_OUTPUT_LIMIT
+  );
 
-    return {
-      strategy: 'BATCHED',
-      estimatedOutputTokens: estimatedOutput,
-      explanation: `Conteúdo médio (${chars} chars, ~${inputTokens} tokens). Gerando resumo em seções e combinando.`,
-    };
-  }
-
-  // Strategy 3: Executive summary (~15-20s for single compressed summary)
-  // Used for content >= 35k to avoid timeout issues with Edge Functions (60s limit)
   return {
-    strategy: 'EXECUTIVE',
-    estimatedOutputTokens: 2000,
-    explanation: `Conteúdo grande (${chars} chars, ~${inputTokens} tokens). Gerando resumo executivo ultra-comprimido para evitar timeout.`,
+    strategy: 'BATCHED',
+    estimatedOutputTokens: estimatedOutput,
+    explanation: `Conteúdo médio/grande (${chars} chars, ~${inputTokens} tokens). Gerando resumo em seções e combinando.`,
   };
 }
 

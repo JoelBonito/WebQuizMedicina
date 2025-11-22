@@ -191,9 +191,13 @@ serve(async (req) => {
       }
 
       // Truncate if content exceeds limit
-      if (combinedContent.length > MAX_CONTENT_LENGTH) {
-        console.warn(`⚠️ [PHASE 0] Truncating content from ${combinedContent.length} to ${MAX_CONTENT_LENGTH} characters`);
-        combinedContent = combinedContent.substring(0, MAX_CONTENT_LENGTH) + '\n\n[Conteúdo truncado para evitar limite de tokens]';
+      // CRITICAL: Limit to 35k to ensure 2 sections max (35k/20k chunks = 1.75 ≈ 2)
+      // 2 sections × 25s + 1 combine × 20s = ~70s (close to 60s limit, but acceptable)
+      // Reduced from 40k to 35k for safety margin
+      const SAFE_MAX_FOR_TIMEOUT = 35000;
+      if (combinedContent.length > SAFE_MAX_FOR_TIMEOUT) {
+        console.warn(`⚠️ [PHASE 0] Truncating content from ${combinedContent.length} to ${SAFE_MAX_FOR_TIMEOUT} characters (timeout safety)`);
+        combinedContent = combinedContent.substring(0, SAFE_MAX_FOR_TIMEOUT) + '\n\n[Conteúdo truncado para evitar timeout]';
       }
     }
 
@@ -236,8 +240,8 @@ JSON:
   "topicos": ["string", ...]
 }`;
 
-      // Use Flash instead of Pro for single summaries (10x cheaper, same quality for this task)
-      const result = await callGeminiWithUsage(prompt, 'gemini-2.5-flash', SAFE_OUTPUT_LIMIT, true);
+      // Use 8000 tokens for SINGLE (safe for content < 30k)
+      const result = await callGeminiWithUsage(prompt, 'gemini-2.5-flash', 8000, true);
 
       // Track token usage
       totalInputTokens += result.usage.inputTokens;
@@ -245,7 +249,7 @@ JSON:
       totalCachedTokens += result.usage.cachedTokens || 0;
 
       parsed = parseJsonFromResponse(result.text);
-    } else if (strategyInfo.strategy === 'BATCHED') {
+    } else {
       // Strategy 2: Batched sections summary
       console.log(`🔄 [PHASE 1] Generating summary in sections...`);
 
@@ -284,8 +288,9 @@ IMPORTANTE: NÃO omita detalhes importantes. Seja completo e educativo.
 
 Retorne APENAS o HTML do resumo detalhado, sem texto adicional.`;
 
-        // FIXED: Use SAFE_OUTPUT_LIMIT (12000) instead of 4000 to avoid truncation
-        const sectionResult = await callGeminiWithUsage(sectionPrompt, 'gemini-2.5-flash', SAFE_OUTPUT_LIMIT);
+        // Based on empirical data: sections generate 2200-4800 tokens (avg ~3500)
+        // Use 6000 as safe upper limit (allows for variance)
+        const sectionResult = await callGeminiWithUsage(sectionPrompt, 'gemini-2.5-flash', 6000);
 
         // Track token usage
         totalInputTokens += sectionResult.usage.inputTokens;
@@ -323,8 +328,9 @@ JSON:
   "topicos": ["string", ...]
 }`;
 
-      // OPTIMIZATION: Flash instead of Pro saves ~90% cost (sufficient for combining/formatting)
-      const combineResult = await callGeminiWithUsage(combinePrompt, 'gemini-2.5-flash', SAFE_OUTPUT_LIMIT, true);
+      // Based on empirical data: combination generates ~8600 tokens for 4 sections
+      // For 2-3 sections, 10000 tokens provides safe headroom
+      const combineResult = await callGeminiWithUsage(combinePrompt, 'gemini-2.5-flash', 10000, true);
 
       // Track token usage
       totalInputTokens += combineResult.usage.inputTokens;
@@ -333,40 +339,6 @@ JSON:
 
       parsed = parseJsonFromResponse(combineResult.text);
       console.log(`✅ [PHASE 1] Combined summary generated`);
-    } else {
-      // Strategy 3: Executive summary (ultra-compressed)
-      console.log(`🔄 [PHASE 1] Generating executive summary (ultra-compressed)...`);
-
-      // Optimized executive summary with JSON mode
-      const executivePrompt = `Crie um RESUMO EXECUTIVO ultra-comprimido do conteúdo extenso.
-
-CONTEÚDO (${combinedContent.length} chars):
-${combinedContent.substring(0, 50000)}
-
-REGRAS:
-- Título descritivo com "Resumo Executivo:"
-- APENAS conceitos essenciais
-- HTML: <h2>, <p>, <ul><li>
-- Máximo 3-4 seções
-- Extremamente conciso
-- Português do Brasil
-
-JSON:
-{
-  "titulo": "string",
-  "conteudo_html": "string (HTML)",
-  "topicos": ["string", ...]
-}`;
-
-      const execResult = await callGeminiWithUsage(executivePrompt, 'gemini-2.5-flash', 2500, true);
-
-      // Track token usage
-      totalInputTokens += execResult.usage.inputTokens;
-      totalOutputTokens += execResult.usage.outputTokens;
-      totalCachedTokens += execResult.usage.cachedTokens || 0;
-
-      parsed = parseJsonFromResponse(execResult.text);
-      console.log(`✅ [PHASE 1] Executive summary generated`);
     }
 
     if (!parsed.titulo || !parsed.conteudo_html) {
