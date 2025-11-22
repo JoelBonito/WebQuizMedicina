@@ -5,6 +5,8 @@ import { validateRequest, generateFocusedSummarySchema, sanitizeString, sanitize
 import { AuditLogger, AuditEventType } from '../_shared/audit.ts';
 import { callGeminiWithUsage } from '../_shared/gemini.ts';
 import { logTokenUsage } from '../_shared/token-logger.ts';
+import { hasAnyEmbeddings, semanticSearchWithTokenLimit } from '../_shared/embeddings.ts';
+import { getOrCreateProjectCache } from '../_shared/project-cache.ts';
 
 // Lazy-initialize AuditLogger to avoid crashes if env vars are missing
 let auditLogger: AuditLogger | null = null;
@@ -146,16 +148,7 @@ serve(async (req) => {
       );
     }
 
-    // Combine all sources (sanitize to prevent prompt injection)
-    const combinedContext = sources
-      .map((source) => {
-        const sanitizedName = sanitizeString(source.name || 'Unknown');
-        const sanitizedContent = sanitizeString(source.extracted_content || '');
-        return `[Fonte: ${sanitizedName}]\n${sanitizedContent}`;
-      })
-      .join('\n\n---\n\n');
-
-    // Build focused prompt (sanitize all user-generated data)
+    // Build difficulty list for context
     const difficultiesList = difficulties
       .map((d, index) => {
         const stars = '⚠️'.repeat(Math.min(d.nivel, 5));
@@ -167,114 +160,128 @@ serve(async (req) => {
 
     const topTopics = difficulties.slice(0, 5).map(d => sanitizeString(d.topico));
 
-    const prompt = `Você é um professor médico especializado em criar material didático personalizado.
+    // OPTIMIZATION 1: Semantic search to reduce input tokens
+    // Check if embeddings are available for semantic search
+    const hasEmbeddings = await hasAnyEmbeddings(
+      supabaseClient,
+      sources.map(s => s.id)
+    );
 
-CONTEXTO DO ALUNO:
-O aluno está estudando "${sanitizeString(project.name)}" e identificou dificuldades específicas durante seus estudos.
+    let combinedContext: string;
+    let actualTokensUsed = 0;
+    let usedSemanticSearch = false;
 
-MATERIAL DE ESTUDO DISPONÍVEL:
-${combinedContext}
+    if (hasEmbeddings) {
+      console.log('🔍 [SEMANTIC] Using semantic search for focused content');
 
-🎯 DIFICULDADES IDENTIFICADAS PELO ALUNO (${difficulties.length} tópicos):
+      // Create search query from student's difficulties
+      const searchQuery = difficulties
+        .map(d => d.topico)
+        .join(' ');
+
+      console.log(`🎯 [SEMANTIC] Query: "${searchQuery.substring(0, 100)}..."`);
+
+      // Fetch only relevant chunks (targeting 5k tokens instead of 13k+)
+      const relevantChunks = await semanticSearchWithTokenLimit(
+        supabaseClient,
+        searchQuery,
+        sources.map(s => s.id),
+        5000, // Target 5k tokens (62% reduction from typical 13k)
+        0.6   // Minimum 60% similarity
+      );
+
+      if (relevantChunks.length > 0) {
+        actualTokensUsed = relevantChunks.reduce((sum, c) => sum + c.tokenCount, 0);
+
+        combinedContext = relevantChunks
+          .map((chunk, i) =>
+            `[Trecho ${i+1} - Relevância ${(chunk.similarity * 100).toFixed(0)}%]\n${chunk.content}`
+          )
+          .join('\n\n---\n\n');
+
+        usedSemanticSearch = true;
+        console.log(`✅ [SEMANTIC] ${relevantChunks.length} relevant chunks (~${actualTokensUsed} tokens)`);
+      } else {
+        console.warn('⚠️ [SEMANTIC] No relevant chunks found, falling back to full sources');
+        // Fallback to full sources
+        combinedContext = sources
+          .map((source) => {
+            const sanitizedName = sanitizeString(source.name || 'Unknown');
+            const sanitizedContent = sanitizeString(source.extracted_content || '');
+            return `[Fonte: ${sanitizedName}]\n${sanitizedContent}`;
+          })
+          .join('\n\n---\n\n');
+      }
+    } else {
+      console.log('📚 [SOURCES] No embeddings available, using all sources');
+
+      // Combine all sources (sanitize to prevent prompt injection)
+      combinedContext = sources
+        .map((source) => {
+          const sanitizedName = sanitizeString(source.name || 'Unknown');
+          const sanitizedContent = sanitizeString(source.extracted_content || '');
+          return `[Fonte: ${sanitizedName}]\n${sanitizedContent}`;
+        })
+        .join('\n\n---\n\n');
+    }
+
+    // OPTIMIZATION 2: Use project-level cache (reuse across operations)
+    // Create or retrieve cached content for this project
+    let cacheName: string | null = null;
+
+    try {
+      cacheName = await getOrCreateProjectCache(
+        supabaseClient,
+        project_id,
+        'focused-summary-sources',
+        combinedContext,
+        'gemini-2.5-pro', // Cache works with Pro too!
+        1800 // 30 minutes TTL
+      );
+    } catch (error) {
+      console.warn('⚠️ [CACHE] Failed to create/retrieve cache, continuing without cache:', error);
+      // Continue without cache rather than failing
+    }
+
+    // OPTIMIZATION 3: Optimized prompt (reduced from ~450 tokens to ~180 tokens)
+    const prompt = `Você é professor médico criando material didático personalizado.
+
+CONTEXTO: Aluno estudando "${sanitizeString(project.name)}" com ${difficulties.length} dificuldades identificadas.
+
+${!cacheName ? `MATERIAL DISPONÍVEL:\n${combinedContext}\n\n` : ''}🎯 DIFICULDADES (por prioridade):
 ${difficultiesList}
 
-TÓPICOS PRIORITÁRIOS PARA ESTE RESUMO:
-${topTopics.map((t, i) => `${i + 1}. ${t}`).join('\n')}
+TAREFA: Crie resumo didático FOCADO nos tópicos acima. Para CADA tópico inclua:
+1. Explicação simples e clara (linguagem acessível)
+2. Analogia ou exemplo prático
+3. 3-5 pontos-chave para memorizar (frases curtas, dicas mnemônicas)
+4. Aplicação clínica (se aplicável)
+5. Conexões com outros conceitos
 
----
+HTML: Use estrutura semântica:
+- <div class="focused-summary"> container principal
+- <div class="summary-header"> com h1, p.subtitle, p.meta
+- <section class="difficulty-topic" data-nivel="X"> para cada tópico
+- Dentro: divs com classes explanation, analogy, key-points, clinical-application, connections
+- Use h2/h3 para títulos, <ul>/<li> para listas, <strong> para ênfase
 
-TAREFA:
-Crie um resumo didático FOCADO EXCLUSIVAMENTE nos tópicos de dificuldade listados acima.
-
-Para CADA tópico de dificuldade, você DEVE incluir:
-
-1. **Explicação SIMPLES e CLARA** (nível de estudante que está aprendendo)
-   - Use linguagem acessível, evite jargões desnecessários
-   - Explique como se estivesse falando com alguém que NÃO entendeu pela primeira vez
-
-2. **Analogia ou Exemplo Prático**
-   - Compare com situações do dia a dia
-   - Use metáforas que facilitam memorização
-   - Exemplo clínico prático quando aplicável
-
-3. **Pontos-Chave para Memorizar**
-   - 3-5 bullet points essenciais
-   - Frases curtas e diretas
-   - Dicas mnemônicas quando possível
-
-4. **Aplicação Clínica** (se aplicável)
-   - Quando isso é importante na prática médica?
-   - Exemplos de situações reais
-
-5. **Relação com Outros Conceitos**
-   - Como este tópico se conecta com outros assuntos?
-   - Visão do "quadro geral"
-
----
-
-FORMATO DE SAÍDA (HTML estruturado):
-
-<div class="focused-summary">
-  <div class="summary-header">
-    <h1>🎯 Resumo Focado nas Suas Dificuldades</h1>
-    <p class="subtitle">Material personalizado para ${sanitizeString(project.name)}</p>
-    <p class="meta">Baseado em ${difficulties.length} tópicos identificados durante seus estudos</p>
-  </div>
-
-  <section class="difficulty-topic" data-nivel="[nivel]">
-    <div class="topic-header">
-      <h2>[número]. [Nome do Tópico] [símbolos de dificuldade]</h2>
-      <span class="origin-badge">[origem: quiz/flashcard/chat]</span>
-    </div>
-
-    <div class="explanation">
-      <h3>🔍 Explicação Simples</h3>
-      <p>[Explicação clara e acessível]</p>
-    </div>
-
-    <div class="analogy">
-      <h3>💡 Analogia/Exemplo Prático</h3>
-      <p>[Analogia ou exemplo que facilita compreensão]</p>
-    </div>
-
-    <div class="key-points">
-      <h3>📌 Pontos-Chave para Memorizar</h3>
-      <ul>
-        <li><strong>[Conceito]:</strong> [Explicação curta]</li>
-        <li><strong>[Conceito]:</strong> [Explicação curta]</li>
-        <li>[Dica mnemônica se aplicável]</li>
-      </ul>
-    </div>
-
-    <div class="clinical-application">
-      <h3>🏥 Aplicação Clínica</h3>
-      <p>[Quando/como isso importa na prática]</p>
-    </div>
-
-    <div class="connections">
-      <h3>🔗 Conexões com Outros Conceitos</h3>
-      <p>[Relações com outros tópicos]</p>
-    </div>
-  </section>
-
-  <!-- Repetir para cada tópico de dificuldade -->
-</div>
-
----
-
-INSTRUÇÕES IMPORTANTES:
-- Use HTML válido e bem formatado
-- PRIORIZE os tópicos com maior nível de dificuldade (mais ⚠️)
+INSTRUÇÕES:
+- HTML válido e bem formatado
+- PRIORIZE tópicos com mais ⚠️
 - Seja DIDÁTICO, não técnico demais
-- Use formatação para facilitar leitura (negrito, listas, destaques)
-- Inclua TODOS os tópicos da lista de dificuldades
-- Mantenha um tom encorajador e positivo
-- Foque em COMPREENSÃO, não memorização mecânica
+- Tom encorajador e positivo
+- Foque em COMPREENSÃO
 
-Responda APENAS com o HTML formatado, sem explicações adicionais.`;
+Responda APENAS com HTML formatado.`;
 
-    // Call Gemini with focused prompt (use Pro for better quality)
-    const result = await callGeminiWithUsage(prompt, 'gemini-2.5-pro');
+    // Call Gemini Pro with optimized prompt and cache
+    const result = await callGeminiWithUsage(
+      prompt,
+      'gemini-2.5-pro',
+      undefined, // maxTokens (use default)
+      undefined, // systemInstruction
+      cacheName || undefined // Use cache if available
+    );
 
     // Sanitize AI-generated HTML to prevent XSS
     const sanitizedHtml = sanitizeHtml(result.text);
@@ -295,7 +302,7 @@ Responda APENAS com o HTML formatado, sem explicações adicionais.`;
       throw summaryError;
     }
 
-    // Log Token Usage for Admin Analytics
+    // Log Token Usage for Admin Analytics (with optimization metrics)
     await logTokenUsage(
       supabaseClient,
       user.id,
@@ -312,6 +319,10 @@ Responda APENAS com o HTML formatado, sem explicações adicionais.`;
         summary_type: 'focused',
         difficulties_count: difficulties.length,
         sources_count: sources.length,
+        used_semantic_search: usedSemanticSearch,
+        semantic_tokens_used: usedSemanticSearch ? actualTokensUsed : null,
+        used_cache: cacheName !== null,
+        cache_hit: (result.usage.cachedTokens || 0) > 0,
       }
     );
 
