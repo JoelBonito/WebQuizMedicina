@@ -50,6 +50,13 @@ export async function callGemini(
     console.log(`💰 [Gemini] Cache reduces input token cost by ~95%`);
   } else {
     console.log(`📊 [Gemini] Sending prompt: ${promptChars} chars (~${estimatedTokens} tokens), model: ${model}, maxOutputTokens: ${maxOutputTokens}`);
+    console.log(`📊 [Gemini] Estimated total context: ~${estimatedTokens + maxOutputTokens} tokens (input + output)`);
+
+    if (estimatedTokens + maxOutputTokens > 30000) {
+      console.warn(`⚠️ [Gemini] Total context (~${estimatedTokens + maxOutputTokens}) exceeds safe limit (30k)! May cause MAX_TOKENS error.`);
+    } else if (estimatedTokens + maxOutputTokens > 28000) {
+      console.warn(`⚠️ [Gemini] Total context (~${estimatedTokens + maxOutputTokens}) near limit. Consider reducing input or output.`);
+    }
 
     if (estimatedTokens > 30000) {
       console.warn(`⚠️ [Gemini] Very large prompt detected! This may cause API errors. Consider reducing content.`);
@@ -209,6 +216,13 @@ export async function callGeminiWithUsage(
     console.log(`💰 [Gemini] Cache reduces input token cost by ~95%`);
   } else {
     console.log(`📊 [Gemini] Sending prompt: ${promptChars} chars (~${estimatedTokens} tokens), model: ${model}, maxOutputTokens: ${maxOutputTokens}`);
+    console.log(`📊 [Gemini] Estimated total context: ~${estimatedTokens + maxOutputTokens} tokens (input + output)`);
+
+    if (estimatedTokens + maxOutputTokens > 30000) {
+      console.warn(`⚠️ [Gemini] Total context (~${estimatedTokens + maxOutputTokens}) exceeds safe limit (30k)! May cause MAX_TOKENS error.`);
+    } else if (estimatedTokens + maxOutputTokens > 28000) {
+      console.warn(`⚠️ [Gemini] Total context (~${estimatedTokens + maxOutputTokens}) near limit. Consider reducing input or output.`);
+    }
 
     if (estimatedTokens > 30000) {
       console.warn(`⚠️ [Gemini] Very large prompt detected! This may cause API errors. Consider reducing content.`);

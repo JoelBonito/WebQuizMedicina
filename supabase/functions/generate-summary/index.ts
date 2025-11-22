@@ -4,7 +4,7 @@ import { securityHeaders, createErrorResponse, createSuccessResponse, RATE_LIMIT
 import { validateRequest, generateSummarySchema, sanitizeString, sanitizeHtml } from '../_shared/validation.ts';
 import { AuditLogger, AuditEventType } from '../_shared/audit.ts';
 import { callGeminiWithUsage, parseJsonFromResponse } from '../_shared/gemini.ts';
-import { calculateSummaryStrategy, SAFE_OUTPUT_LIMIT } from '../_shared/output-limits.ts';
+import { calculateSummaryStrategy, calculateSafeOutputTokens, SAFE_OUTPUT_LIMIT } from '../_shared/output-limits.ts';
 import { logTokenUsage } from '../_shared/token-logger.ts';
 
 // Lazy-initialize AuditLogger to avoid crashes if env vars are missing
@@ -200,8 +200,8 @@ JSON:
   "topicos": ["string", ...] (lista dos tópicos PRINCIPAIS únicos, sem duplicação)
 }`;
 
-      // Use 14000 tokens for comprehensive summary (~15-20 pages)
-      const result = await callGeminiWithUsage(prompt, 'gemini-2.5-flash', 14000, true);
+      // Use dynamically calculated maxOutputTokens to respect combined context limit
+      const result = await callGeminiWithUsage(prompt, 'gemini-2.5-flash', strategyInfo.maxOutputTokens, true);
 
       // Track token usage
       totalInputTokens += result.usage.inputTokens;
@@ -325,8 +325,9 @@ JSON:
   "topicos": ["string", ...] (lista de tópicos ÚNICOS consolidados)
 }`;
 
-      // Use 14000 tokens for final comprehensive output
-      const combineResult = await callGeminiWithUsage(combinePrompt, 'gemini-2.5-flash', 14000, true);
+      // Use dynamically calculated maxOutputTokens to respect combined context limit
+      const safeOutputTokens = calculateSafeOutputTokens(combinePrompt, 14000);
+      const combineResult = await callGeminiWithUsage(combinePrompt, 'gemini-2.5-flash', safeOutputTokens, true);
 
       // Track token usage
       totalInputTokens += combineResult.usage.inputTokens;

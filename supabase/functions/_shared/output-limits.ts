@@ -62,6 +62,23 @@ export const SAFE_OUTPUT_LIMIT = 12000;
 export const GEMINI_MAX_OUTPUT = 16384;
 
 /**
+ * Gemini combined context limit (input + output)
+ * Discovered empirically: Despite documentation saying 1M input + 16k output,
+ * there's a practical combined limit of ~30k tokens when using JSON mode.
+ * This prevents MAX_TOKENS errors without content generation.
+ */
+export const GEMINI_CONTEXT_LIMIT = 30000;
+
+/**
+ * Safety margin for token calculations
+ * Accounts for:
+ * - JSON mode overhead
+ * - Token counting variations
+ * - API response headers
+ */
+export const SAFETY_MARGIN = 2000;
+
+/**
  * Validates if a generation request fits within safe token limits
  *
  * @param itemType - Type of item being generated
@@ -173,6 +190,42 @@ export function estimateTokens(text: string): number {
 }
 
 /**
+ * Calculates safe maxOutputTokens based on input size
+ * Ensures that input + output doesn't exceed Gemini's combined context limit
+ *
+ * @param inputText - The input text/prompt that will be sent to Gemini
+ * @param desiredOutputTokens - Desired output token count (default: 14000)
+ * @returns Safe output token count that respects the combined limit
+ */
+export function calculateSafeOutputTokens(
+  inputText: string,
+  desiredOutputTokens: number = 14000
+): number {
+  const estimatedInputTokens = estimateTokens(inputText);
+
+  // Calculate maximum possible output given the current input
+  const maxPossibleOutput = GEMINI_CONTEXT_LIMIT - estimatedInputTokens - SAFETY_MARGIN;
+
+  // Return the smaller of desired and possible
+  const safeOutput = Math.min(desiredOutputTokens, maxPossibleOutput);
+
+  console.log(`📊 [Output Calculation] Input: ~${estimatedInputTokens} tokens, Desired: ${desiredOutputTokens}, Safe: ${safeOutput}`);
+
+  if (safeOutput < desiredOutputTokens) {
+    console.warn(`⚠️ [Output Limit] Reducing from ${desiredOutputTokens} to ${safeOutput} tokens due to large input (${estimatedInputTokens} tokens)`);
+  }
+
+  // Ensure minimum output of 2k tokens for useful content
+  const finalOutput = Math.max(safeOutput, 2000);
+
+  if (finalOutput !== safeOutput) {
+    console.warn(`⚠️ [Output Limit] Input too large! Using minimum ${finalOutput} tokens (input: ${estimatedInputTokens})`);
+  }
+
+  return finalOutput;
+}
+
+/**
  * Determines the best summary generation strategy based on input size
  *
  * Strategies (optimized for 60s Edge Function timeout, quality, and completeness):
@@ -186,20 +239,21 @@ export function estimateTokens(text: string): number {
  * BATCHED strategy with parallelism (Promise.all):
  * - Chunks: 100k chars each (~25k tokens input)
  * - Section output: ~8k tokens each
- * - Combination output: ~14k tokens final
+ * - Combination output: dynamically calculated based on input
  * - Parallel processing: time = max(chunk_time), not sum
  * - Example: 3 chunks × 30s (parallel) + 1 combine × 20s = ~50s total ✅
  *
  * Gemini Flash capacity:
  * - Input: 1M tokens (we use max ~75k = 7.5% capacity)
- * - Output: 16k tokens (we use 14k = 87.5% capacity with safety margin)
+ * - Output: 16k tokens (we use up to 14k = 87.5% capacity, adjusted for input size)
  *
  * @param inputText - Combined source text (full extracted_content, not filtered)
- * @returns Strategy recommendation
+ * @returns Strategy recommendation with dynamic maxOutputTokens
  */
 export function calculateSummaryStrategy(inputText: string): {
   strategy: 'SINGLE' | 'BATCHED';
   estimatedOutputTokens: number;
+  maxOutputTokens: number;
   explanation: string;
 } {
   const inputTokens = estimateTokens(inputText);
@@ -207,14 +261,31 @@ export function calculateSummaryStrategy(inputText: string): {
 
   // Strategy 1: Single complete summary (~25-35s)
   // Gemini Flash handles up to 300k chars (~75k tokens) easily in one request
-  // Output: 14k tokens (~15-20 pages) - ideal for student study material
+  // Output: up to 14k tokens (adjusted for input size to respect combined limit)
   if (chars < 300000) {
-    const estimatedOutput = 14000; // Fixed output for comprehensive summary
+    const desiredOutput = 14000;
+    const safeOutput = calculateSafeOutputTokens(inputText, desiredOutput);
+
+    // If safe output is too small (<6k), switch to BATCHED strategy
+    if (safeOutput < 6000) {
+      console.warn(`⚠️ [Strategy] Input too large for SINGLE strategy (would allow only ${safeOutput} output tokens). Switching to BATCHED.`);
+
+      const batchedOutput = 14000; // BATCHED combines smaller chunks, so can use full 14k
+      const safeBatchedOutput = calculateSafeOutputTokens('', batchedOutput); // Empty input for combine phase
+
+      return {
+        strategy: 'BATCHED',
+        estimatedOutputTokens: safeBatchedOutput,
+        maxOutputTokens: safeBatchedOutput,
+        explanation: `Conteúdo grande (${chars} chars, ~${inputTokens} tokens). Usando estratégia BATCHED para permitir output completo de ${safeBatchedOutput} tokens.`,
+      };
+    }
 
     return {
       strategy: 'SINGLE',
-      estimatedOutputTokens: estimatedOutput,
-      explanation: `Conteúdo de ${chars} chars (~${inputTokens} tokens). Gerando resumo completo em uma única requisição (15-20 páginas, ~14k tokens, cobertura 100%).`,
+      estimatedOutputTokens: safeOutput,
+      maxOutputTokens: safeOutput,
+      explanation: `Conteúdo de ${chars} chars (~${inputTokens} tokens). Gerando resumo completo (output: ${safeOutput} tokens, cobertura 100%).`,
     };
   }
 
@@ -224,12 +295,14 @@ export function calculateSummaryStrategy(inputText: string): {
   // Example: 400k chars = 4 chunks
   //   - Without parallelism: 4 × 30s = 120s ❌ (timeout)
   //   - With parallelism: max(30s, 30s, 30s, 30s) + 20s combine = ~50s ✅
-  const estimatedOutput = 14000; // Final combined output
+  const desiredOutput = 14000;
+  const safeOutput = calculateSafeOutputTokens('', desiredOutput); // Combine phase has minimal input
 
   return {
     strategy: 'BATCHED',
-    estimatedOutputTokens: estimatedOutput,
-    explanation: `Conteúdo muito grande (${chars} chars, ~${inputTokens} tokens). Processando em seções paralelas (chunks de 100k chars) e consolidando tópicos duplicados (output final: 14k tokens).`,
+    estimatedOutputTokens: safeOutput,
+    maxOutputTokens: safeOutput,
+    explanation: `Conteúdo muito grande (${chars} chars, ~${inputTokens} tokens). Processando em seções paralelas (chunks de 100k chars) e consolidando tópicos duplicados (output final: ${safeOutput} tokens).`,
   };
 }
 
