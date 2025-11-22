@@ -6,8 +6,6 @@ import { AuditLogger, AuditEventType } from '../_shared/audit.ts';
 import { callGeminiWithUsage, parseJsonFromResponse } from '../_shared/gemini.ts';
 import { validateOutputRequest, calculateBatchSizes, formatBatchProgress, SAFE_OUTPUT_LIMIT } from '../_shared/output-limits.ts';
 import { logTokenUsage, type TokenUsage } from '../_shared/token-logger.ts';
-import { hasAnyEmbeddings, semanticSearchWithTokenLimit } from '../_shared/embeddings.ts';
-import { createContextCache, safeDeleteCache } from '../_shared/gemini-cache.ts';
 
 
 // Lazy-initialize AuditLogger to avoid crashes if env vars are missing
@@ -119,81 +117,34 @@ serve(async (req) => {
       throw new Error('No sources found');
     }
 
-    // PHASE 2: Check if embeddings exist for semantic search
+    // CRITICAL CHANGE: Flashcards now use FULL extracted_content (no embeddings/filtering)
+    // Reason: Flashcards should cover ALL material studied, not filter to specific topics
+    // Embeddings/semantic search would lose 70-80% of content, reducing coverage
     const sourceIds = sources.map(s => s.id);
-    let useSemanticSearch = await hasAnyEmbeddings(supabaseClient, sourceIds);
-
     let combinedContent = '';
 
-    if (useSemanticSearch) {
-      // ✅ PHASE 2: Use semantic search with embeddings
-      console.log('🎯 [PHASE 2] Using semantic search with embeddings');
+    console.log('📚 [Flashcards] Using full extracted_content (comprehensive coverage of all material)');
 
-      // Define query optimized for flashcard generation
-      const query = `Criar flashcards sobre conceitos médicos fundamentais, terminologia clínica, mecanismos fisiopatológicos, tratamentos, diagnósticos e aplicações práticas. Focar em definições, processos biológicos, comparações entre condições e procedimentos clínicos.`;
+    // Combine ALL content from ALL sources (no filtering)
+    // Limit to 5 most recent sources to keep input manageable (~300k chars / ~75k tokens)
+    const MAX_SOURCES = 5;
+    const usedSources = sources.slice(0, MAX_SOURCES);
 
-      // PHASE 3: Use token-based limit instead of fixed chunk count (15k tokens ≈ 10-20 chunks dynamically)
-      const relevantChunks = await semanticSearchWithTokenLimit(
-        supabaseClient,
-        query,
-        sourceIds,
-        15000 // Max tokens instead of fixed chunk count
-      );
-
-      if (relevantChunks.length === 0) {
-        console.warn('⚠️ [PHASE 3] No relevant chunks found, falling back to concatenation');
-        // Fallback to old method
-        useSemanticSearch = false;
-      } else {
-        // Build context from relevant chunks
-        console.log(`📊 [Flashcards] Using ${relevantChunks.length} chunks (${relevantChunks.reduce((sum, c) => sum + c.tokenCount, 0)} tokens)`);
-        combinedContent = relevantChunks
-          .map((chunk, idx) => {
-            const similarity = (chunk.similarity * 100).toFixed(1);
-            return `[Trecho ${idx + 1} - Relevância: ${similarity}%]\n${chunk.content}`;
-          })
-          .join('\n\n---\n\n');
-
-        const avgSimilarity = (relevantChunks.reduce((sum, c) => sum + c.similarity, 0) / relevantChunks.length * 100).toFixed(1);
-        console.log(`✅ [PHASE 2] Using ${relevantChunks.length} relevant chunks (avg similarity: ${avgSimilarity}%)`);
-        console.log(`📊 [PHASE 2] Total content: ${combinedContent.length} characters`);
-
-        // Safety check: truncate if content still too large
-        const MAX_CONTENT_LENGTH = 50000; // ~12500 tokens - increased to accommodate more context with new 12k output limit
-        if (combinedContent.length > MAX_CONTENT_LENGTH) {
-          console.warn(`⚠️ [PHASE 2] Truncating content from ${combinedContent.length} to ${MAX_CONTENT_LENGTH} characters`);
-          combinedContent = combinedContent.substring(0, MAX_CONTENT_LENGTH) + '\n\n[Conteúdo truncado para evitar limite de tokens]';
-        }
+    for (const source of usedSources) {
+      if (source.extracted_content) {
+        const sanitizedContent = sanitizeString(source.extracted_content);
+        combinedContent += `\n\n=== ${sanitizeString(source.name)} ===\n${sanitizedContent}`;
       }
     }
 
-    if (!useSemanticSearch) {
-      // ⚠️ PHASE 0: Fallback to truncated concatenation (legacy method)
-      console.warn('⚠️ [PHASE 0] No embeddings found. Using fallback method (truncated concatenation)');
-
-      const MAX_SOURCES = 3;
-      const MAX_CONTENT_LENGTH = 60000; // ~15k tokens - increased to accommodate more context with new 12k output limit
-
-      let usedSources = sources;
-      if (sources.length > MAX_SOURCES) {
-        console.warn(`⚠️ [PHASE 0] Limiting from ${sources.length} to ${MAX_SOURCES} most recent sources`);
-        usedSources = sources.slice(0, MAX_SOURCES);
-      }
-
-      // Combine content from all sources
-      for (const source of usedSources) {
-        if (source.extracted_content) {
-          const sanitizedContent = sanitizeString(source.extracted_content);
-          combinedContent += `\n\n=== ${sanitizeString(source.name)} ===\n${sanitizedContent}`;
-        }
-      }
-
-      // Truncate if content exceeds limit
-      if (combinedContent.length > MAX_CONTENT_LENGTH) {
-        console.warn(`⚠️ [PHASE 0] Truncating content from ${combinedContent.length} to ${MAX_CONTENT_LENGTH} characters`);
-        combinedContent = combinedContent.substring(0, MAX_CONTENT_LENGTH) + '\n\n[Conteúdo truncado para evitar limite de tokens]';
-      }
+    // Truncate if content exceeds safe limit for input (~300k chars / ~75k tokens)
+    const MAX_CONTENT_LENGTH = 300000;
+    if (combinedContent.length > MAX_CONTENT_LENGTH) {
+      console.warn(`⚠️ [Flashcards] Truncating content from ${combinedContent.length} to ${MAX_CONTENT_LENGTH} chars`);
+      combinedContent = combinedContent.substring(0, MAX_CONTENT_LENGTH);
     }
+
+    console.log(`📊 [Flashcards] Using ${usedSources.length} sources: ${combinedContent.length} chars (~${Math.ceil(combinedContent.length / 4)} tokens)`)
 
     if (!combinedContent.trim()) {
       throw new Error('No content available to generate flashcards');
