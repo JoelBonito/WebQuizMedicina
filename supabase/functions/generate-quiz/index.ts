@@ -15,8 +15,6 @@ import { AuditEventType, AuditLogger } from "../_shared/audit.ts";
 import { callGeminiWithUsage, parseJsonFromResponse } from "../_shared/gemini.ts";
 import { calculateBatchSizes, SAFE_OUTPUT_LIMIT } from "../_shared/output-limits.ts";
 import { logTokenUsage, type TokenUsage } from "../_shared/token-logger.ts";
-import { hasAnyEmbeddings, semanticSearchWithTokenLimit } from "../_shared/embeddings.ts";
-import { createContextCache, safeDeleteCache } from "../_shared/gemini-cache.ts";
 
 // Configuração de Logs
 let auditLogger: AuditLogger | null = null;
@@ -100,40 +98,33 @@ serve(async (req) => {
 
     if (sources.length === 0) throw new Error("No sources found");
 
-    // 5. Preparação do Contexto
+    // CRITICAL CHANGE: Quiz now uses FULL extracted_content (no embeddings/filtering)
+    // Reason: Quiz should assess knowledge of ALL material studied, not filter to specific topics
+    // Embeddings/semantic search would lose 70-80% of content, reducing assessment coverage
     const sourceIds = sources.map(s => s.id);
-    let useSemanticSearch = await hasAnyEmbeddings(supabaseClient, sourceIds);
     let combinedContent = "";
 
-    if (useSemanticSearch) {
-      try {
-        const query = `Gerar questões de medicina aprofundadas: fisiopatologia, diagnóstico diferencial, tratamento, casos clínicos.`;
-        // PHASE 3: Use token-based limit instead of fixed chunk count (15k tokens ≈ 10-20 chunks dynamically)
-        const relevantChunks = await semanticSearchWithTokenLimit(supabaseClient, query, sourceIds, 15000);
-        if (relevantChunks.length > 0) {
-          combinedContent = relevantChunks.map((c) => c.content).join('\n\n---\n\n');
-          console.log(`📊 [Quiz] Using ${relevantChunks.length} chunks (${relevantChunks.reduce((sum, c) => sum + c.tokenCount, 0)} tokens)`);
-        } else {
-          useSemanticSearch = false;
-        }
-      } catch (e) {
-        console.warn("Semantic search failed, fallback to text.", e);
-        useSemanticSearch = false;
+    console.log('📝 [Quiz] Using full extracted_content (comprehensive assessment of all material)');
+
+    // Combine ALL content from ALL sources (no filtering)
+    // Limit to 5 most recent sources to keep input manageable (~300k chars / ~75k tokens)
+    const MAX_SOURCES = 5;
+    const usedSources = sources.slice(0, MAX_SOURCES);
+
+    for (const source of usedSources) {
+      if (source.extracted_content) {
+        combinedContent += `\n\n=== ${sanitizeString(source.name)} ===\n${sanitizeString(source.extracted_content)}`;
       }
     }
 
-    if (!useSemanticSearch || !combinedContent) {
-      const MAX_CONTENT_LENGTH = 30000;
-      let usedSources = sources.slice(0, 3);
-      for (const source of usedSources) {
-        if (source.extracted_content) {
-          combinedContent += `\n\n=== ${sanitizeString(source.name)} ===\n${sanitizeString(source.extracted_content)}`;
-        }
-      }
-      if (combinedContent.length > MAX_CONTENT_LENGTH) {
-        combinedContent = combinedContent.substring(0, MAX_CONTENT_LENGTH) + '...';
-      }
+    // Truncate if content exceeds safe limit for input (~300k chars / ~75k tokens)
+    const MAX_CONTENT_LENGTH = 300000;
+    if (combinedContent.length > MAX_CONTENT_LENGTH) {
+      console.warn(`⚠️ [Quiz] Truncating content from ${combinedContent.length} to ${MAX_CONTENT_LENGTH} chars`);
+      combinedContent = combinedContent.substring(0, MAX_CONTENT_LENGTH);
     }
+
+    console.log(`📊 [Quiz] Using ${usedSources.length} sources: ${combinedContent.length} chars (~${Math.ceil(combinedContent.length / 4)} tokens)`)
 
     if (!combinedContent.trim()) throw new Error("No content available");
 

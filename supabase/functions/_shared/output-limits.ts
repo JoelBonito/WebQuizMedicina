@@ -175,20 +175,26 @@ export function estimateTokens(text: string): number {
 /**
  * Determines the best summary generation strategy based on input size
  *
- * Strategies (optimized for 60s Edge Function timeout and quality):
- * - SINGLE: Generate complete summary in one request (< 30k chars, ~20-25s)
- * - BATCHED: Generate summary in sections, then combine (>= 30k chars, ~45-55s)
+ * Strategies (optimized for 60s Edge Function timeout, quality, and completeness):
+ * - SINGLE: Generate complete summary in one request (< 300k chars / ~75k tokens, ~25-35s)
+ * - BATCHED: Generate summary in parallel sections, then combine (>= 300k chars, ~35-50s)
  *
- * BATCHED empirical data (from production logs):
- * - Section output: 2200-4800 tokens (avg ~3500)
- * - Combination output: ~8600 tokens for 4 sections
- * - Total time: ~150s for 4 sections (too long!)
+ * CRITICAL CHANGE: No longer uses embeddings/semantic search for summaries
+ * - Summaries now use 100% of extracted_content (no data loss)
+ * - Medical content requires complete coverage (contraindicações, dosagens, etc)
  *
- * Solution: Limit content to 50k max, use 20k chunks = max 2-3 sections
- * - 2 sections: 2×25s + 1×20s = ~70s (over timeout!)
- * - Need to truncate at 40k for 2 sections max
+ * BATCHED strategy with parallelism (Promise.all):
+ * - Chunks: 100k chars each (~25k tokens input)
+ * - Section output: ~8k tokens each
+ * - Combination output: ~14k tokens final
+ * - Parallel processing: time = max(chunk_time), not sum
+ * - Example: 3 chunks × 30s (parallel) + 1 combine × 20s = ~50s total ✅
  *
- * @param inputText - Combined source text
+ * Gemini Flash capacity:
+ * - Input: 1M tokens (we use max ~75k = 7.5% capacity)
+ * - Output: 16k tokens (we use 14k = 87.5% capacity with safety margin)
+ *
+ * @param inputText - Combined source text (full extracted_content, not filtered)
  * @returns Strategy recommendation
  */
 export function calculateSummaryStrategy(inputText: string): {
@@ -199,34 +205,31 @@ export function calculateSummaryStrategy(inputText: string): {
   const inputTokens = estimateTokens(inputText);
   const chars = inputText.length;
 
-  // Strategy 1: Single complete summary (~20-25s)
-  if (chars < 30000) {
-    const estimatedOutput = Math.max(
-      OUTPUT_LIMITS.SUMMARY.MIN_TOKENS,
-      Math.min(
-        inputTokens * (OUTPUT_LIMITS.SUMMARY.TOKENS_PER_1K_INPUT / 1000),
-        OUTPUT_LIMITS.SUMMARY.MAX_TOKENS_SINGLE
-      )
-    );
+  // Strategy 1: Single complete summary (~25-35s)
+  // Gemini Flash handles up to 300k chars (~75k tokens) easily in one request
+  // Output: 14k tokens (~15-20 pages) - ideal for student study material
+  if (chars < 300000) {
+    const estimatedOutput = 14000; // Fixed output for comprehensive summary
 
     return {
       strategy: 'SINGLE',
       estimatedOutputTokens: estimatedOutput,
-      explanation: `Conteúdo pequeno (${chars} chars, ~${inputTokens} tokens). Gerando resumo completo em uma requisição.`,
+      explanation: `Conteúdo de ${chars} chars (~${inputTokens} tokens). Gerando resumo completo em uma única requisição (15-20 páginas, ~14k tokens, cobertura 100%).`,
     };
   }
 
-  // Strategy 2: Batched sections (for all content >= 30k)
-  // With 20k chunks: 30-40k = 2 sections (~50s total)
-  const estimatedOutput = Math.min(
-    inputTokens * (OUTPUT_LIMITS.SUMMARY.TOKENS_PER_1K_INPUT / 1000),
-    SAFE_OUTPUT_LIMIT
-  );
+  // Strategy 2: Batched sections with parallel processing (for content >= 300k chars)
+  // Chunks: 100k chars each (larger chunks = fewer sections = faster)
+  // Parallelism: Promise.all reduces time from sum to max
+  // Example: 400k chars = 4 chunks
+  //   - Without parallelism: 4 × 30s = 120s ❌ (timeout)
+  //   - With parallelism: max(30s, 30s, 30s, 30s) + 20s combine = ~50s ✅
+  const estimatedOutput = 14000; // Final combined output
 
   return {
     strategy: 'BATCHED',
     estimatedOutputTokens: estimatedOutput,
-    explanation: `Conteúdo médio/grande (${chars} chars, ~${inputTokens} tokens). Gerando resumo em seções e combinando.`,
+    explanation: `Conteúdo muito grande (${chars} chars, ~${inputTokens} tokens). Processando em seções paralelas (chunks de 100k chars) e consolidando tópicos duplicados (output final: 14k tokens).`,
   };
 }
 

@@ -6,8 +6,6 @@ import { AuditLogger, AuditEventType } from '../_shared/audit.ts';
 import { callGeminiWithUsage, parseJsonFromResponse } from '../_shared/gemini.ts';
 import { calculateSummaryStrategy, SAFE_OUTPUT_LIMIT } from '../_shared/output-limits.ts';
 import { logTokenUsage } from '../_shared/token-logger.ts';
-import { hasAnyEmbeddings, semanticSearchWithTokenLimit } from '../_shared/embeddings.ts';
-import { getOrCreateProjectCache } from '../_shared/project-cache.ts';
 
 // Lazy-initialize AuditLogger to avoid crashes if env vars are missing
 let auditLogger: AuditLogger | null = null;
@@ -118,88 +116,24 @@ serve(async (req) => {
       throw new Error('No sources found');
     }
 
-    // PHASE 2: Check if embeddings exist for semantic search
+    // CRITICAL CHANGE: Summaries now use FULL extracted_content (no embeddings/filtering)
+    // Reason: Medical summaries require 100% coverage (dosagens, contraindicações, etc)
+    // Embeddings/semantic search would lose 70-80% of content, which is unacceptable
     const sourceIds = sources.map(s => s.id);
-    let useSemanticSearch = await hasAnyEmbeddings(supabaseClient, sourceIds);
-
     let combinedContent = '';
 
-    if (useSemanticSearch) {
-      // ✅ PHASE 2: Use semantic search with embeddings
-      console.log('🎯 [PHASE 2] Using semantic search with embeddings');
+    console.log('📄 [Summary] Using full extracted_content (100% coverage, no semantic filtering)');
+    console.log('📊 [Summary] Processing all sources for complete medical summary');
 
-      // Define query optimized for summary generation
-      const query = `Gerar resumo abrangente sobre os principais conceitos, tópicos centrais, processos fundamentais, terminologia chave, mecanismos importantes e aplicações práticas do conteúdo médico. Incluir aspectos clínicos, diagnósticos e terapêuticos relevantes.`;
-
-      // PHASE 3: Use token-based limit instead of fixed chunk count (20k tokens for summary - needs comprehensive coverage)
-      const relevantChunks = await semanticSearchWithTokenLimit(
-        supabaseClient,
-        query,
-        sourceIds,
-        20000 // Max tokens instead of fixed chunk count
-      );
-
-      if (relevantChunks.length === 0) {
-        console.warn('⚠️ [PHASE 3] No relevant chunks found, falling back to concatenation');
-        useSemanticSearch = false;
-      } else {
-        // Build context from relevant chunks
-        console.log(`📊 [Summary] Using ${relevantChunks.length} chunks (${relevantChunks.reduce((sum, c) => sum + c.tokenCount, 0)} tokens)`);
-        combinedContent = relevantChunks
-          .map((chunk, idx) => {
-            const similarity = (chunk.similarity * 100).toFixed(1);
-            return `[Trecho ${idx + 1} - Relevância: ${similarity}%]\n${chunk.content}`;
-          })
-          .join('\n\n---\n\n');
-
-        const avgSimilarity = (relevantChunks.reduce((sum, c) => sum + c.similarity, 0) / relevantChunks.length * 100).toFixed(1);
-        console.log(`✅ [PHASE 2] Using ${relevantChunks.length} relevant chunks (avg similarity: ${avgSimilarity}%)`);
-        console.log(`📊 [PHASE 2] Total content: ${combinedContent.length} characters`);
-
-        // Safety check: truncate if content still too large
-        // Reduced from 50k to 40k chars (~10k tokens) to prevent MAX_TOKENS errors
-        // This ensures safe margin for 8k output tokens even with large inputs
-        const MAX_SEMANTIC_CONTENT = 40000;
-        if (combinedContent.length > MAX_SEMANTIC_CONTENT) {
-          console.warn(`⚠️ [PHASE 2] Truncating content from ${combinedContent.length} to ${MAX_SEMANTIC_CONTENT} characters`);
-          combinedContent = combinedContent.substring(0, MAX_SEMANTIC_CONTENT) + '\n\n[Conteúdo truncado para evitar limite de tokens]';
-        }
+    // Combine ALL content from ALL sources (no filtering, no truncation at this stage)
+    for (const source of sources) {
+      if (source.extracted_content) {
+        const sanitizedContent = sanitizeString(source.extracted_content);
+        combinedContent += `\n\n=== ${sanitizeString(source.name)} ===\n${sanitizedContent}`;
       }
     }
 
-    if (!useSemanticSearch) {
-      // ⚠️ PHASE 0: Fallback to truncated concatenation (legacy method)
-      console.warn('⚠️ [PHASE 0] No embeddings found. Using fallback method (truncated concatenation)');
-
-      const MAX_SOURCES = 3;
-      // Reduced from 60k to 40k chars (~10k tokens) to prevent MAX_TOKENS errors
-      // This ensures safe margin for 8k output tokens even with large inputs
-      const MAX_CONTENT_LENGTH = 40000;
-
-      let usedSources = sources;
-      if (sources.length > MAX_SOURCES) {
-        console.warn(`⚠️ [PHASE 0] Limiting from ${sources.length} to ${MAX_SOURCES} most recent sources`);
-        usedSources = sources.slice(0, MAX_SOURCES);
-      }
-
-      // Combine content from all sources
-      for (const source of usedSources) {
-        if (source.extracted_content) {
-          const sanitizedContent = sanitizeString(source.extracted_content);
-          combinedContent += `\n\n=== ${sanitizeString(source.name)} ===\n${sanitizedContent}`;
-        }
-      }
-
-      // Truncate if content exceeds limit
-      // CRITICAL: Limit to 35k to ensure 2 sections max (35k/20k chunks = 1.75 ≈ 2)
-      // 2 sections × 25s + 1 combine × 20s = ~70s (close to 60s limit, but acceptable)
-      // Reduced from 40k to 35k for safety margin
-      const SAFE_MAX_FOR_TIMEOUT = 35000;
-      if (combinedContent.length > SAFE_MAX_FOR_TIMEOUT) {
-        console.warn(`⚠️ [PHASE 0] Truncating content from ${combinedContent.length} to ${SAFE_MAX_FOR_TIMEOUT} characters (timeout safety)`);
-        combinedContent = combinedContent.substring(0, SAFE_MAX_FOR_TIMEOUT) + '\n\n[Conteúdo truncado para evitar timeout]';
-      }
-    }
+    console.log(`📊 [Summary] Combined ${sources.length} sources: ${combinedContent.length} chars (~${Math.ceil(combinedContent.length / 4)} tokens)`)
 
     if (!combinedContent.trim()) {
       throw new Error('No content available to generate summary');
@@ -220,28 +154,54 @@ serve(async (req) => {
 
     if (strategyInfo.strategy === 'SINGLE') {
       // Strategy 1: Single complete summary
-      // Optimized prompt with JSON mode (no need for verbose formatting instructions)
-      const prompt = `Você é um professor especialista em medicina. Crie um resumo estruturado e completo do conteúdo abaixo.
+      // Now handles up to 300k chars (~75k tokens input) with consolidation
+      const prompt = `Você é um professor especialista em medicina. Crie um resumo estruturado e CONSOLIDADO do conteúdo abaixo.
 
-CONTEÚDO:
+CONTEÚDO (pode conter múltiplas fontes com tópicos duplicados):
 ${combinedContent}
 
-ESTRUTURA:
-- Título descritivo e atrativo
-- HTML organizado: <h2> seções, <h3> subseções, <p> parágrafos, <ul><li> listas, <strong> termos importantes
-- Lógica: introdução → conceitos → mecanismos → aplicações clínicas
-- Identifique tópicos principais
-- Terminologia médica correta, Português do Brasil
+INSTRUÇÕES CRÍTICAS:
+1. **CONSOLIDE TÓPICOS DUPLICADOS**:
+   - Se o mesmo tópico (ex: "Diabetes Mellitus") aparece em várias fontes, crie UMA ÚNICA seção <h2> integrando TODAS as informações relevantes
+   - Evite repetir o mesmo conteúdo de fontes diferentes
+
+2. **PRESERVE TODOS OS DETALHES CLÍNICOS**:
+   - Dosagens, posologias, protocolos
+   - Contraindicações, efeitos adversos, interações medicamentosas
+   - Tabelas, classificações, critérios diagnósticos
+   - NUNCA omita informações importantes de segurança
+
+3. **ESTRUTURA HIERÁRQUICA CLARA**:
+   - <h2> para tópicos principais únicos (ex: Hipertensão Arterial, Diabetes Mellitus)
+   - <h3> para aspectos clínicos (Fisiopatologia, Diagnóstico, Tratamento, Complicações)
+   - <h4> para subdivisões específicas se necessário
+   - <p> para parágrafos explicativos
+   - <ul>/<li> para listas de conceitos, sintomas, medicamentos
+   - <strong> para destacar termos médicos importantes
+   - <em> para ênfases quando apropriado
+
+4. **PRIORIZE PROFUNDIDADE SOBRE EXTENSÃO**:
+   - Máximo 15-20 páginas (aproximadamente)
+   - Foque nos conceitos mais importantes com detalhes completos
+   - Não liste tudo superficialmente - seja educativo e aprofundado
+
+5. **FORMATAÇÃO RICA** para facilitar estudo e legibilidade
+
+6. **TERMINOLOGIA MÉDICA CORRETA** em Português do Brasil
+
+7. **ORGANIZAÇÃO LÓGICA**: Agrupe tópicos relacionados de forma coerente
+
+IMPORTANTE: Este é material de estudo médico. Completude e precisão são mais importantes que brevidade.
 
 JSON:
 {
-  "titulo": "string",
-  "conteudo_html": "string (HTML)",
-  "topicos": ["string", ...]
+  "titulo": "string (descritivo dos principais tópicos abordados)",
+  "conteudo_html": "string (HTML estruturado, consolidado, sem duplicações)",
+  "topicos": ["string", ...] (lista dos tópicos PRINCIPAIS únicos, sem duplicação)
 }`;
 
-      // Use 8000 tokens for SINGLE (safe for content < 30k)
-      const result = await callGeminiWithUsage(prompt, 'gemini-2.5-flash', 8000, true);
+      // Use 14000 tokens for comprehensive summary (~15-20 pages)
+      const result = await callGeminiWithUsage(prompt, 'gemini-2.5-flash', 14000, true);
 
       // Track token usage
       totalInputTokens += result.usage.inputTokens;
@@ -249,88 +209,124 @@ JSON:
       totalCachedTokens += result.usage.cachedTokens || 0;
 
       parsed = parseJsonFromResponse(result.text);
+      console.log(`✅ [PHASE 1] Single summary generated: ${result.usage.outputTokens} tokens, ${parsed.topicos?.length || 0} topics`);
     } else {
-      // Strategy 2: Batched sections summary
-      console.log(`🔄 [PHASE 1] Generating summary in sections...`);
+      // Strategy 2: Batched sections summary with PARALLEL processing
+      console.log(`🔄 [PHASE 1] Generating summary in parallel sections...`);
 
-      // Split content into larger chunks to stay under 60s timeout
-      // 20k chars (~5k tokens input) with 12k output limit = ~25-30s per section
-      // Fewer chunks = faster processing while maintaining quality
-      const chunkSize = 20000;
+      // Split content into 100k char chunks (larger chunks = fewer sections = faster)
+      // Parallel processing: time = max(chunk_time), not sum
+      const chunkSize = 100000;
       const chunks: string[] = [];
       for (let i = 0; i < combinedContent.length; i += chunkSize) {
         chunks.push(combinedContent.substring(i, i + chunkSize));
       }
 
-      console.log(`📑 [PHASE 1] Split into ${chunks.length} sections`);
+      console.log(`📑 [PHASE 1] Split into ${chunks.length} sections (${chunkSize} chars each). Processing in PARALLEL...`);
 
-      const sectionSummaries: string[] = [];
-
-      for (let i = 0; i < chunks.length; i++) {
+      // CRITICAL: Use Promise.all for parallel processing (time = max, not sum)
+      // Example: 3 chunks × 30s (parallel) = ~30s total vs 90s (sequential)
+      const sectionPromises = chunks.map(async (chunk, i) => {
         const chunkNum = i + 1;
-        console.log(`🔄 [PHASE 1] [Seção ${chunkNum}/${chunks.length}] Generating section summary...`);
-
-        const sectionPrompt = `Você é um professor especialista em medicina. Crie um resumo COMPLETO e DETALHADO desta seção do conteúdo.
+        const sectionPrompt = `Você é um professor especialista em medicina. Crie um resumo ESTRUTURADO e DETALHADO desta seção.
 
 SEÇÃO ${chunkNum} DE ${chunks.length}:
-${chunks[i]}
+${chunk}
 
 INSTRUÇÕES:
-1. Crie um resumo estruturado em HTML com TODO o conteúdo importante
-2. Use <h3> para subtítulos principais, <h4> para subtópicos se necessário
-3. Use <p> para parágrafos explicativos, <ul>/<li> para listas de conceitos
-4. Use <strong> para destacar termos médicos importantes
-5. Mantenha: conceitos fundamentais, mecanismos, processos, terminologia, aplicações clínicas
-6. Seja ABRANGENTE - este é material educacional médico, não um resumo superficial
-7. Todo o conteúdo em Português do Brasil
+1. Identifique os TÓPICOS PRINCIPAIS desta seção (liste-os claramente no início do HTML como comentário)
+2. Para cada tópico:
+   - Use <h3> para o nome do tópico
+   - Use <h4> para subtópicos (Fisiopatologia, Diagnóstico, Tratamento, Complicações, etc)
+3. PRESERVE TODOS OS DETALHES CLÍNICOS:
+   - Dosagens e posologias específicas
+   - Contraindicações e efeitos adversos
+   - Interações medicamentosas
+   - Tabelas e protocolos clínicos
+4. Formatação rica:
+   - <p> para parágrafos explicativos
+   - <ul>/<li> para listas de conceitos, sintomas, medicamentos
+   - <strong> para termos médicos importantes
+   - <em> para ênfases quando apropriado
+5. Se houver tabelas implícitas, preserve-as como listas estruturadas
+6. Português do Brasil, terminologia médica correta
 
-IMPORTANTE: NÃO omita detalhes importantes. Seja completo e educativo.
+CRÍTICO: Material médico educacional. NÃO omita informações clínicas importantes (dosagens, contraindicações, etc).
 
-Retorne APENAS o HTML do resumo detalhado, sem texto adicional.`;
+Retorne APENAS o HTML estruturado (sem JSON, sem markdown, sem explicações).`;
 
-        // Use SAFE_OUTPUT_LIMIT for sections to prevent truncation
-        // SAFE_OUTPUT_LIMIT = 12000 tokens (set in output-limits.ts)
-        const sectionResult = await callGeminiWithUsage(sectionPrompt, 'gemini-2.5-flash', SAFE_OUTPUT_LIMIT);
+        try {
+          const result = await callGeminiWithUsage(sectionPrompt, 'gemini-2.5-flash', 8000);
+          console.log(`✅ [Seção ${chunkNum}/${chunks.length}] Completed (${result.usage.outputTokens} tokens)`);
+          return result;
+        } catch (err) {
+          console.error(`❌ [Seção ${chunkNum}/${chunks.length}] Failed:`, err);
+          // Graceful fallback: don't break entire process if one chunk fails
+          return {
+            text: `<div class="section-error"><h3>⚠️ Erro na Seção ${chunkNum}</h3><p>Esta seção não pôde ser processada devido a um erro técnico. Por favor, revise manualmente o conteúdo fonte correspondente.</p></div>`,
+            usage: { inputTokens: 0, outputTokens: 0, cachedTokens: 0 }
+          };
+        }
+      });
 
-        // Track token usage
-        totalInputTokens += sectionResult.usage.inputTokens;
-        totalOutputTokens += sectionResult.usage.outputTokens;
-        totalCachedTokens += sectionResult.usage.cachedTokens || 0;
+      // Wait for all sections to complete in parallel (time = max, not sum!)
+      const results = await Promise.all(sectionPromises);
 
-        sectionSummaries.push(sectionResult.text);
-        console.log(`✅ [PHASE 1] [Seção ${chunkNum}/${chunks.length}] Section summary generated`);
-      }
+      // Aggregate results
+      const sectionSummaries = results.map(r => r.text);
+      totalInputTokens += results.reduce((acc, r) => acc + (r.usage?.inputTokens || 0), 0);
+      totalOutputTokens += results.reduce((acc, r) => acc + (r.usage?.outputTokens || 0), 0);
+      totalCachedTokens += results.reduce((acc, r) => acc + (r.usage?.cachedTokens || 0), 0);
 
-      // Combine section summaries
-      console.log(`🔄 [PHASE 1] Combining section summaries...`);
+      // Combine section summaries with topic consolidation
+      console.log(`🔄 [PHASE 1] Combining and consolidating ${sectionSummaries.length} sections...`);
 
-      // Optimized: Use Flash instead of Pro for combining (10x cheaper, sufficient for formatting task)
-      const combinePrompt = `Você é um professor especialista em medicina. Combine os resumos de seção abaixo em um resumo final COMPLETO, estruturado e coerente.
+      const combinePrompt = `Você é um professor especialista em medicina. Combine os resumos de seção abaixo em um resumo final CONSOLIDADO e COERENTE.
 
-RESUMOS DAS SEÇÕES:
-${sectionSummaries.map((s, i) => `\n=== SEÇÃO ${i + 1} ===\n${s}`).join('\n')}
+RESUMOS DAS SEÇÕES (cada seção lista seus tópicos principais):
+${sectionSummaries.map((s, i) => `\n=== SEÇÃO ${i + 1} ===\n${s}`).join('\n\n')}
 
-INSTRUÇÕES IMPORTANTES:
-1. Mantenha TODO o conteúdo importante de todas as seções
-2. Organize em uma estrutura lógica e fluida com <h2> para seções principais, <h3> para subseções
-3. Use <p> para parágrafos, <ul>/<li> para listas, <strong> para termos importantes
-4. Elimine apenas repetições óbvias, mas preserve detalhes clínicos, mecanismos, terminologia
-5. Crie um título descritivo que reflita o conteúdo completo
-6. Liste os principais tópicos abordados
-7. Todo o conteúdo em Português do Brasil
+INSTRUÇÕES CRÍTICAS DE CONSOLIDAÇÃO:
+1. **ELIMINE DUPLICAÇÃO DE TÓPICOS**:
+   - Se "Diabetes Mellitus" aparece em múltiplas seções, crie UMA ÚNICA seção <h2>Diabetes Mellitus</h2>
+   - Integre TODAS as informações relevantes de todas as menções do mesmo tópico
+   - Evite repetir o mesmo conteúdo de diferentes seções
 
-IMPORTANTE: Este é um resumo médico educacional. Seja ABRANGENTE e DETALHADO, não superficial.
+2. **INTEGRE INFORMAÇÕES COMPLEMENTARES**:
+   - Se Seção 1 tem fisiopatologia e Seção 3 tem tratamento do MESMO tópico, junte em uma única seção
+   - Use <h3> para aspectos clínicos: Fisiopatologia, Diagnóstico, Tratamento, Complicações, Prognóstico
+
+3. **PRESERVE TODOS OS DETALHES CLÍNICOS** (NUNCA omita):
+   - Dosagens, posologias, protocolos
+   - Contraindicações, efeitos adversos, interações
+   - Tabelas, classificações, critérios diagnósticos
+   - Informações de segurança e alertas
+
+4. **ESTRUTURA HIERÁRQUICA FINAL**:
+   - <h2> tópicos principais únicos (ex: Hipertensão Arterial, Diabetes Mellitus, Insuficiência Cardíaca)
+   - <h3> aspectos clínicos (Fisiopatologia, Diagnóstico, Tratamento, Complicações)
+   - <h4> subdivisões específicas se necessário
+   - <p>, <ul>/<li>, <strong>, <em> para conteúdo rico
+
+5. **TÍTULO DESCRITIVO** que reflita os principais tópicos consolidados
+
+6. **LISTA DE TÓPICOS ÚNICOS** (sem duplicação entre seções)
+
+7. **LIMITE RECOMENDADO: 15-20 páginas**
+   - Priorize organização lógica e completude
+   - Em medicina: Completude > Brevidade
+
+IMPORTANTE: Este é material de estudo médico. Preserve TODOS os detalhes clínicos importantes.
 
 JSON:
 {
-  "titulo": "string",
-  "conteudo_html": "string (HTML completo e detalhado)",
-  "topicos": ["string", ...]
+  "titulo": "string (descritivo dos principais tópicos)",
+  "conteudo_html": "string (HTML completo, consolidado, sem duplicações)",
+  "topicos": ["string", ...] (lista de tópicos ÚNICOS consolidados)
 }`;
 
-      // Use SAFE_OUTPUT_LIMIT for combination to prevent truncation
-      // SAFE_OUTPUT_LIMIT = 12000 tokens (set in output-limits.ts)
-      const combineResult = await callGeminiWithUsage(combinePrompt, 'gemini-2.5-flash', SAFE_OUTPUT_LIMIT, true);
+      // Use 14000 tokens for final comprehensive output
+      const combineResult = await callGeminiWithUsage(combinePrompt, 'gemini-2.5-flash', 14000, true);
 
       // Track token usage
       totalInputTokens += combineResult.usage.inputTokens;
@@ -338,7 +334,7 @@ JSON:
       totalCachedTokens += combineResult.usage.cachedTokens || 0;
 
       parsed = parseJsonFromResponse(combineResult.text);
-      console.log(`✅ [PHASE 1] Combined summary generated`);
+      console.log(`✅ [PHASE 1] Consolidated summary: ${combineResult.usage.outputTokens} tokens, ${parsed.topicos?.length || 0} unique topics`);
     }
 
     if (!parsed.titulo || !parsed.conteudo_html) {
