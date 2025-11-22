@@ -249,10 +249,10 @@ JSON:
       // Strategy 2: Batched sections summary
       console.log(`🔄 [PHASE 1] Generating summary in sections...`);
 
-      // Split content into smaller chunks to prevent MAX_TOKENS
-      // 12k chars (~3k tokens input) allows 4k-5k tokens output without hitting limits
-      // More chunks = better quality summaries for each section
-      const chunkSize = 12000;
+      // Split content into larger chunks to stay under 60s timeout
+      // 20k chars (~5k tokens input) with 12k output limit = ~25-30s per section
+      // Fewer chunks = faster processing while maintaining quality
+      const chunkSize = 20000;
       const chunks: string[] = [];
       for (let i = 0; i < combinedContent.length; i += chunkSize) {
         chunks.push(combinedContent.substring(i, i + chunkSize));

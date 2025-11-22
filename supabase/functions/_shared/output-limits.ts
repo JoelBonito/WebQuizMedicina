@@ -175,10 +175,12 @@ export function estimateTokens(text: string): number {
 /**
  * Determines the best summary generation strategy based on input size
  *
- * Strategies:
- * - SINGLE: Generate complete summary in one request (< 30k chars input)
- * - BATCHED: Generate summary in sections, then combine (30k-80k chars)
- * - EXECUTIVE: Generate ultra-compressed executive summary (> 80k chars)
+ * Strategies (optimized for 60s Edge Function timeout):
+ * - SINGLE: Generate complete summary in one request (< 30k chars, ~20-25s)
+ * - BATCHED: Generate summary in sections, then combine (30k-35k chars, ~45-50s)
+ * - EXECUTIVE: Generate ultra-compressed executive summary (>= 35k chars, ~15-20s)
+ *
+ * Note: With 20k chunk size, BATCHED generates max 2 sections to stay under timeout
  *
  * @param inputText - Combined source text
  * @returns Strategy recommendation
@@ -191,7 +193,7 @@ export function calculateSummaryStrategy(inputText: string): {
   const inputTokens = estimateTokens(inputText);
   const chars = inputText.length;
 
-  // Strategy 1: Single complete summary
+  // Strategy 1: Single complete summary (~20-25s)
   if (chars < 30000) {
     const estimatedOutput = Math.max(
       OUTPUT_LIMITS.SUMMARY.MIN_TOKENS,
@@ -208,8 +210,9 @@ export function calculateSummaryStrategy(inputText: string): {
     };
   }
 
-  // Strategy 2: Batched sections
-  if (chars < 80000) {
+  // Strategy 2: Batched sections (~45-50s for 2 sections)
+  // Limit to 35k to ensure max 2 chunks (35k/20k=1.75≈2) that fit comfortably in 60s timeout
+  if (chars < 35000) {
     const estimatedOutput = Math.min(
       inputTokens * (OUTPUT_LIMITS.SUMMARY.TOKENS_PER_1K_INPUT / 1000),
       SAFE_OUTPUT_LIMIT
@@ -222,11 +225,12 @@ export function calculateSummaryStrategy(inputText: string): {
     };
   }
 
-  // Strategy 3: Executive summary
+  // Strategy 3: Executive summary (~15-20s for single compressed summary)
+  // Used for content >= 35k to avoid timeout issues with Edge Functions (60s limit)
   return {
     strategy: 'EXECUTIVE',
     estimatedOutputTokens: 2000,
-    explanation: `Conteúdo grande (${chars} chars, ~${inputTokens} tokens). Gerando resumo executivo ultra-comprimido.`,
+    explanation: `Conteúdo grande (${chars} chars, ~${inputTokens} tokens). Gerando resumo executivo ultra-comprimido para evitar timeout.`,
   };
 }
 
