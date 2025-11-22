@@ -19,6 +19,77 @@ function getAuditLogger(): AuditLogger {
   return auditLogger;
 }
 
+// PHASE 2C: Background cache renewal function
+// This runs asynchronously after responding to the user to prevent delays
+async function renewCacheInBackground(
+  userId: string,
+  projectId: string,
+  projectName: string,
+  combinedContext: string,
+  authHeader: string
+) {
+  try {
+    console.log(`🔄 [BACKGROUND RENEWAL] Starting cache renewal for project ${projectId.substring(0, 8)}`);
+
+    // Create new cache
+    const cacheContent = `CONTEXTO DO PROJETO DE ESTUDOS MÉDICOS "${projectName}":
+
+${combinedContext}
+
+---
+Este contexto contém as fontes de estudo do aluno e será usado para responder perguntas sobre medicina.
+Todas as respostas devem se basear EXCLUSIVAMENTE neste conteúdo.`;
+
+    const cacheInfo = await createContextCache(
+      cacheContent,
+      'gemini-2.5-flash',
+      {
+        ttlSeconds: 600, // 10 minutes
+        displayName: `chat-renewed-${projectId.substring(0, 8)}`
+      }
+    );
+
+    const newCacheName = cacheInfo.name;
+    const expiresAt = new Date(cacheInfo.expireTime);
+
+    console.log(`✅ [BACKGROUND RENEWAL] New cache created: ${newCacheName}`);
+
+    // Update database with new cache
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      {
+        global: {
+          headers: { Authorization: authHeader },
+        },
+      }
+    );
+
+    const { error: updateError } = await supabaseClient
+      .from('chat_sessions')
+      .update({
+        cache_id: newCacheName,
+        cache_expires_at: expiresAt.toISOString(),
+        last_activity_at: new Date().toISOString(),
+      })
+      .eq('user_id', userId)
+      .eq('project_id', projectId);
+
+    if (updateError) {
+      console.error('⚠️ [BACKGROUND RENEWAL] Failed to update session:', updateError);
+    } else {
+      console.log(`✅ [BACKGROUND RENEWAL] Cache renewed successfully, expires at ${expiresAt.toISOString()}`);
+    }
+
+    // Note: We don't delete the old cache immediately as it might still be in use
+    // Let it expire naturally (TTL handles cleanup)
+
+  } catch (error) {
+    console.error('⚠️ [BACKGROUND RENEWAL] Error renewing cache:', error);
+    // Non-critical: user already got their response
+  }
+}
+
 // Force re-deploy: Fix AuditLogger lazy initialization with params (2025-11-18)
 
 serve(async (req) => {
@@ -236,6 +307,7 @@ serve(async (req) => {
     // saving ~95% on input tokens for conversations with 2+ messages
 
     let cacheName: string | null = null;
+    let shouldRenewCache = false; // PHASE 2C: Flag to trigger background renewal
     const CACHE_TTL_SECONDS = 600; // 10 minutes
     const CACHE_RENEWAL_THRESHOLD_SECONDS = 120; // Renew if < 2 minutes left
 
@@ -263,10 +335,10 @@ serve(async (req) => {
           console.log(`♻️  [CACHE] Reusing existing cache: ${cacheName}`);
           console.log(`⏰ [CACHE] Expires in ${Math.round(secondsUntilExpiry)}s`);
 
-          // Check if we should renew (cache close to expiring)
+          // PHASE 2C: Check if we should renew (cache close to expiring)
           if (secondsUntilExpiry < CACHE_RENEWAL_THRESHOLD_SECONDS) {
-            console.log(`🔄 [CACHE] Cache expiring soon, will renew after response`);
-            // TODO: Could implement async renewal here
+            shouldRenewCache = true;
+            console.log(`🔄 [CACHE] Cache expiring soon (${Math.round(secondsUntilExpiry)}s left), will renew in background after response`);
           }
         } else {
           console.log(`⏰ [CACHE] Existing cache expired, creating new one`);
@@ -473,8 +545,25 @@ Resposta:`;
         history_messages_count: history?.length || 0, // PHASE 2: How many messages in history
         used_persistent_cache: cacheName !== null, // PHASE 2B: Track if cache was used
         cache_reused: cacheName !== null && !cacheName.includes('new'), // Approximate: if cache exists, likely reused
+        cache_renewal_triggered: shouldRenewCache, // PHASE 2C: Track if background renewal was triggered
       }
     );
+
+    // PHASE 2C: Trigger background cache renewal if needed
+    // This runs asynchronously and doesn't block the response to the user
+    if (shouldRenewCache) {
+      // Fire-and-forget: start renewal but don't wait for it
+      renewCacheInBackground(
+        user.id,
+        project_id,
+        sanitizeString(project.name),
+        combinedContext,
+        req.headers.get('Authorization')!
+      ).catch((error) => {
+        console.error('⚠️ [CACHE RENEWAL] Background renewal failed:', error);
+        // Non-critical: user already got their response
+      });
+    }
 
     return createSuccessResponse({
       response: sanitizedResponse,
