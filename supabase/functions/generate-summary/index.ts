@@ -3,8 +3,9 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
 import { securityHeaders, createErrorResponse, createSuccessResponse, RATE_LIMITS, checkRateLimit, authenticateRequest } from '../_shared/security.ts';
 import { validateRequest, generateSummarySchema, sanitizeString, sanitizeHtml } from '../_shared/validation.ts';
 import { AuditLogger, AuditEventType } from '../_shared/audit.ts';
-import { callGemini, parseJsonFromResponse } from '../_shared/gemini.ts';
+import { callGeminiWithUsage, parseJsonFromResponse } from '../_shared/gemini.ts';
 import { calculateSummaryStrategy, SAFE_OUTPUT_LIMIT } from '../_shared/output-limits.ts';
+import { logTokenUsage } from '../_shared/token-logger.ts';
 import { hasAnyEmbeddings, semanticSearchWithTokenLimit } from '../_shared/embeddings.ts';
 
 // Lazy-initialize AuditLogger to avoid crashes if env vars are missing
@@ -201,6 +202,11 @@ serve(async (req) => {
     console.log(`📊 [PHASE 1] Summary strategy: ${strategyInfo.strategy}`);
     console.log(`ℹ️  [PHASE 1] ${strategyInfo.explanation}`);
 
+    // Track token usage across all API calls
+    let totalInputTokens = 0;
+    let totalOutputTokens = 0;
+    let totalCachedTokens = 0;
+
     let parsed: any;
 
     if (strategyInfo.strategy === 'SINGLE') {
@@ -226,8 +232,14 @@ JSON:
 }`;
 
       // Use Flash instead of Pro for single summaries (10x cheaper, same quality for this task)
-      const response = await callGemini(prompt, 'gemini-2.5-flash', SAFE_OUTPUT_LIMIT, true);
-      parsed = parseJsonFromResponse(response);
+      const result = await callGeminiWithUsage(prompt, 'gemini-2.5-flash', SAFE_OUTPUT_LIMIT, true);
+
+      // Track token usage
+      totalInputTokens += result.usage.inputTokens;
+      totalOutputTokens += result.usage.outputTokens;
+      totalCachedTokens += result.usage.cachedTokens || 0;
+
+      parsed = parseJsonFromResponse(result.text);
     } else if (strategyInfo.strategy === 'BATCHED') {
       // Strategy 2: Batched sections summary
       console.log(`🔄 [PHASE 1] Generating summary in sections...`);
@@ -262,8 +274,14 @@ INSTRUÇÕES:
 
 Retorne APENAS o HTML do resumo, sem texto adicional.`;
 
-        const sectionResponse = await callGemini(sectionPrompt, 'gemini-2.5-flash', 4000);
-        sectionSummaries.push(sectionResponse);
+        const sectionResult = await callGeminiWithUsage(sectionPrompt, 'gemini-2.5-flash', 4000);
+
+        // Track token usage
+        totalInputTokens += sectionResult.usage.inputTokens;
+        totalOutputTokens += sectionResult.usage.outputTokens;
+        totalCachedTokens += sectionResult.usage.cachedTokens || 0;
+
+        sectionSummaries.push(sectionResult.text);
         console.log(`✅ [PHASE 1] [Seção ${chunkNum}/${chunks.length}] Section summary generated`);
       }
 
@@ -291,8 +309,14 @@ JSON:
 }`;
 
       // OPTIMIZATION: Flash instead of Pro saves ~90% cost (sufficient for combining/formatting)
-      const combineResponse = await callGemini(combinePrompt, 'gemini-2.5-flash', SAFE_OUTPUT_LIMIT, true);
-      parsed = parseJsonFromResponse(combineResponse);
+      const combineResult = await callGeminiWithUsage(combinePrompt, 'gemini-2.5-flash', SAFE_OUTPUT_LIMIT, true);
+
+      // Track token usage
+      totalInputTokens += combineResult.usage.inputTokens;
+      totalOutputTokens += combineResult.usage.outputTokens;
+      totalCachedTokens += combineResult.usage.cachedTokens || 0;
+
+      parsed = parseJsonFromResponse(combineResult.text);
       console.log(`✅ [PHASE 1] Combined summary generated`);
     } else {
       // Strategy 3: Executive summary (ultra-compressed)
@@ -319,8 +343,14 @@ JSON:
   "topicos": ["string", ...]
 }`;
 
-      const response = await callGemini(executivePrompt, 'gemini-2.5-flash', 2500, true);
-      parsed = parseJsonFromResponse(response);
+      const execResult = await callGeminiWithUsage(executivePrompt, 'gemini-2.5-flash', 2500, true);
+
+      // Track token usage
+      totalInputTokens += execResult.usage.inputTokens;
+      totalOutputTokens += execResult.usage.outputTokens;
+      totalCachedTokens += execResult.usage.cachedTokens || 0;
+
+      parsed = parseJsonFromResponse(execResult.text);
       console.log(`✅ [PHASE 1] Executive summary generated`);
     }
 
@@ -342,6 +372,25 @@ JSON:
       .single();
 
     if (insertError) throw insertError;
+
+    // Log Token Usage for Admin Analytics
+    await logTokenUsage(
+      supabaseClient,
+      user.id,
+      project_id || sources[0].project_id,
+      'summary',
+      {
+        inputTokens: totalInputTokens,
+        outputTokens: totalOutputTokens,
+        cachedTokens: totalCachedTokens,
+      },
+      'gemini-2.5-flash',
+      {
+        summary_id: insertedSummary.id,
+        strategy: strategyInfo.strategy,
+        sources_count: sources.length,
+      }
+    );
 
     // Audit log: AI summary generation
     await getAuditLogger().logAIGeneration(

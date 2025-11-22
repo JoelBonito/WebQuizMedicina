@@ -3,7 +3,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
 import { securityHeaders, createErrorResponse, createSuccessResponse, RATE_LIMITS, checkRateLimit, authenticateRequest } from '../_shared/security.ts';
 import { validateRequest, generateFocusedSummarySchema, sanitizeString, sanitizeHtml } from '../_shared/validation.ts';
 import { AuditLogger, AuditEventType } from '../_shared/audit.ts';
-import { callGemini } from '../_shared/gemini.ts';
+import { callGeminiWithUsage } from '../_shared/gemini.ts';
+import { logTokenUsage } from '../_shared/token-logger.ts';
 
 // Lazy-initialize AuditLogger to avoid crashes if env vars are missing
 let auditLogger: AuditLogger | null = null;
@@ -273,10 +274,10 @@ INSTRUÇÕES IMPORTANTES:
 Responda APENAS com o HTML formatado, sem explicações adicionais.`;
 
     // Call Gemini with focused prompt (use Pro for better quality)
-    const htmlContent = await callGemini(prompt, 'gemini-2.5-pro');
+    const result = await callGeminiWithUsage(prompt, 'gemini-2.5-pro');
 
     // Sanitize AI-generated HTML to prevent XSS
-    const sanitizedHtml = sanitizeHtml(htmlContent);
+    const sanitizedHtml = sanitizeHtml(result.text);
 
     // Save the focused summary (with sanitized content)
     const { data: summary, error: summaryError } = await supabaseClient
@@ -293,6 +294,26 @@ Responda APENAS com o HTML formatado, sem explicações adicionais.`;
     if (summaryError) {
       throw summaryError;
     }
+
+    // Log Token Usage for Admin Analytics
+    await logTokenUsage(
+      supabaseClient,
+      user.id,
+      project_id,
+      'summary',
+      {
+        inputTokens: result.usage.inputTokens,
+        outputTokens: result.usage.outputTokens,
+        cachedTokens: result.usage.cachedTokens || 0,
+      },
+      'gemini-2.5-pro',
+      {
+        summary_id: summary.id,
+        summary_type: 'focused',
+        difficulties_count: difficulties.length,
+        sources_count: sources.length,
+      }
+    );
 
     // Audit log: AI focused summary generation
     await getAuditLogger().logAIGeneration(

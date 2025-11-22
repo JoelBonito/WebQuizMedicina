@@ -3,8 +3,9 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
 import { securityHeaders, createErrorResponse, createSuccessResponse, RATE_LIMITS, checkRateLimit, authenticateRequest } from '../_shared/security.ts';
 import { validateRequest, chatMessageSchema, sanitizeString } from '../_shared/validation.ts';
 import { AuditLogger, AuditEventType } from '../_shared/audit.ts';
-import { callGemini } from '../_shared/gemini.ts';
+import { callGeminiWithUsage } from '../_shared/gemini.ts';
 import { hasAnyEmbeddings, semanticSearchWithTokenLimit } from '../_shared/embeddings.ts';
+import { logTokenUsage } from '../_shared/token-logger.ts';
 import { createContextCache, safeDeleteCache } from '../_shared/gemini-cache.ts';
 
 // Lazy-initialize AuditLogger to avoid crashes if env vars are missing
@@ -476,7 +477,7 @@ Todas as respostas devem se basear EXCLUSIVAMENTE neste conteúdo.`;
 Resposta:`;
 
     // Call Gemini with RAG context (and cached content if available)
-    const response = await callGemini(
+    const result = await callGeminiWithUsage(
       prompt,
       'gemini-2.5-flash',
       8192, // maxOutputTokens - reasonable for chat responses
@@ -485,7 +486,7 @@ Resposta:`;
     );
 
     // Sanitize AI response before storing
-    const sanitizedResponse = sanitizeString(response);
+    const sanitizedResponse = sanitizeString(result.text);
 
     // Extract sources mentioned (simple approach - match file names in response)
     const citedSources = sources
@@ -523,6 +524,26 @@ Resposta:`;
       console.error('Error saving assistant message:', assistantMessageError);
       // Don't throw - still return the response
     }
+
+    // Log Token Usage for Admin Analytics
+    await logTokenUsage(
+      supabaseClient,
+      user.id,
+      project_id,
+      'chat',
+      {
+        inputTokens: result.usage.inputTokens,
+        outputTokens: result.usage.outputTokens,
+        cachedTokens: result.usage.cachedTokens || 0,
+      },
+      'gemini-2.5-flash',
+      {
+        session_id: session_id,
+        sources_count: sources.length,
+        citations_count: citedSources.length,
+        use_cache: !!cacheName,
+      }
+    );
 
     // Check if response suggests topics related to difficulties
     const suggestedTopics = difficulties
