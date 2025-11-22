@@ -2,13 +2,14 @@ import { useState } from "react";
 import { motion } from "motion/react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
-import { AlertTriangle, CheckCircle, Sparkles, TrendingUp, BookOpen, MessageSquare, Brain, Loader2 } from "lucide-react";
+import { AlertTriangle, CheckCircle, Sparkles, TrendingUp, BookOpen, MessageSquare, Brain, Loader2, Star, Target } from "lucide-react";
 import { useDifficulties } from "../hooks/useDifficulties";
 import { useQuestions } from "../hooks/useQuestions";
 import { useFlashcards } from "../hooks/useFlashcards";
 import { useSummaries } from "../hooks/useSummaries";
 import { toast } from "sonner";
 import { ScrollArea } from "./ui/scroll-area";
+import { supabase } from "../lib/supabase";
 
 interface DifficultiesPanelProps {
   projectId: string | null;
@@ -51,6 +52,34 @@ const getLevelBadgeColor = (level: number) => {
   if (level >= 5) return "bg-red-50 text-red-700";
   if (level >= 3) return "bg-orange-50 text-orange-700";
   return "bg-yellow-50 text-yellow-700";
+};
+
+// Phase 4C: Render streak progress (⭐⭐☆)
+const renderStreakBadge = (consecutiveCorrect: number = 0) => {
+  const threshold = 3;
+  const stars = [];
+
+  for (let i = 0; i < threshold; i++) {
+    stars.push(
+      <Star
+        key={i}
+        className={`w-3 h-3 ${
+          i < consecutiveCorrect
+            ? "fill-yellow-400 text-yellow-400"
+            : "fill-gray-300 text-gray-300"
+        }`}
+      />
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-1">
+      {stars}
+      <span className="text-xs text-gray-600 ml-1">
+        {consecutiveCorrect}/{threshold}
+      </span>
+    </div>
+  );
 };
 
 export function DifficultiesPanel({ projectId, isFullscreenMode = false }: DifficultiesPanelProps) {
@@ -115,7 +144,8 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
     }
   };
 
-  const handleGeneratePracticeContent = async () => {
+  // Phase 4C: Generate Recovery Quiz
+  const handleGenerateRecoveryQuiz = async () => {
     if (topDifficulties.length === 0) {
       toast.error("Nenhuma dificuldade encontrada");
       return;
@@ -126,27 +156,65 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
 
       const topicsText = topDifficulties.map((d) => d.topico).join(", ");
 
-      // FIX: Corrigir destructuring - results é um array
-      const results = await toast.promise(
-        Promise.all([
-          generateQuiz(undefined, 10),
-          generateFlashcards(undefined, 15),
-        ]),
+      await toast.promise(
+        supabase.functions.invoke('generate-recovery-quiz', {
+          body: {
+            project_id: projectId,
+            count: 10,
+          },
+        }),
         {
-          loading: `Gerando quiz e flashcards sobre: ${topicsText}...`,
-          success: "✅ Quiz e Flashcards gerados! Teste seu conhecimento no painel Conteúdo.",
-          error: "Erro ao gerar conteúdo de prática",
+          loading: `🎯 Gerando Recovery Quiz sobre: ${topicsText}...`,
+          success: (data) => {
+            const metadata = data.data?.recovery_metadata;
+            const strategy = metadata?.strategy || 'focused';
+            const focus = metadata?.focus_percentage || 100;
+
+            return `✅ Recovery Quiz gerado! Estratégia: ${strategy.toUpperCase()} (${focus}% foco)`;
+          },
+          error: "Erro ao gerar Recovery Quiz",
         }
       );
 
-      // Show warning if quiz relevance is low
-      const quizResult = results[0];
-      if (quizResult?.warning) {
-        toast.warning(quizResult.warning.message, {
-          description: quizResult.warning.recommendation,
-          duration: 7000,
-        });
-      }
+      // Notify ContentPanel to refresh
+      window.dispatchEvent(new CustomEvent('content-generated'));
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setGeneratingContent(false);
+    }
+  };
+
+  // Phase 4C: Generate Recovery Flashcards
+  const handleGenerateRecoveryFlashcards = async () => {
+    if (topDifficulties.length === 0) {
+      toast.error("Nenhuma dificuldade encontrada");
+      return;
+    }
+
+    try {
+      setGeneratingContent(true);
+
+      const topicsText = topDifficulties.map((d) => d.topico).join(", ");
+
+      await toast.promise(
+        supabase.functions.invoke('generate-recovery-flashcards', {
+          body: {
+            project_id: projectId,
+            count: 20,
+          },
+        }),
+        {
+          loading: `🎯 Gerando Recovery Flashcards sobre: ${topicsText}...`,
+          success: (data) => {
+            const metadata = data.data?.recovery_metadata;
+            const strategy = metadata?.strategy || 'focused';
+
+            return `✅ Recovery Flashcards gerados! Estratégia: ${strategy.toUpperCase()} (atomizado)`;
+          },
+          error: "Erro ao gerar Recovery Flashcards",
+        }
+      );
 
       // Notify ContentPanel to refresh
       window.dispatchEvent(new CustomEvent('content-generated'));
@@ -254,7 +322,7 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 <Button
                   onClick={handleGenerateFocusedSummary}
                   disabled={generatingContent}
@@ -265,12 +333,27 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
                   ) : (
                     <BookOpen className="w-5 h-5 mb-1" />
                   )}
-                  <span className="text-sm font-semibold">Gerar Resumo Focado</span>
+                  <span className="text-sm font-semibold">Resumo Focado</span>
                   <span className="text-xs opacity-90 mt-1">Estude primeiro</span>
                 </Button>
 
                 <Button
-                  onClick={handleGeneratePracticeContent}
+                  onClick={handleGenerateRecoveryQuiz}
+                  disabled={generatingContent}
+                  variant="outline"
+                  className="rounded-xl border-2 border-orange-400 text-orange-700 hover:bg-orange-50 shadow-lg flex flex-col items-center py-6 h-auto"
+                >
+                  {generatingContent ? (
+                    <Loader2 className="w-5 h-5 mb-1 animate-spin" />
+                  ) : (
+                    <Target className="w-5 h-5 mb-1" />
+                  )}
+                  <span className="text-sm font-semibold">Recovery Quiz</span>
+                  <span className="text-xs opacity-90 mt-1">Adaptativo</span>
+                </Button>
+
+                <Button
+                  onClick={handleGenerateRecoveryFlashcards}
                   disabled={generatingContent}
                   variant="outline"
                   className="rounded-xl border-2 border-orange-400 text-orange-700 hover:bg-orange-50 shadow-lg flex flex-col items-center py-6 h-auto"
@@ -280,8 +363,8 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
                   ) : (
                     <Brain className="w-5 h-5 mb-1" />
                   )}
-                  <span className="text-sm font-semibold">Gerar Quiz + Flashcards</span>
-                  <span className="text-xs opacity-90 mt-1">Para praticar</span>
+                  <span className="text-sm font-semibold">Recovery Flashcards</span>
+                  <span className="text-xs opacity-90 mt-1">Atomizado</span>
                 </Button>
               </div>
             </div>
@@ -317,6 +400,18 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
                             <span className="ml-1 capitalize">{difficulty.tipo_origem}</span>
                           </Badge>
                         </div>
+
+                        {/* Phase 4C: Streak Progress Badge */}
+                        {(difficulty.consecutive_correct ?? 0) > 0 && (
+                          <div className="mb-2">
+                            <div className="inline-flex items-center gap-2 bg-yellow-50 border border-yellow-200 rounded-lg px-2 py-1">
+                              {renderStreakBadge(difficulty.consecutive_correct)}
+                              <span className="text-xs text-yellow-700 font-medium">
+                                Progresso de Auto-Resolução
+                              </span>
+                            </div>
+                          </div>
+                        )}
 
                         {/* Level Bar */}
                         <div className="flex items-center gap-2 mb-2">
@@ -382,6 +477,13 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
                             <Badge variant="outline" className="text-xs text-green-700">
                               Era nível {difficulty.nivel}
                             </Badge>
+                            {/* Phase 4C: Auto-Resolved Badge */}
+                            {difficulty.auto_resolved_at && (
+                              <Badge className="text-xs bg-yellow-100 text-yellow-800 border-yellow-300">
+                                <Star className="w-3 h-3 mr-1 fill-yellow-500 text-yellow-500" />
+                                Auto-Resolvido
+                              </Badge>
+                            )}
                           </div>
                           <span className="text-xs text-gray-500">
                             {new Date(difficulty.updated_at || difficulty.created_at).toLocaleDateString("pt-BR", {
