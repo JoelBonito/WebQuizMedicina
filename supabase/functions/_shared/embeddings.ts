@@ -264,6 +264,92 @@ export async function semanticSearch(
 }
 
 /**
+ * Perform semantic search with dynamic token limit (PHASE 3 OPTIMIZATION)
+ *
+ * Instead of fetching a fixed number of chunks, this function fetches chunks
+ * until reaching the specified token limit, ensuring predictable costs.
+ *
+ * @param supabaseClient - Supabase client instance
+ * @param query - Search query text
+ * @param sourceIds - Array of source IDs to search within
+ * @param maxTokens - Maximum total tokens to return (default: 15000)
+ * @param similarityThreshold - Minimum similarity score (default: 0.5)
+ * @returns Array of semantic search results within token limit
+ */
+export async function semanticSearchWithTokenLimit(
+  supabaseClient: any,
+  query: string,
+  sourceIds: string[],
+  maxTokens: number = 15000,
+  similarityThreshold: number = 0.5
+): Promise<SemanticSearchResult[]> {
+
+  console.log(`🔍 [Search] Starting semantic search with token limit...`);
+  console.log(`🔍 [Search] Query: "${query.substring(0, 100)}..."`);
+  console.log(`🔍 [Search] Sources: ${sourceIds.length}, Max tokens: ${maxTokens}`);
+
+  // Generate embedding for query
+  const queryEmbedding = await generateEmbedding(query);
+  console.log(`✅ [Search] Query embedding generated (${queryEmbedding.length} dims)`);
+
+  // Fetch more chunks than needed (we'll filter by token limit)
+  // Use a generous initial fetch to ensure we have enough candidates
+  const initialFetchCount = Math.max(50, Math.ceil(maxTokens / 400)); // Assume ~400 tokens/chunk avg
+
+  // Perform vector search using RPC function
+  const { data, error } = await supabaseClient.rpc('match_source_chunks', {
+    query_embedding: queryEmbedding,
+    source_ids: sourceIds,
+    match_count: initialFetchCount,
+    similarity_threshold: similarityThreshold
+  });
+
+  if (error) {
+    console.error('❌ [Search] Semantic search failed:', error);
+    throw error;
+  }
+
+  if (!data || data.length === 0) {
+    console.warn('⚠️ [Search] No relevant chunks found');
+    return [];
+  }
+
+  // Accumulate chunks until token limit is reached
+  const results: SemanticSearchResult[] = [];
+  let totalTokens = 0;
+
+  for (const item of data) {
+    const chunkTokens = item.token_count || estimateTokens(item.content);
+
+    // Check if adding this chunk would exceed the limit
+    if (totalTokens + chunkTokens > maxTokens) {
+      console.log(`⏸️ [Search] Token limit reached: ${totalTokens}/${maxTokens} tokens`);
+      break;
+    }
+
+    results.push({
+      id: item.id,
+      content: item.content,
+      similarity: item.similarity,
+      sourceId: item.source_id,
+      chunkIndex: item.chunk_index,
+      tokenCount: chunkTokens
+    });
+
+    totalTokens += chunkTokens;
+  }
+
+  const avgSimilarity = results.reduce((sum, item) => sum + item.similarity, 0) / results.length;
+
+  console.log(`✅ [Search] Found ${results.length} chunks within token limit`);
+  console.log(`📊 [Search] Total tokens: ${totalTokens}/${maxTokens} (${((totalTokens/maxTokens)*100).toFixed(1)}% used)`);
+  console.log(`📊 [Search] Avg similarity: ${(avgSimilarity * 100).toFixed(1)}%`);
+  console.log(`📊 [Search] Top similarity: ${(results[0].similarity * 100).toFixed(1)}%`);
+
+  return results;
+}
+
+/**
  * Check if a single source has embeddings
  */
 export async function hasEmbeddings(

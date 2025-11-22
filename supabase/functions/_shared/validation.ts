@@ -63,6 +63,21 @@ export const generateFocusedSummarySchema = z.object({
 });
 
 // ============================================
+// RECOVERY MODE SCHEMAS (PHASE 4)
+// ============================================
+
+export const generateRecoveryQuizSchema = z.object({
+  project_id: uuidSchema,
+  count: z.number().int().min(1).max(50).optional().default(10),
+  difficulty: z.enum(['fácil', 'médio', 'difícil']).optional(),
+});
+
+export const generateRecoveryFlashcardsSchema = z.object({
+  project_id: uuidSchema,
+  count: z.number().int().min(1).max(100).optional().default(20),
+});
+
+// ============================================
 // CHAT SCHEMAS
 // ============================================
 
