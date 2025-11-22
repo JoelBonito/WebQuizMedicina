@@ -298,6 +298,7 @@ export async function callGeminiWithUsage(
   if (finishReason === 'MAX_TOKENS') {
     console.error('❌ Gemini response was truncated due to MAX_TOKENS limit');
     console.error('Candidate:', JSON.stringify(candidate, null, 2));
+    console.error(`📊 Input tokens: ${data.usageMetadata?.promptTokenCount || estimatedTokens}, Output limit: ${maxOutputTokens}`);
 
     if (candidate.content && candidate.content.parts && candidate.content.parts.length > 0) {
       const partialText = candidate.content.parts[0].text;
@@ -314,6 +315,13 @@ export async function callGeminiWithUsage(
       };
       return { text: partialText, usage };
     }
+
+    // No content was generated - this is a critical error
+    console.error('❌ CRITICAL: MAX_TOKENS reached but no content was generated!');
+    console.error('This typically means:');
+    console.error('  1. The input is too large for the model to process');
+    console.error('  2. The output limit is set too high relative to input size');
+    console.error('  3. There may be an API issue');
 
     throw new Error(
       'Resposta truncada: O modelo atingiu o limite de tokens antes de completar. ' +
