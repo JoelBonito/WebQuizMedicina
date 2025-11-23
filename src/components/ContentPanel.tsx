@@ -27,6 +27,7 @@ import { useSummaries } from "../hooks/useSummaries";
 import { useDifficulties } from "../hooks/useDifficulties";
 import { supabase } from "../lib/supabase";
 import { toast } from "sonner";
+import { isRecoverySession } from "../lib/recoverySessionTracker";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "./ui/dialog";
 import { QuizSession } from "./QuizSession";
 import { FlashcardSession } from "./FlashcardSession";
@@ -241,8 +242,8 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
       const mostRecent = sessionQuestions[0];
       const difficulty = getDifficultyLevel(sessionQuestions);
       const contentId = `quiz-${sessionId}`;
-      // Check if this is recovery content (source_id is null for recovery content)
-      const isRecovery = mostRecent.source_id === null;
+      // Check if this session was generated from DifficultiesPanel (recovery mode)
+      const isRecovery = isRecoverySession(sessionId);
       newContent.push({
         id: contentId,
         type: 'quiz',
@@ -269,8 +270,8 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
       const mostRecent = sessionFlashcards[0];
       const difficulty = getDifficultyLevel(sessionFlashcards);
       const contentId = `flashcards-${sessionId}`;
-      // Check if this is recovery content (source_id is null for recovery content)
-      const isRecovery = mostRecent.source_id === null;
+      // Check if this session was generated from DifficultiesPanel (recovery mode)
+      const isRecovery = isRecoverySession(sessionId);
       newContent.push({
         id: contentId,
         type: 'flashcards',

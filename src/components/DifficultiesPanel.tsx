@@ -156,7 +156,7 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
 
       const topicsText = topDifficulties.map((d) => d.topico).join(", ");
 
-      await toast.promise(
+      const result = await toast.promise(
         supabase.functions.invoke('generate-recovery-quiz', {
           body: {
             project_id: projectId,
@@ -175,6 +175,13 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
           error: "Erro ao gerar Recovery Quiz",
         }
       );
+
+      // Mark session as recovery for badge display
+      const sessionId = result.data?.session_id;
+      if (sessionId && projectId) {
+        const { markAsRecoverySession } = await import('../lib/recoverySessionTracker');
+        markAsRecoverySession(sessionId, 'quiz', projectId);
+      }
 
       // Notify ContentPanel to refresh
       window.dispatchEvent(new CustomEvent('content-generated'));
@@ -197,7 +204,7 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
 
       const topicsText = topDifficulties.map((d) => d.topico).join(", ");
 
-      await toast.promise(
+      const result = await toast.promise(
         supabase.functions.invoke('generate-recovery-flashcards', {
           body: {
             project_id: projectId,
@@ -215,6 +222,13 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
           error: "Erro ao gerar Recovery Flashcards",
         }
       );
+
+      // Mark session as recovery for badge display
+      const sessionId = result.data?.session_id;
+      if (sessionId && projectId) {
+        const { markAsRecoverySession } = await import('../lib/recoverySessionTracker');
+        markAsRecoverySession(sessionId, 'flashcards', projectId);
+      }
 
       // Notify ContentPanel to refresh
       window.dispatchEvent(new CustomEvent('content-generated'));
