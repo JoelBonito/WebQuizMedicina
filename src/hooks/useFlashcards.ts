@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './useAuth';
 
@@ -20,7 +20,7 @@ export const useFlashcards = (projectId: string | null) => {
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
 
-  const fetchFlashcards = async () => {
+  const fetchFlashcards = useCallback(async () => {
     if (!projectId) {
       setFlashcards([]);
       return;
@@ -41,11 +41,11 @@ export const useFlashcards = (projectId: string | null) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [projectId]);
 
   useEffect(() => {
     fetchFlashcards();
-  }, [projectId]);
+  }, [fetchFlashcards]);
 
   const generateFlashcards = async (sourceIds?: string | string[], count: number = 20, difficulty?: 'fácil' | 'médio' | 'difícil') => {
     if (!projectId && !sourceIds) throw new Error('Project or source required');

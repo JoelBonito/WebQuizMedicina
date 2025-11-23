@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './useAuth';
 
@@ -24,7 +24,7 @@ export const useQuestions = (projectId: string | null) => {
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
 
-  const fetchQuestions = async () => {
+  const fetchQuestions = useCallback(async () => {
     if (!projectId) {
       setQuestions([]);
       return;
@@ -45,11 +45,11 @@ export const useQuestions = (projectId: string | null) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [projectId]);
 
   useEffect(() => {
     fetchQuestions();
-  }, [projectId]);
+  }, [fetchQuestions]);
 
   const generateQuiz = async (sourceIds?: string | string[], count: number = 15, difficulty?: 'fácil' | 'médio' | 'difícil') => {
     if (!projectId && !sourceIds) throw new Error('Project or source required');
