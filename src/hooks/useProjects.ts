@@ -40,8 +40,9 @@ export const useProjects = () => {
   };
 
   useEffect(() => {
+    if (!user?.id) return;
     fetchProjects();
-  }, [user]);
+  }, [user?.id]);
 
   const createProject = async (name: string) => {
     if (!user) throw new Error('User not authenticated');

@@ -56,8 +56,9 @@ export const useDifficulties = (projectId: string | null) => {
   };
 
   useEffect(() => {
+    if (!user?.id || !projectId) return;
     fetchDifficulties();
-  }, [user, projectId]);
+  }, [user?.id, projectId]);
 
   const addDifficulty = async (
     topico: string,

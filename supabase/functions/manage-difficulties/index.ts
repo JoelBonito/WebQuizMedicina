@@ -1,3 +1,13 @@
+/**
+ * @deprecated This Edge Function is currently not used in the frontend.
+ *
+ * The functions that call this edge function (getStatistics, checkAutoResolve, normalizeTopic)
+ * are defined in src/hooks/useDifficulties.ts but are never invoked by any component.
+ *
+ * Consider removing this function if it remains unused, or implementing the features
+ * in the frontend that would utilize these difficulty management capabilities.
+ */
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 import {

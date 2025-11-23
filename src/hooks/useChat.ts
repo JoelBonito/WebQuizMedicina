@@ -104,7 +104,7 @@ export const useChat = (projectId: string | null) => {
 
   // Fetch chat history
   useEffect(() => {
-    if (!projectId || !user) {
+    if (!projectId || !user?.id) {
       setMessages([]);
       return;
     }
@@ -157,7 +157,7 @@ export const useChat = (projectId: string | null) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [projectId, user]);
+  }, [projectId, user?.id]);
 
   const sendMessage = async (message: string): Promise<ChatResponse | null> => {
     // More detailed error checking - VERCEL BUILD v2
