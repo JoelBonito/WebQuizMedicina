@@ -67,7 +67,7 @@ export const GEMINI_MAX_OUTPUT = 16384;
  * there's a practical combined limit of ~30k tokens when using JSON mode.
  * This prevents MAX_TOKENS errors without content generation.
  */
-export const GEMINI_CONTEXT_LIMIT = 30000;
+export const GEMINI_CONTEXT_LIMIT = 200000;
 
 /**
  * Safety margin for token calculations
