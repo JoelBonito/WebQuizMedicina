@@ -55,22 +55,20 @@ export const useSummaries = (projectId: string | null) => {
       if (!session) throw new Error('Not authenticated');
 
       // Support both single sourceId (string) and multiple sourceIds (array)
-      const source_ids = Array.isArray(sourceIds) ? sourceIds : (sourceIds ? [sourceIds] : undefined);
+      const source_id = Array.isArray(sourceIds) ? sourceIds[0] : sourceIds;
 
-      const response = await fetch(
-        `${supabase.supabaseUrl}/functions/v1/generate-summary`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({
-            source_ids,
-            project_id: projectId,
-          }),
-        }
-      );
+      // Call Vercel API route instead of Supabase Edge Function
+      const response = await fetch('/api/generate-summary', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          source_id,
+          project_id: projectId,
+        }),
+      });
 
       const result = await response.json();
 
