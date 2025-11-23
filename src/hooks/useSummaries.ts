@@ -54,28 +54,39 @@ export const useSummaries = (projectId: string | null) => {
 
       if (!session) throw new Error('Not authenticated');
 
-      // Build request body with proper priority logic:
-      // - If sourceIds is provided and is an array with multiple IDs → send source_ids array
-      // - If sourceIds is a single string → send source_id
-      // - Always send project_id for consolidated project summaries
-      const requestBody: any = { project_id: projectId };
+      // Build request body respecting user's source selection:
+      // Priority: User selection > All project sources
+      //
+      // 1. User selected specific sources → send source_ids (backend uses ONLY these)
+      // 2. User selected 1 source → send source_id (backend uses only this one)
+      // 3. No selection → send only project_id (backend fetches all project sources)
+      const requestBody: any = {};
 
       if (sourceIds) {
-        if (Array.isArray(sourceIds)) {
+        if (Array.isArray(sourceIds) && sourceIds.length > 0) {
           if (sourceIds.length > 1) {
-            // Multiple sources selected → send array for specific multi-source summary
+            // Multiple sources selected (e.g., 4 out of 9 sources)
+            // Backend will use ONLY these selected sources
             requestBody.source_ids = sourceIds;
+            console.log(`📤 [Frontend] Sending ${sourceIds.length} selected sources`);
           } else if (sourceIds.length === 1) {
-            // Single source in array → send as source_id
+            // Single source selected
             requestBody.source_id = sourceIds[0];
+            console.log(`📤 [Frontend] Sending 1 selected source`);
           }
-          // If empty array, only project_id will be sent (all sources)
-        } else {
-          // Single source ID as string
+          // Empty array falls through to project_id logic below
+        } else if (typeof sourceIds === 'string') {
+          // Single source ID as string (backwards compatibility)
           requestBody.source_id = sourceIds;
+          console.log(`📤 [Frontend] Sending 1 selected source (string)`);
         }
       }
-      // If no sourceIds provided, only project_id is sent → backend fetches all project sources
+
+      // If no specific sources selected, request all project sources
+      if (!requestBody.source_id && !requestBody.source_ids) {
+        requestBody.project_id = projectId;
+        console.log(`📤 [Frontend] No selection, requesting all project sources`);
+      }
 
       // Call Vercel API route instead of Supabase Edge Function
       const response = await fetch('/api/generate-summary', {
