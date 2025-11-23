@@ -266,13 +266,15 @@ JSON:
       // Batched strategy
       console.log('🔄 [BATCHED] Generating sections in parallel...');
 
-      const chunkSize = 50000;
+      // Reduced chunk size from 50k to 30k chars to avoid MAX_TOKENS
+      // 30k chars ≈ 7.5k tokens content + 1.5k prompt = 9k input + 4k output = 13k total (safe!)
+      const chunkSize = 30000;
       const chunks: string[] = [];
       for (let i = 0; i < combinedContent.length; i += chunkSize) {
         chunks.push(combinedContent.substring(i, i + chunkSize));
       }
 
-      console.log(`📑 Split into ${chunks.length} sections, processing in parallel...`);
+      console.log(`📑 Split into ${chunks.length} sections (${chunkSize} chars each), processing in parallel...`);
 
       // Process chunks in parallel
       const sectionPromises = chunks.map(async (chunk, i) => {
@@ -291,14 +293,24 @@ INSTRUÇÕES:
 Retorne APENAS o HTML estruturado.`;
 
         try {
-          const safeChunkOutput = calculateSafeOutputTokens(sectionPrompt, 6000);
+          // Reduced from 6000 to 4000 to ensure input + output stays under 30k limit
+          // Input: ~9k tokens (7.5k content + 1.5k prompt)
+          // Output: 4k tokens
+          // Total: ~13k tokens (safe margin from 30k limit)
+          const safeChunkOutput = Math.min(
+            calculateSafeOutputTokens(sectionPrompt, 4000),
+            4000
+          );
+
+          console.log(`📊 [Seção ${chunkNum}] Input: ~${Math.ceil(sectionPrompt.length / 4)} tokens, Output limit: ${safeChunkOutput}`);
+
           const result = await callGeminiWithUsage(
             sectionPrompt,
             geminiApiKey,
             'gemini-2.0-flash-exp',
             safeChunkOutput
           );
-          console.log(`✅ [Seção ${chunkNum}/${chunks.length}] Completed`);
+          console.log(`✅ [Seção ${chunkNum}/${chunks.length}] Completed (${result.usage.outputTokens} tokens)`);
           return result;
         } catch (err) {
           console.error(`❌ [Seção ${chunkNum}] Failed:`, err);
