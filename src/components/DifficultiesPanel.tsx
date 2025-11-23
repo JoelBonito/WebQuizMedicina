@@ -176,11 +176,11 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
         }
       );
 
-      // Mark session as recovery for badge display
+      // Mark session as recovery for title/badge display
       const sessionId = result.data?.session_id;
-      if (sessionId && projectId) {
+      if (sessionId) {
         const { markAsRecoverySession } = await import('../lib/recoverySessionTracker');
-        markAsRecoverySession(sessionId, 'quiz', projectId);
+        markAsRecoverySession(sessionId);
       }
 
       // Notify ContentPanel to refresh
@@ -223,11 +223,11 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
         }
       );
 
-      // Mark session as recovery for badge display
+      // Mark session as recovery for title/badge display
       const sessionId = result.data?.session_id;
-      if (sessionId && projectId) {
+      if (sessionId) {
         const { markAsRecoverySession } = await import('../lib/recoverySessionTracker');
-        markAsRecoverySession(sessionId, 'flashcards', projectId);
+        markAsRecoverySession(sessionId);
       }
 
       // Notify ContentPanel to refresh

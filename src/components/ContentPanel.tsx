@@ -244,10 +244,13 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
       const contentId = `quiz-${sessionId}`;
       // Check if this session was generated from DifficultiesPanel (recovery mode)
       const isRecovery = isRecoverySession(sessionId);
+      const defaultTitle = isRecovery
+        ? `Quiz Recovery - ${sessionQuestions.length} questões`
+        : `Quiz - ${sessionQuestions.length} questões`;
       newContent.push({
         id: contentId,
         type: 'quiz',
-        title: customNames[contentId] || `Quiz - ${sessionQuestions.length} questões`,
+        title: customNames[contentId] || defaultTitle,
         sourceCount: selectedSourceIds.length,
         createdAt: new Date(mostRecent.created_at || new Date()),
         difficulty,
@@ -272,10 +275,13 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
       const contentId = `flashcards-${sessionId}`;
       // Check if this session was generated from DifficultiesPanel (recovery mode)
       const isRecovery = isRecoverySession(sessionId);
+      const defaultTitle = isRecovery
+        ? `Flashcards Recovery - ${sessionFlashcards.length} cards`
+        : `Flashcards - ${sessionFlashcards.length} cards`;
       newContent.push({
         id: contentId,
         type: 'flashcards',
-        title: customNames[contentId] || `Flashcards - ${sessionFlashcards.length} cards`,
+        title: customNames[contentId] || defaultTitle,
         sourceCount: selectedSourceIds.length,
         createdAt: new Date(mostRecent.created_at || new Date()),
         difficulty,
