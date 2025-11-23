@@ -293,13 +293,16 @@ INSTRUÇÕES:
 Retorne APENAS o HTML estruturado.`;
 
         try {
-          // Reduced from 6000 to 4000 to ensure input + output stays under 30k limit
+          // Gemini 2.0 Flash supports up to 65,535 output tokens
+          // Using 16384 (16k) for detailed medical summaries with safety margin
+          // With 30k char chunks:
           // Input: ~9k tokens (7.5k content + 1.5k prompt)
-          // Output: 4k tokens
-          // Total: ~13k tokens (safe margin from 30k limit)
+          // Output: 16384 tokens (allows complete detailed medical content)
+          // Total: ~25k tokens (safe under any practical limit)
+          const targetOutput = 16384; // 16k tokens for comprehensive medical summaries
           const safeChunkOutput = Math.min(
-            calculateSafeOutputTokens(sectionPrompt, 4000),
-            4000
+            calculateSafeOutputTokens(sectionPrompt, targetOutput),
+            targetOutput
           );
 
           console.log(`📊 [Seção ${chunkNum}] Input: ~${Math.ceil(sectionPrompt.length / 4)} tokens, Output limit: ${safeChunkOutput}`);
