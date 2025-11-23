@@ -11,6 +11,7 @@ export interface Flashcard {
   verso: string;
   topico: string | null;
   dificuldade: string;
+  content_type?: 'standard' | 'recovery';
   created_at: string;
 }
 

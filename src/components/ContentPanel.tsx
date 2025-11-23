@@ -242,8 +242,9 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
       const mostRecent = sessionQuestions[0];
       const difficulty = getDifficultyLevel(sessionQuestions);
       const contentId = `quiz-${sessionId}`;
-      // Check if this session was generated from DifficultiesPanel (recovery mode)
-      const isRecovery = isRecoverySession(sessionId);
+      // Check content_type from database as source of truth (with fallback to localStorage for legacy content)
+      const isRecovery = mostRecent.content_type === 'recovery' ||
+                        (mostRecent.content_type === undefined && isRecoverySession(sessionId));
       const defaultTitle = isRecovery
         ? `Quiz Recovery - ${sessionQuestions.length} questões`
         : `Quiz - ${sessionQuestions.length} questões`;
@@ -276,8 +277,9 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
       const mostRecent = sessionFlashcards[0];
       const difficulty = getDifficultyLevel(sessionFlashcards);
       const contentId = `flashcards-${sessionId}`;
-      // Check if this session was generated from DifficultiesPanel (recovery mode)
-      const isRecovery = isRecoverySession(sessionId);
+      // Check content_type from database as source of truth (with fallback to localStorage for legacy content)
+      const isRecovery = mostRecent.content_type === 'recovery' ||
+                        (mostRecent.content_type === undefined && isRecoverySession(sessionId));
       const defaultTitle = isRecovery
         ? `Flashcards Recovery - ${sessionFlashcards.length} cards`
         : `Flashcards - ${sessionFlashcards.length} cards`;

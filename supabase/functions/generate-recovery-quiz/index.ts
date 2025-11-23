@@ -373,7 +373,8 @@ FORMATO JSON:
         dica: q.dica ? sanitizeString(q.dica) : null,
         tipo,
         dificuldade: q.dificuldade || difficulty || "médio",
-        topico: q.topico ? sanitizeString(q.topico) : null
+        topico: q.topico ? sanitizeString(q.topico) : null,
+        content_type: 'recovery'  // Mark as recovery content for UI differentiation
       };
     });
 
