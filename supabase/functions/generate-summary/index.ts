@@ -235,22 +235,21 @@ SEÇÃO ${chunkNum} DE ${chunks.length}:
 ${chunk}
 
 INSTRUÇÕES:
-1. Identifique os TÓPICOS PRINCIPAIS desta seção (liste-os claramente no início do HTML como comentário)
-2. Para cada tópico:
+1. Para cada tópico principal:
    - Use <h3> para o nome do tópico
    - Use <h4> para subtópicos (Fisiopatologia, Diagnóstico, Tratamento, Complicações, etc)
-3. PRESERVE TODOS OS DETALHES CLÍNICOS:
+2. PRESERVE TODOS OS DETALHES CLÍNICOS:
    - Dosagens e posologias específicas
    - Contraindicações e efeitos adversos
    - Interações medicamentosas
    - Tabelas e protocolos clínicos
-4. Formatação rica:
+3. Formatação rica:
    - <p> para parágrafos explicativos
    - <ul>/<li> para listas de conceitos, sintomas, medicamentos
    - <strong> para termos médicos importantes
    - <em> para ênfases quando apropriado
-5. Se houver tabelas implícitas, preserve-as como listas estruturadas
-6. Português do Brasil, terminologia médica correta
+4. Se houver tabelas implícitas, preserve-as como listas estruturadas
+5. Português do Brasil, terminologia médica correta
 
 CRÍTICO: Material médico educacional. NÃO omita informações clínicas importantes (dosagens, contraindicações, etc).
 

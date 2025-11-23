@@ -183,7 +183,13 @@ Gere ${batchCount} questões baseadas no CONTEÚDO ${useCache ? 'já fornecido n
 ${!useCache ? `CONTEÚDO BASE:
 ${combinedContent.substring(0, 30000)}
 
-` : ''}TIPOS DE QUESTÃO (Varie):
+` : ''}REGRA CRÍTICA DE DIVERSIFICAÇÃO:
+- DISTRIBUA as questões entre DIFERENTES TÓPICOS identificados no conteúdo
+- EVITE concentrar mais de 30% das questões em um único tópico
+- Se o conteúdo cobre múltiplos tópicos (ex: Cardiologia, Pneumologia, Endocrinologia), espalhe as questões proporcionalmente
+- Exemplo: Para 10 questões com 3 tópicos, faça aproximadamente 3-4 questões de cada tópico
+
+TIPOS DE QUESTÃO (Varie):
 1. "multipla_escolha": Conceitos diretos.
 2. "verdadeiro_falso": Julgue a afirmação (Opções: [Verdadeiro, Falso]).
 3. "citar": "Qual destes é um exemplo de..." (4 opções).
