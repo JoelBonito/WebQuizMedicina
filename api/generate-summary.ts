@@ -129,25 +129,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // Parse request body
-    const { source_id, project_id } = req.body;
+    const { source_id, source_ids, project_id } = req.body;
 
-    if (!source_id && !project_id) {
-      return res.status(400).json({ error: 'source_id or project_id required' });
+    if (!source_id && !source_ids && !project_id) {
+      return res.status(400).json({ error: 'source_id, source_ids, or project_id required' });
     }
 
     // Fetch sources
+    // Priority logic:
+    // 1. If project_id exists → fetch ALL ready sources from project (consolidated summary)
+    // 2. If source_ids array exists → fetch specific sources by IDs
+    // 3. If only source_id exists → fetch single source
     let sources = [];
 
-    if (source_id) {
-      const { data, error } = await supabase
-        .from('sources')
-        .select('*')
-        .eq('id', source_id)
-        .single();
-
-      if (error) throw error;
-      sources = [data];
-    } else if (project_id) {
+    if (project_id) {
+      // Fetch ALL sources from project (highest priority for consolidated summaries)
+      console.log(`📊 [Summary] Fetching ALL sources from project: ${project_id}`);
       const { data, error } = await supabase
         .from('sources')
         .select('*')
@@ -157,6 +154,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       if (error) throw error;
       sources = data || [];
+      console.log(`✅ [Summary] Found ${sources.length} ready sources in project`);
+    } else if (source_ids && Array.isArray(source_ids) && source_ids.length > 0) {
+      // Fetch multiple specific sources by IDs
+      console.log(`📊 [Summary] Fetching ${source_ids.length} specific sources`);
+      const { data, error } = await supabase
+        .from('sources')
+        .select('*')
+        .in('id', source_ids)
+        .eq('status', 'ready');
+
+      if (error) throw error;
+      sources = data || [];
+      console.log(`✅ [Summary] Found ${sources.length} sources from IDs`);
+    } else if (source_id) {
+      // Fetch single source (fallback for backwards compatibility)
+      console.log(`📊 [Summary] Fetching single source: ${source_id}`);
+      const { data, error } = await supabase
+        .from('sources')
+        .select('*')
+        .eq('id', source_id)
+        .single();
+
+      if (error) throw error;
+      sources = [data];
+      console.log(`✅ [Summary] Found 1 source`);
     }
 
     if (sources.length === 0) {

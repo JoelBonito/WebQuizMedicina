@@ -54,8 +54,28 @@ export const useSummaries = (projectId: string | null) => {
 
       if (!session) throw new Error('Not authenticated');
 
-      // Support both single sourceId (string) and multiple sourceIds (array)
-      const source_id = Array.isArray(sourceIds) ? sourceIds[0] : sourceIds;
+      // Build request body with proper priority logic:
+      // - If sourceIds is provided and is an array with multiple IDs → send source_ids array
+      // - If sourceIds is a single string → send source_id
+      // - Always send project_id for consolidated project summaries
+      const requestBody: any = { project_id: projectId };
+
+      if (sourceIds) {
+        if (Array.isArray(sourceIds)) {
+          if (sourceIds.length > 1) {
+            // Multiple sources selected → send array for specific multi-source summary
+            requestBody.source_ids = sourceIds;
+          } else if (sourceIds.length === 1) {
+            // Single source in array → send as source_id
+            requestBody.source_id = sourceIds[0];
+          }
+          // If empty array, only project_id will be sent (all sources)
+        } else {
+          // Single source ID as string
+          requestBody.source_id = sourceIds;
+        }
+      }
+      // If no sourceIds provided, only project_id is sent → backend fetches all project sources
 
       // Call Vercel API route instead of Supabase Edge Function
       const response = await fetch('/api/generate-summary', {
@@ -64,10 +84,7 @@ export const useSummaries = (projectId: string | null) => {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({
-          source_id,
-          project_id: projectId,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       const result = await response.json();
