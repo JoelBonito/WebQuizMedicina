@@ -247,10 +247,13 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
       const defaultTitle = isRecovery
         ? `Quiz Recovery - ${sessionQuestions.length} questões`
         : `Quiz - ${sessionQuestions.length} questões`;
+      // Use customName only if it exists and is not empty, otherwise use default
+      const customName = customNames[contentId];
+      const finalTitle = (customName && customName.trim()) ? customName : defaultTitle;
       newContent.push({
         id: contentId,
         type: 'quiz',
-        title: customNames[contentId] || defaultTitle,
+        title: finalTitle,
         sourceCount: selectedSourceIds.length,
         createdAt: new Date(mostRecent.created_at || new Date()),
         difficulty,
@@ -278,10 +281,13 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
       const defaultTitle = isRecovery
         ? `Flashcards Recovery - ${sessionFlashcards.length} cards`
         : `Flashcards - ${sessionFlashcards.length} cards`;
+      // Use customName only if it exists and is not empty, otherwise use default
+      const customName = customNames[contentId];
+      const finalTitle = (customName && customName.trim()) ? customName : defaultTitle;
       newContent.push({
         id: contentId,
         type: 'flashcards',
-        title: customNames[contentId] || defaultTitle,
+        title: finalTitle,
         sourceCount: selectedSourceIds.length,
         createdAt: new Date(mostRecent.created_at || new Date()),
         difficulty,

@@ -204,6 +204,8 @@ Quero uma justificativa CURTA que valide a resposta certa usando o texto forneci
 1. CITE A FONTE: Comece frases com "Segundo o texto...", "O material indica que...", "Conforme a fonte...".
 2. TRADUZA: Se o conteúdo base estiver em inglês ou outro idioma, a justificativa DEVE ser escrita inteiramente em PORTUGUÊS DO BRASIL.
 3. CONCISÃO: Máximo de 2 a 3 frases. Vá direto ao ponto do porquê aquela opção é a correta baseada na leitura.
+${difficulty ? `
+DIFICULDADE: TODAS as questões devem ser de nível "${difficulty}".` : ''}
 
 FORMATO JSON:
 {

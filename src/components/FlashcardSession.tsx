@@ -242,9 +242,12 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
                       <p className="text-xs font-semibold text-[#0891B2] mb-4 uppercase tracking-wider">
                         {isFlipped ? "VERSO" : "FRENTE"}
                       </p>
-                      <p className="text-2xl text-gray-900 leading-relaxed">
-                        {isFlipped ? currentCard?.verso : currentCard?.frente}
-                      </p>
+                      <div
+                        className="text-2xl text-gray-900 leading-relaxed"
+                        dangerouslySetInnerHTML={{
+                          __html: isFlipped ? currentCard?.verso || '' : currentCard?.frente || ''
+                        }}
+                      />
                       {currentCard?.topico && !isFlipped && (
                         <Badge variant="outline" className="mt-8 rounded-lg">
                           {currentCard.topico}
