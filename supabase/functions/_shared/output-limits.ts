@@ -237,11 +237,11 @@ export function calculateSafeOutputTokens(
  * - Medical content requires complete coverage (contraindicações, dosagens, etc)
  *
  * BATCHED strategy with parallelism (Promise.all):
- * - Chunks: 100k chars each (~25k tokens input)
- * - Section output: ~8k tokens each
- * - Combination output: dynamically calculated based on input
+ * - Chunks: 50k chars each (~12.5k tokens input)
+ * - Section output: ~6k tokens each (dynamically calculated to respect 30k limit)
+ * - Combination output: dynamically calculated based on sections size
  * - Parallel processing: time = max(chunk_time), not sum
- * - Example: 3 chunks × 30s (parallel) + 1 combine × 20s = ~50s total ✅
+ * - Example: 6 chunks × 25s (parallel) + 1 combine × 15s = ~40s total ✅
  *
  * Gemini Flash capacity:
  * - Input: 1M tokens (we use max ~75k = 7.5% capacity)

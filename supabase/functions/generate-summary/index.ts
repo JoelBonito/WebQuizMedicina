@@ -214,9 +214,10 @@ JSON:
       // Strategy 2: Batched sections summary with PARALLEL processing
       console.log(`🔄 [PHASE 1] Generating summary in parallel sections...`);
 
-      // Split content into 100k char chunks (larger chunks = fewer sections = faster)
-      // Parallel processing: time = max(chunk_time), not sum
-      const chunkSize = 100000;
+      // Split content into 50k char chunks (smaller chunks = safer for token limits)
+      // This ensures each chunk + output stays within the 30k combined token limit
+      // 50k chars ≈ 12.5k tokens input + 6k tokens output = 18.5k total (safe!)
+      const chunkSize = 50000;
       const chunks: string[] = [];
       for (let i = 0; i < combinedContent.length; i += chunkSize) {
         chunks.push(combinedContent.substring(i, i + chunkSize));
@@ -256,7 +257,9 @@ CRÍTICO: Material médico educacional. NÃO omita informações clínicas impor
 Retorne APENAS o HTML estruturado (sem JSON, sem markdown, sem explicações).`;
 
         try {
-          const result = await callGeminiWithUsage(sectionPrompt, 'gemini-2.5-flash', 8000);
+          // Calculate safe output tokens for this specific chunk
+          const safeChunkOutput = calculateSafeOutputTokens(sectionPrompt, 6000);
+          const result = await callGeminiWithUsage(sectionPrompt, 'gemini-2.5-flash', safeChunkOutput);
           console.log(`✅ [Seção ${chunkNum}/${chunks.length}] Completed (${result.usage.outputTokens} tokens)`);
           return result;
         } catch (err) {
