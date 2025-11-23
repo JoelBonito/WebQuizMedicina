@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './useAuth';
 
@@ -19,7 +19,7 @@ export const useSummaries = (projectId: string | null) => {
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
 
-  const fetchSummaries = async () => {
+  const fetchSummaries = useCallback(async () => {
     if (!projectId) {
       setSummaries([]);
       return;
@@ -40,11 +40,11 @@ export const useSummaries = (projectId: string | null) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [projectId]);
 
   useEffect(() => {
     fetchSummaries();
-  }, [projectId]);
+  }, [fetchSummaries]);
 
   const generateSummary = async (sourceIds?: string | string[]) => {
     if (!projectId && !sourceIds) throw new Error('Project or source required');
