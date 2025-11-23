@@ -1,88 +1,32 @@
 /**
- * Recovery Session Tracker
+ * Recovery Session Tracker (In-Memory)
  *
  * Tracks which quiz/flashcard sessions were generated from the
- * Difficulties Analysis page (recovery mode) to show the correct badge.
+ * Difficulties Analysis page during the current browser session.
+ * Uses in-memory Set instead of localStorage to work with incognito mode.
  */
 
-const STORAGE_KEY = 'recovery_sessions';
-
-interface RecoverySession {
-  sessionId: string;
-  type: 'quiz' | 'flashcards';
-  projectId: string;
-  createdAt: string;
-}
+// In-memory set of recovery session IDs (cleared on page refresh)
+const recoverySessions = new Set<string>();
 
 /**
  * Mark a session as recovery mode
  */
-export function markAsRecoverySession(
-  sessionId: string,
-  type: 'quiz' | 'flashcards',
-  projectId: string
-): void {
-  try {
-    const sessions = getRecoverySessions();
-
-    // Add new session
-    sessions.push({
-      sessionId,
-      type,
-      projectId,
-      createdAt: new Date().toISOString(),
-    });
-
-    // Keep only last 100 sessions to avoid localStorage bloat
-    const recentSessions = sessions.slice(-100);
-
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(recentSessions));
-  } catch (error) {
-    console.error('Failed to mark recovery session:', error);
-  }
+export function markAsRecoverySession(sessionId: string): void {
+  recoverySessions.add(sessionId);
 }
 
 /**
  * Check if a session is from recovery mode
  */
 export function isRecoverySession(sessionId: string): boolean {
-  try {
-    const sessions = getRecoverySessions();
-    return sessions.some(s => s.sessionId === sessionId);
-  } catch (error) {
-    console.error('Failed to check recovery session:', error);
-    return false;
-  }
+  return recoverySessions.has(sessionId);
 }
 
 /**
- * Get all recovery sessions
- */
-function getRecoverySessions(): RecoverySession[] {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) return [];
-
-    const sessions = JSON.parse(stored) as RecoverySession[];
-
-    // Clean up sessions older than 30 days
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-    return sessions.filter(s => new Date(s.createdAt) > thirtyDaysAgo);
-  } catch (error) {
-    console.error('Failed to get recovery sessions:', error);
-    return [];
-  }
-}
-
-/**
- * Clear all recovery sessions (useful for cleanup)
+ * Clear all recovery sessions
  */
 export function clearRecoverySessions(): void {
-  try {
-    localStorage.removeItem(STORAGE_KEY);
-  } catch (error) {
-    console.error('Failed to clear recovery sessions:', error);
-  }
+  recoverySessions.clear();
 }
+
