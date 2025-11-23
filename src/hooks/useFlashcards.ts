@@ -48,6 +48,42 @@ export const useFlashcards = (projectId: string | null) => {
     fetchFlashcards();
   }, [fetchFlashcards]);
 
+  // Realtime subscription for instant updates when new flashcards are inserted
+  useEffect(() => {
+    if (!projectId) return;
+
+    // Create a unique channel name based on project_id to avoid conflicts
+    const channelName = `flashcards_updates_${projectId}`;
+
+    console.log(`[Realtime] Subscribing to channel: ${channelName}`);
+
+    const channel = supabase
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'flashcards',
+          filter: `project_id=eq.${projectId}`
+        },
+        (payload) => {
+          console.log(`[Realtime] New flashcard inserted:`, payload);
+          // Immediately refresh the flashcards list
+          fetchFlashcards();
+        }
+      )
+      .subscribe((status) => {
+        console.log(`[Realtime] Subscription status for ${channelName}:`, status);
+      });
+
+    // Cleanup: unsubscribe when component unmounts or projectId changes
+    return () => {
+      console.log(`[Realtime] Unsubscribing from channel: ${channelName}`);
+      supabase.removeChannel(channel);
+    };
+  }, [projectId, fetchFlashcards]);
+
   const generateFlashcards = async (sourceIds?: string | string[], count: number = 20, difficulty?: 'fácil' | 'médio' | 'difícil') => {
     if (!projectId && !sourceIds) throw new Error('Project or source required');
 
