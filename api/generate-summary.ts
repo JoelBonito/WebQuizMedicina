@@ -129,16 +129,35 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // Parse request body
-    const { source_id, project_id } = req.body;
+    const { source_id, source_ids, project_id } = req.body;
 
-    if (!source_id && !project_id) {
-      return res.status(400).json({ error: 'source_id or project_id required' });
+    if (!source_id && !source_ids && !project_id) {
+      return res.status(400).json({ error: 'source_id, source_ids, or project_id required' });
     }
 
     // Fetch sources
+    // Priority logic (respects user selection):
+    // 1. If source_ids array exists → fetch ONLY those specific sources (USER SELECTION)
+    // 2. If only source_id exists → fetch that single source
+    // 3. If only project_id exists → fetch ALL ready sources from project (no selection)
     let sources = [];
 
-    if (source_id) {
+    if (source_ids && Array.isArray(source_ids) && source_ids.length > 0) {
+      // HIGHEST PRIORITY: User explicitly selected specific sources
+      // Example: User has 9 sources but selected only 4 → use those 4
+      console.log(`📊 [Summary] Fetching ${source_ids.length} user-selected sources`);
+      const { data, error } = await supabase
+        .from('sources')
+        .select('*')
+        .in('id', source_ids)
+        .eq('status', 'ready');
+
+      if (error) throw error;
+      sources = data || [];
+      console.log(`✅ [Summary] Found ${sources.length} selected sources (user chose ${source_ids.length})`);
+    } else if (source_id) {
+      // Single source selected
+      console.log(`📊 [Summary] Fetching single user-selected source: ${source_id}`);
       const { data, error } = await supabase
         .from('sources')
         .select('*')
@@ -147,7 +166,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       if (error) throw error;
       sources = [data];
+      console.log(`✅ [Summary] Found 1 selected source`);
     } else if (project_id) {
+      // No specific selection → fetch ALL sources from project
+      console.log(`📊 [Summary] No specific selection, fetching ALL sources from project: ${project_id}`);
       const { data, error } = await supabase
         .from('sources')
         .select('*')
@@ -157,6 +179,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       if (error) throw error;
       sources = data || [];
+      console.log(`✅ [Summary] Found ${sources.length} ready sources in project (all sources)`);
     }
 
     if (sources.length === 0) {

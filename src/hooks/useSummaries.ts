@@ -54,8 +54,39 @@ export const useSummaries = (projectId: string | null) => {
 
       if (!session) throw new Error('Not authenticated');
 
-      // Support both single sourceId (string) and multiple sourceIds (array)
-      const source_id = Array.isArray(sourceIds) ? sourceIds[0] : sourceIds;
+      // Build request body respecting user's source selection:
+      // Priority: User selection > All project sources
+      //
+      // 1. User selected specific sources → send source_ids (backend uses ONLY these)
+      // 2. User selected 1 source → send source_id (backend uses only this one)
+      // 3. No selection → send only project_id (backend fetches all project sources)
+      const requestBody: any = {};
+
+      if (sourceIds) {
+        if (Array.isArray(sourceIds) && sourceIds.length > 0) {
+          if (sourceIds.length > 1) {
+            // Multiple sources selected (e.g., 4 out of 9 sources)
+            // Backend will use ONLY these selected sources
+            requestBody.source_ids = sourceIds;
+            console.log(`📤 [Frontend] Sending ${sourceIds.length} selected sources`);
+          } else if (sourceIds.length === 1) {
+            // Single source selected
+            requestBody.source_id = sourceIds[0];
+            console.log(`📤 [Frontend] Sending 1 selected source`);
+          }
+          // Empty array falls through to project_id logic below
+        } else if (typeof sourceIds === 'string') {
+          // Single source ID as string (backwards compatibility)
+          requestBody.source_id = sourceIds;
+          console.log(`📤 [Frontend] Sending 1 selected source (string)`);
+        }
+      }
+
+      // If no specific sources selected, request all project sources
+      if (!requestBody.source_id && !requestBody.source_ids) {
+        requestBody.project_id = projectId;
+        console.log(`📤 [Frontend] No selection, requesting all project sources`);
+      }
 
       // Call Vercel API route instead of Supabase Edge Function
       const response = await fetch('/api/generate-summary', {
@@ -64,10 +95,7 @@ export const useSummaries = (projectId: string | null) => {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({
-          source_id,
-          project_id: projectId,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       const result = await response.json();
