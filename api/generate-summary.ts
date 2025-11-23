@@ -252,7 +252,7 @@ JSON:
       const result = await callGeminiWithUsage(
         prompt,
         geminiApiKey,
-        'gemini-2.0-flash-exp',
+        'gemini-2.5-flash',
         strategyInfo.maxOutputTokens,
         true
       );
@@ -307,7 +307,7 @@ Retorne APENAS o HTML estruturado.`;
           const result = await callGeminiWithUsage(
             sectionPrompt,
             geminiApiKey,
-            'gemini-2.0-flash-exp',
+            'gemini-2.5-flash',
             safeChunkOutput
           );
           console.log(`✅ [Seção ${chunkNum}/${chunks.length}] Completed (${result.usage.outputTokens} tokens)`);
@@ -351,7 +351,7 @@ JSON:
       const combineResult = await callGeminiWithUsage(
         combinePrompt,
         geminiApiKey,
-        'gemini-2.0-flash-exp',
+        'gemini-2.5-flash',
         safeOutputTokens,
         true
       );
