@@ -15,6 +15,7 @@ export interface Question {
   dica: string | null;
   topico: string | null;
   dificuldade: string;
+  content_type?: 'standard' | 'recovery';
   created_at: string;
 }
 

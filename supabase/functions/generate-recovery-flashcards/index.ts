@@ -369,7 +369,8 @@ Retorne APENAS o JSON válido.
       frente: sanitizeString(f.frente || ''),
       verso: sanitizeString(f.verso || ''),
       topico: f.topico ? sanitizeString(f.topico) : null,
-      dificuldade: ['fácil', 'médio', 'difícil'].includes(f.dificuldade) ? f.dificuldade : 'médio'
+      dificuldade: ['fácil', 'médio', 'difícil'].includes(f.dificuldade) ? f.dificuldade : 'médio',
+      content_type: 'recovery'  // Mark as recovery content for UI differentiation
     }));
 
     const { data: insertedFlashcards, error: insertError } = await supabaseClient
