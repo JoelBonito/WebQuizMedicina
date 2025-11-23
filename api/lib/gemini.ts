@@ -35,7 +35,7 @@ export interface GeminiResult {
 export async function callGeminiWithUsage(
   prompt: string,
   apiKey: string,
-  model: 'gemini-2.0-flash-exp' | 'gemini-1.5-flash' | 'gemini-1.5-pro' = 'gemini-2.0-flash-exp',
+  model: 'gemini-2.5-flash' | 'gemini-1.5-flash' | 'gemini-1.5-pro' = 'gemini-2.5-flash',
   maxOutputTokens: number = 16384,
   jsonMode: boolean = false,
   cacheName?: string
@@ -54,17 +54,6 @@ export async function callGeminiWithUsage(
     console.log(`💰 [Gemini] Cache reduces input token cost by ~95%`);
   } else {
     console.log(`📊 [Gemini] Sending prompt: ${promptChars} chars (~${estimatedTokens} tokens), model: ${model}, maxOutputTokens: ${maxOutputTokens}`);
-    console.log(`📊 [Gemini] Estimated total context: ~${estimatedTokens + maxOutputTokens} tokens (input + output)`);
-
-    if (estimatedTokens + maxOutputTokens > 30000) {
-      console.warn(`⚠️ [Gemini] Total context (~${estimatedTokens + maxOutputTokens}) exceeds safe limit (30k)! May cause MAX_TOKENS error.`);
-    } else if (estimatedTokens + maxOutputTokens > 28000) {
-      console.warn(`⚠️ [Gemini] Total context (~${estimatedTokens + maxOutputTokens}) near limit. Consider reducing input or output.`);
-    }
-
-    if (estimatedTokens > 30000) {
-      console.warn(`⚠️ [Gemini] Very large prompt detected! This may cause API errors. Consider reducing content.`);
-    }
   }
 
   // Build generation config with optional JSON mode
@@ -435,27 +424,4 @@ export function parseJsonFromResponse(text: string): any {
  */
 export function estimateTokens(text: string): number {
   return Math.ceil(text.length / 4);
-}
-
-/**
- * Calculate safe output tokens based on input size and Gemini's context limit
- */
-export function calculateSafeOutputTokens(
-  inputText: string,
-  desiredOutputTokens: number = 14000
-): number {
-  const GEMINI_CONTEXT_LIMIT = 30000;
-  const SAFETY_MARGIN = 2000;
-
-  const estimatedInputTokens = estimateTokens(inputText);
-  const maxPossibleOutput = GEMINI_CONTEXT_LIMIT - estimatedInputTokens - SAFETY_MARGIN;
-  const safeOutput = Math.min(desiredOutputTokens, maxPossibleOutput);
-
-  console.log(`📊 [Output Calculation] Input: ~${estimatedInputTokens} tokens, Desired: ${desiredOutputTokens}, Safe: ${safeOutput}`);
-
-  if (safeOutput < desiredOutputTokens) {
-    console.warn(`⚠️ [Output Limit] Reducing from ${desiredOutputTokens} to ${safeOutput} tokens due to large input (${estimatedInputTokens} tokens)`);
-  }
-
-  return Math.max(safeOutput, 2000);
 }

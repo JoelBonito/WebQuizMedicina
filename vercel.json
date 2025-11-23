@@ -11,6 +11,14 @@
     "api/generate-summary.ts": {
       "maxDuration": 300,
       "memory": 1024
+    },
+    "api/generate-flashcards.ts": {
+      "maxDuration": 300,
+      "memory": 1024
+    },
+    "api/generate-quiz.ts": {
+      "maxDuration": 300,
+      "memory": 1024
     }
   },
   "rewrites": [

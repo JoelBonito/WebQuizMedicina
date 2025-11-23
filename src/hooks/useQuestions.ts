@@ -59,25 +59,33 @@ export const useQuestions = (projectId: string | null) => {
 
       if (!session) throw new Error('Not authenticated');
 
-      // Support both single sourceId (string) and multiple sourceIds (array)
-      const source_ids = Array.isArray(sourceIds) ? sourceIds : (sourceIds ? [sourceIds] : undefined);
+      // Build request body with priority logic
+      const requestBody: any = { count };
 
-      const response = await fetch(
-        `${supabase.supabaseUrl}/functions/v1/generate-quiz`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({
-            source_ids,
-            project_id: projectId,
-            count,
-            ...(difficulty && { difficulty }),
-          }),
-        }
-      );
+      if (difficulty) {
+        requestBody.difficulty = difficulty;
+      }
+
+      // Priority logic (same as backend):
+      // 1. source_ids (user explicitly selected multiple sources)
+      // 2. source_id (single source)
+      // 3. project_id (all project sources)
+      if (Array.isArray(sourceIds) && sourceIds.length > 0) {
+        requestBody.source_ids = sourceIds;
+      } else if (typeof sourceIds === 'string') {
+        requestBody.source_id = sourceIds;
+      } else if (projectId) {
+        requestBody.project_id = projectId;
+      }
+
+      const response = await fetch('/api/generate-quiz', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify(requestBody),
+      });
 
       const result = await response.json();
 
