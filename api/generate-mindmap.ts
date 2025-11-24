@@ -170,6 +170,27 @@ ESTRUTURA DO MAPA:
 - Nível 1: Grandes categorias (Fisiopatologia, Diagnóstico, Tratamento, etc).
 - Nível 2+: Detalhes específicos, drogas, doses, sintomas.
 
+INSTRUÇÕES CRÍTICAS DE SINTAXE MERMAID:
+1. **CARACTERES ESPECIAIS**: Se um texto de nó contiver parênteses '()', dois pontos ':', colchetes '[]' ou vírgulas ',', você DEVE envolver todo o texto entre aspas duplas.
+
+   Exemplos CORRETOS:
+   - "Hidralazina (Arterial): Uso em Pré-eclâmpsia"
+   - "Dose: 5-10mg IV"
+   - "Contraindicações [Importantes]"
+
+   Exemplos ERRADOS (causam erro de parsing):
+   - Hidralazina (Arterial): Uso em Pré-eclâmpsia
+   - Dose: 5-10mg IV
+
+2. **ESCAPE DE ASPAS**: Se o texto já contiver aspas duplas internas, substitua-as por aspas simples antes de envolver em aspas duplas.
+   Exemplo: "Medicamento 'especial' (uso criterioso)"
+
+3. **NO JSON**: Como o output é JSON, você deve escapar quebras de linha (\\n) e aspas duplas (\\").
+
+4. **SINTAXE VÁLIDA**: Use apenas a sintaxe 'mindmap', sem caracteres especiais soltos fora de aspas.
+
+5. **PORTUGUÊS DO BRASIL**: Use apenas português brasileiro.
+
 EXEMPLO DE OUTPUT ESPERADO (JSON):
 {
   "titulo": "Mapa Mental de Insuficiência Cardíaca",
