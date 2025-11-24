@@ -4,6 +4,60 @@ import { Button } from './ui/button';
 import { ZoomIn, ZoomOut, Maximize2, Download } from 'lucide-react';
 import { toast } from 'sonner';
 
+/**
+ * Sanitizes Mermaid code to prevent parsing errors from special characters
+ * Wraps text containing (), :, [], etc. in quotes if not already quoted
+ */
+function sanitizeMermaidCode(code: string): string {
+  // Convert literal \n to actual newlines if needed
+  const normalizedCode = code.replace(/\\n/g, '\n');
+
+  const lines = normalizedCode.split('\n');
+  const processedLines = lines.map(line => {
+    // Match line with optional indentation and content
+    const match = line.match(/^(\s*)(.+)$/);
+    if (!match) return line;
+
+    const [_, indent, text] = match;
+    const trimmedText = text.trim();
+
+    // Don't modify structural keywords
+    if (trimmedText === 'mindmap' || trimmedText.startsWith('graph ')) {
+      return line;
+    }
+
+    // Already quoted - leave as is
+    if (trimmedText.startsWith('"') && trimmedText.endsWith('"')) {
+      return line;
+    }
+
+    // Valid Mermaid shapes that should not be quoted
+    // ((text)), [text], {text}, (text), [[text]], etc.
+    const isValidShape = /^[\(\[\{][\(\[\{]?.+[\)\]\}][\)\]\}]?$/.test(trimmedText);
+    if (isValidShape) {
+      return line;
+    }
+
+    // Arrow syntax - don't quote
+    if (trimmedText.includes('-->') || trimmedText.includes('---')) {
+      return line;
+    }
+
+    // Check if text contains problematic characters
+    const hasProblematicChars = /[():\[\]]/.test(trimmedText);
+
+    if (hasProblematicChars) {
+      // Escape internal quotes by replacing " with '
+      const escapedText = trimmedText.replace(/"/g, "'");
+      return `${indent}"${escapedText}"`;
+    }
+
+    return line;
+  });
+
+  return processedLines.join('\n');
+}
+
 interface MindMapViewerProps {
   content: string; // Mermaid diagram code
   title?: string;
@@ -49,8 +103,11 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
         // Generate unique ID for this diagram
         const id = `mermaid-${Date.now()}`;
 
+        // Sanitize mermaid code to prevent parsing errors from special characters
+        const sanitizedContent = sanitizeMermaidCode(content);
+
         // Render the diagram
-        const { svg } = await mermaid.render(id, content);
+        const { svg } = await mermaid.render(id, sanitizedContent);
 
         // Insert the rendered SVG
         if (containerRef.current) {

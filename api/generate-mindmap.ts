@@ -163,11 +163,23 @@ graph TD
     B --> E[Subtópico 1.2]
     C --> F[Subtópico 2.1]
 
-**IMPORTANTE**:
-- NÃO use caracteres especiais que quebrem a sintaxe (como aspas não escapadas, parênteses soltos)
-- Mantenha os textos dos nós curtos e descritivos
-- Use português do Brasil
-- Escolha APENAS UMA sintaxe (mindmap OU graph TD) e seja consistente
+**INSTRUÇÕES TÉCNICAS OBRIGATÓRIAS**:
+1. **CARACTERES ESPECIAIS**: Se um texto de nó contiver parênteses '()', dois pontos ':', colchetes '[]' ou vírgulas ',', você DEVE envolver todo o texto entre aspas duplas.
+   Exemplos CORRETOS:
+   - "Hidralazina (Arterial): Uso em Pré-eclâmpsia"
+   - "Dose: 5-10mg IV"
+   - "Contraindicações [Importantes]"
+
+   Exemplos ERRADOS (causam erro de parsing):
+   - Hidralazina (Arterial): Uso em Pré-eclâmpsia
+   - Dose: 5-10mg IV
+
+2. **ESCAPE DE ASPAS**: Se o texto já contiver aspas duplas internas, substitua-as por aspas simples antes de envolver em aspas duplas.
+   Exemplo: "Medicamento 'especial' (uso criterioso)"
+
+3. **SINTAXE VÁLIDA**: Não use caracteres especiais soltos fora de aspas
+4. **CONSISTÊNCIA**: Escolha APENAS UMA sintaxe (mindmap OU graph TD) e seja consistente
+5. **PORTUGUÊS DO BRASIL**: Use apenas português brasileiro
 
 JSON Output:
 {
