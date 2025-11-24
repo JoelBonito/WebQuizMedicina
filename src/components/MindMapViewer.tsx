@@ -10,140 +10,97 @@ interface MindMapViewerProps {
 }
 
 export function MindMapViewer({ content, title }: MindMapViewerProps) {
-  const containerRef = useRef<HTMLDivElement | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState(1);
   const [isRendering, setIsRendering] = useState(false);
   const [renderError, setRenderError] = useState<string | null>(null);
 
+  // Initialize mermaid
   useEffect(() => {
     mermaid.initialize({
       startOnLoad: false,
-      theme: 'default',
+      theme: 'base',
       securityLevel: 'loose',
       fontFamily: 'ui-sans-serif, system-ui, sans-serif',
       flowchart: {
         useMaxWidth: true,
         htmlLabels: true,
-      },
-      mindmap: {
-        useMaxWidth: true,
-        padding: 10,
+        curve: 'basis', // Linhas curvas mais bonitas
+        rankSpacing: 50,
+        nodeSpacing: 20,
       },
     });
   }, []);
 
-  const normalizeContent = (raw: string): string => {
-    if (!raw) return '';
+  // Conversor Inteligente: Texto Indentado -> Graph LR
+  const convertToGraph = (text: string) => {
+    const lines = text.replace(/\\n/g, '\n').split('\n');
+    const nodes: { id: string; label: string; level: number }[] = [];
+    const edges: string[] = [];
+    const stack: { id: string; level: number }[] = [];
+    
+    let nodeIdCounter = 0;
 
-    // 1. Converte \n escapado para quebra real
-    let text = raw.replace(/\\n/g, '\n');
-    
-    // 2. Normaliza quebras de linha
-    text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-    
-    // 3. Divide em linhas e remove vazias
-    let lines = text.split('\n')
-      .map(line => line.trimEnd())
-      .filter(line => line.trim() !== '');
-    
-    // 4. Se não há linhas válidas, retorna vazio
-    if (lines.length === 0) return '';
-    
-    // 5. Detecta todos os níveis únicos de indentação no documento
-    const indentLevels = new Set<number>();
-    lines.forEach(line => {
-      const spaces = line.length - line.trimStart().length;
-      indentLevels.add(spaces);
+    lines.forEach((line) => {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed === 'mindmap') return;
+
+      // Detecta nível de indentação (2 espaços = 1 nível)
+      const indentMatch = line.match(/^(\s*)/);
+      const spaces = indentMatch ? indentMatch[1].length : 0;
+      const level = Math.floor(spaces / 2);
+
+      // Limpa o texto de caracteres do mermaid antigo
+      let cleanLabel = trimmed
+        .replace(/^[\w\d_]+\s*[\(\[\{]+/, '') // Remove IDs antigos
+        .replace(/^[\(\[\{]+/, '')            // Remove formas (( ))
+        .replace(/[\)\]\}]+$/, '')            // Remove fechamento
+        .replace(/^"|"$/g, '')                // Remove aspas externas
+        .replace(/"/g, "'");                  // Escapa aspas internas
+
+      const nodeId = `n${nodeIdCounter++}`;
+      
+      // Adiciona nó
+      nodes.push({ id: nodeId, label: cleanLabel, level });
+
+      // Lógica de Conexão (Pilha)
+      // Remove da pilha nós que são mais profundos ou do mesmo nível (irmãos anteriores)
+      while (stack.length > 0 && stack[stack.length - 1].level >= level) {
+        stack.pop();
+      }
+
+      // Se sobrou alguém na pilha, é o pai
+      if (stack.length > 0) {
+        const parent = stack[stack.length - 1];
+        edges.push(`${parent.id} --> ${nodeId}`);
+      }
+
+      // Adiciona atual na pilha para ser pai dos próximos
+      stack.push({ id: nodeId, level });
     });
+
+    // Monta o diagrama final
+    // graph LR = Left to Right (melhor para mapas mentais)
+    // style = deixa visual mais limpo
+    let diagram = 'graph LR\n';
     
-    // 6. Cria mapeamento de indentação: ordena e mapeia para múltiplos de 2
-    const sortedLevels = Array.from(indentLevels).sort((a, b) => a - b);
-    const indentMap = new Map<number, number>();
-    sortedLevels.forEach((level, index) => {
-      // Mapeia cada nível único para múltiplos de 2: 0, 2, 4, 6, 8...
-      indentMap.set(level, index * 2);
+    // Define estilos globais
+    diagram += '  classDef default fill:#f9fafb,stroke:#0891b2,stroke-width:1px,color:#1f2937,rx:5,ry:5;\n';
+    diagram += '  classDef root fill:#0891b2,stroke:#0e7490,stroke-width:2px,color:white,font-weight:bold,font-size:16px;\n';
+
+    // Adiciona nós
+    nodes.forEach((node, index) => {
+      // Nó raiz ganha destaque
+      const className = index === 0 ? ':::root' : ''; 
+      diagram += `  ${node.id}["${node.label}"]${className}\n`;
     });
-    
-    // Log para debug da normalização
-    console.log('[MindMap] Níveis de indentação detectados:', Array.from(indentLevels).sort((a, b) => a - b));
-    console.log('[MindMap] Mapeamento de indentação:', Array.from(indentMap.entries()));
-    
-    // 7. Reconstrói as linhas com indentação normalizada
-    const normalizedLines = lines.map((line, index) => {
-      const originalSpaces = line.length - line.trimStart().length;
-      const content = line.trimStart();
-      const newSpaces = indentMap.get(originalSpaces) || 0;
-      
-      // Remove aspas duplas externas se existirem (limpeza)
-      let cleanContent = content;
-      if (content.startsWith('"') && content.endsWith('"') && content.length > 1) {
-        cleanContent = content.slice(1, -1);
-        // Remove aspas duplas escapadas que possam ter ficado
-        cleanContent = cleanContent.replace(/\\"/g, '"');
-      }
-      
-      // Caso especial: primeira linha deve ser "mindmap" sem aspas
-      if (index === 0 && (cleanContent.toLowerCase() === 'mindmap' || content.toLowerCase() === 'mindmap')) {
-        return 'mindmap';
-      }
-      
-      // Caso especial: se a primeira linha não é "mindmap", adicionar
-      if (index === 0 && cleanContent.toLowerCase() !== 'mindmap') {
-        // Insere mindmap como primeira linha e reprocessa a linha atual
-        normalizedLines.unshift('mindmap');
-        // Esta linha agora será o título principal com 2 espaços
-        return '  ' + `"${cleanContent}"`;
-      }
-      
-      // Todas as outras linhas: indentação + conteúdo entre aspas
-      return ' '.repeat(newSpaces) + `"${cleanContent}"`;
+
+    // Adiciona conexões
+    edges.forEach(edge => {
+      diagram += `  ${edge}\n`;
     });
-    
-    // 8. Garante que a primeira linha seja "mindmap"
-    if (normalizedLines.length > 0) {
-      const firstLine = normalizedLines[0].trim().toLowerCase();
-      if (firstLine !== 'mindmap') {
-        // Se não começa com mindmap, adiciona
-        normalizedLines.unshift('mindmap');
-        // E ajusta a indentação da antiga primeira linha
-        if (normalizedLines[1] && !normalizedLines[1].startsWith('  ')) {
-          normalizedLines[1] = '  ' + normalizedLines[1].trim();
-        }
-      }
-    }
-    
-    // 9. Validação final: verifica se há saltos de indentação inconsistentes
-    const finalResult = normalizedLines.join('\n');
-    const resultLines = finalResult.split('\n');
-    
-    // Verifica consistência de indentação
-    let lastIndent = -2; // Começa com -2 porque mindmap tem 0 e o próximo deve ter 2
-    for (let i = 0; i < resultLines.length; i++) {
-      const line = resultLines[i];
-      if (line.trim() === 'mindmap') {
-        lastIndent = -2;
-        continue;
-      }
-      
-      const currentIndent = line.length - line.trimStart().length;
-      const indentDiff = currentIndent - lastIndent;
-      
-      // A indentação pode aumentar em 2 (filho) ou diminuir para qualquer nível anterior
-      if (indentDiff > 4) {
-        console.warn(`[MindMap] Aviso: Salto de indentação muito grande na linha ${i + 1}: de ${lastIndent} para ${currentIndent} espaços`);
-      }
-      
-      lastIndent = currentIndent;
-    }
-    
-    console.log('[MindMap] Conteúdo normalizado - Total de linhas:', resultLines.length);
-    console.log('[MindMap] Primeiras 10 linhas normalizadas:');
-    resultLines.slice(0, 10).forEach((line, i) => {
-      const spaces = line.length - line.trimStart().length;
-      console.log(`  Linha ${i}: [${spaces} espaços] ${JSON.stringify(line)}`);
-    });
-    
-    return finalResult;
+
+    return diagram;
   };
 
   useEffect(() => {
@@ -154,86 +111,52 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
       setRenderError(null);
 
       try {
-        const container = containerRef.current;
-        if (!container) return;
-        
-        container.innerHTML = '';
-
-        // Normaliza o conteúdo antes de enviar ao Mermaid
-        const finalContent = normalizeContent(content);
-        
-        // Se não há conteúdo válido após normalização
-        if (!finalContent || finalContent.trim() === 'mindmap') {
-          setRenderError('Conteúdo vazio ou inválido para renderização');
-          return;
+        if (containerRef.current) {
+          containerRef.current.innerHTML = '';
         }
-        
-        console.log('[MindMap] Enviando ao Mermaid para renderização...');
 
+        // 1. Converte a estrutura
+        const graphDefinition = convertToGraph(content);
+        console.log('Graph Diagram:', graphDefinition); // Debug
+
+        // 2. Renderiza
         const id = `mermaid-${Date.now()}`;
-        
-        try {
-          const { svg } = await mermaid.render(id, finalContent);
+        const { svg } = await mermaid.render(id, graphDefinition);
 
-          if (containerRef.current) {
-            containerRef.current.innerHTML = svg;
-            const svgElement = containerRef.current.querySelector('svg');
-
-            if (svgElement) {
-              svgElement.style.maxWidth = '100%';
-              svgElement.style.height = 'auto';
-              svgElement.style.backgroundColor = 'white';
-              svgElement.style.transformOrigin = 'top left';
-              svgElement.style.transform = `scale(${zoom})`;
-              
-              console.log('[MindMap] ✅ Renderização bem-sucedida');
-            }
+        if (containerRef.current) {
+          containerRef.current.innerHTML = svg;
+          
+          const svgElement = containerRef.current.querySelector('svg');
+          if (svgElement) {
+            svgElement.style.maxWidth = '100%';
+            svgElement.style.height = 'auto';
+            // Garante visibilidade do texto
+            svgElement.style.backgroundColor = 'white'; 
           }
-        } catch (mermaidError: any) {
-          console.error('[MindMap] Erro do Mermaid:', mermaidError);
-          
-          // Tenta identificar o problema específico
-          const errorMessage = mermaidError.message || '';
-          
-          if (errorMessage.includes('Expecting') || errorMessage.includes('Parse error')) {
-            setRenderError(`Erro de sintaxe no diagrama. Verifique a indentação e as aspas. Detalhes: ${errorMessage}`);
-          } else {
-            setRenderError(`Erro ao renderizar o mapa mental: ${errorMessage}`);
-          }
-          
-          // Log do conteúdo que causou erro para debug
-          console.error('[MindMap] Conteúdo que causou erro:', finalContent.substring(0, 500));
         }
       } catch (error: any) {
-        console.error('[MindMap] Erro geral:', error);
-        setRenderError(`Erro inesperado: ${error.message || 'Erro desconhecido'}`);
+        console.error('Mermaid rendering error:', error);
+        setRenderError('Não foi possível visualizar o diagrama.');
       } finally {
         setIsRendering(false);
       }
     };
 
     renderDiagram();
-  }, [content, zoom]);
+  }, [content]);
 
+  // ... (Mantenha as funções de zoom e o return do componente iguais ao original)
   const handleZoomIn = () => setZoom((prev) => Math.min(prev + 0.2, 3));
   const handleZoomOut = () => setZoom((prev) => Math.max(prev - 0.2, 0.5));
   const handleResetZoom = () => setZoom(1);
-
   const handleDownload = () => {
     if (!containerRef.current) return;
     const svgElement = containerRef.current.querySelector('svg');
-    if (!svgElement) {
-      toast.error('Nenhum diagrama para baixar');
-      return;
-    }
-
+    if (!svgElement) return;
     try {
       const svgData = new XMLSerializer().serializeToString(svgElement);
-      const blob = new Blob([svgData], {
-        type: 'image/svg+xml;charset=utf-8',
-      });
+      const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
       const url = URL.createObjectURL(blob);
-
       const link = document.createElement('a');
       link.href = url;
       link.download = `${title || 'mapa-mental'}.svg`;
@@ -241,104 +164,40 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-
-      toast.success('Mapa mental baixado com sucesso!');
+      toast.success('Mapa baixado com sucesso!');
     } catch (error) {
-      console.error('[MindMap] Erro ao baixar:', error);
-      toast.error('Erro ao baixar o mapa mental');
+      console.error('Download error:', error);
+      toast.error('Erro ao baixar');
     }
   };
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col h-full">
+      <div className="flex items-center justify-between p-4 border-b bg-white">
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={handleZoomOut}
-            aria-label="Diminuir zoom"
-            disabled={zoom <= 0.5}
-          >
-            <ZoomOut className="h-4 w-4" />
-          </Button>
-          <span className="text-sm tabular-nums font-medium">
-            {Math.round(zoom * 100)}%
-          </span>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={handleZoomIn}
-            aria-label="Aumentar zoom"
-            disabled={zoom >= 3}
-          >
-            <ZoomIn className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={handleResetZoom}
-            aria-label="Resetar zoom"
-            disabled={zoom === 1}
-          >
-            <Maximize2 className="h-4 w-4" />
-          </Button>
+          <Button size="sm" variant="outline" onClick={handleZoomOut} disabled={zoom <= 0.5} className="rounded-lg"><ZoomOut className="w-4 h-4" /></Button>
+          <span className="text-sm font-medium text-gray-700 min-w-[60px] text-center">{Math.round(zoom * 100)}%</span>
+          <Button size="sm" variant="outline" onClick={handleZoomIn} disabled={zoom >= 3} className="rounded-lg"><ZoomIn className="w-4 h-4" /></Button>
+          <Button size="sm" variant="outline" onClick={handleResetZoom} className="rounded-lg"><Maximize2 className="w-4 h-4" /></Button>
         </div>
-
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={handleDownload}
-          disabled={renderError !== null || isRendering}
-        >
-          <Download className="h-4 w-4 mr-1" />
-          Baixar SVG
-        </Button>
+        <Button size="sm" onClick={handleDownload} className="rounded-lg bg-[#0891B2] hover:bg-[#0891B2]/90"><Download className="w-4 h-4 mr-2" />Baixar SVG</Button>
       </div>
-
-      <div className="relative min-h-[400px] rounded-lg border bg-white p-4 overflow-auto">
+      <div className="flex-1 overflow-auto p-6 bg-gray-50">
         {isRendering && (
-          <div className="absolute inset-0 flex items-center justify-center bg-white/80 backdrop-blur-sm">
-            <div className="text-center">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-2" />
-              <p className="text-sm text-muted-foreground">Renderizando mapa mental...</p>
-            </div>
+          <div className="flex items-center justify-center h-full">
+            <Loader2 className="w-8 h-8 animate-spin text-[#0891B2]" />
           </div>
         )}
-
         {renderError && (
-          <div className="space-y-3">
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <p className="font-semibold text-red-900 mb-2">Erro ao renderizar mapa mental</p>
-              <p className="text-sm text-red-700 mb-3">{renderError}</p>
-              <details className="text-xs text-red-600">
-                <summary className="cursor-pointer font-medium hover:text-red-800">
-                  Ver detalhes técnicos
-                </summary>
-                <div className="mt-2 p-2 bg-red-100 rounded font-mono overflow-x-auto">
-                  <p>Verifique o console do navegador para mais informações.</p>
-                  <p>O erro geralmente indica problemas de indentação ou sintaxe.</p>
-                </div>
-              </details>
-            </div>
-            <div className="text-sm text-muted-foreground">
-              <p>💡 Dica: Tente gerar o mapa mental novamente. Se o erro persistir, entre em contato com o suporte.</p>
-            </div>
-          </div>
+          <div className="flex items-center justify-center h-full text-red-500">{renderError}</div>
         )}
-
-        {!renderError && !isRendering && (
-          <div
-            ref={containerRef}
-            className="mermaid w-full"
-            style={{
-              transformOrigin: 'top left',
-              transform: `scale(${zoom})`,
-              transition: 'transform 0.2s ease-in-out',
-            }}
-          />
-        )}
+        <div className="flex items-center justify-center min-h-full" style={{ transform: `scale(${zoom})`, transformOrigin: 'center center', transition: 'transform 0.2s ease-out' }}>
+          <div ref={containerRef} className="mermaid-container bg-white rounded-xl shadow-sm p-8" style={{ minWidth: '300px' }} />
+        </div>
       </div>
     </div>
   );
 }
+
+// Import necessário para o Loader se não tiver importado
+import { Loader2 } from 'lucide-react';
