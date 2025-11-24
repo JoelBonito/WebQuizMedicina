@@ -32,20 +32,40 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
     });
   }, []);
 
-  // Normalização mais robusta
   const normalizeContent = (raw: string): string => {
     if (!raw) return '';
 
     // 1. Converte \n escapado para quebra real
     let text = raw.replace(/\\n/g, '\n');
     
-    // 2. Normaliza todos os tipos de quebra de linha para \n
+    // 2. Normaliza quebras de linha
     text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
     
-    // 3. Remove espaços/tabs no FINAL de cada linha (crucial para Mermaid)
-    const lines = text.split('\n').map(line => line.trimEnd());
+    // 3. Processa cada linha
+    const lines = text.split('\n').map(line => {
+      // Remove espaços no final
+      line = line.trimEnd();
+      
+      // Captura a indentação (espaços no início)
+      const leadingSpaces = line.match(/^(\s*)/)?.[1] || '';
+      const content = line.trimStart();
+      
+      // Se a linha tiver conteúdo entre aspas duplas, remove as aspas externas
+      // Exemplo: "  "Texto"" vira "  Texto"
+      let cleanContent = content;
+      if (content.startsWith('"') && content.endsWith('"') && content.length > 1) {
+        cleanContent = content.slice(1, -1);
+      }
+      
+      // Reconstrói a linha: indentação + conteúdo limpo entre aspas
+      if (cleanContent && cleanContent !== 'mindmap') {
+        return `${leadingSpaces}"${cleanContent}"`;
+      } else {
+        return leadingSpaces + cleanContent;
+      }
+    });
     
-    // 4. Remove linhas completamente vazias no início e fim
+    // 4. Remove linhas vazias no início e fim
     while (lines.length > 0 && lines[0].trim() === '') {
       lines.shift();
     }
@@ -53,31 +73,13 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
       lines.pop();
     }
     
-    // 5. Garante que a primeira linha é "mindmap"
+    // 5. Garante que começa com "mindmap"
     if (lines.length > 0 && !lines[0].trim().toLowerCase().startsWith('mindmap')) {
       lines.unshift('mindmap');
     }
     
-    // 6. Remove linhas vazias duplicadas no meio (deixa no máximo uma)
-    const cleanedLines: string[] = [];
-    let lastWasEmpty = false;
-    
-    for (const line of lines) {
-      const isEmpty = line.trim() === '';
-      if (isEmpty) {
-        if (!lastWasEmpty) {
-          cleanedLines.push('');
-          lastWasEmpty = true;
-        }
-        // Ignora linhas vazias consecutivas
-      } else {
-        cleanedLines.push(line);
-        lastWasEmpty = false;
-      }
-    }
-    
-    // 7. Remove qualquer linha vazia que sobrou
-    const finalLines = cleanedLines.filter(line => line.trim() !== '');
+    // 6. Remove linhas vazias no meio
+    const finalLines = lines.filter(line => line.trim() !== '');
     
     return finalLines.join('\n');
   };
@@ -100,10 +102,10 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
         console.log('MindMap final enviado ao mermaid:\n', finalContent);
         console.log('Total de linhas:', finalContent.split('\n').length);
         
-        // Log das primeiras 15 linhas com detalhe da indentação
+        // Log das primeiras 15 linhas
         finalContent.split('\n').slice(0, 15).forEach((line, i) => {
           const spaces = line.length - line.trimStart().length;
-          console.log(`Linha ${i}: [${spaces} espaços] "${line}"`);
+          console.log(`Linha ${i}: [${spaces} espaços] ${JSON.stringify(line)}`);
         });
 
         const id = `mermaid-${Date.now()}`;
@@ -214,9 +216,9 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
 
         {renderError && (
           <div className="text-sm text-red-500 space-y-2">
-            <p className="font-semibold">Erro ao renderizar o mapa mental:</p>
+            <p className="font-semibold">Erro ao renderizar:</p>
             <p className="font-mono text-xs bg-red-50 p-2 rounded">{renderError}</p>
-            <p className="text-xs">Tente gerar novamente ou verifique o console para mais detalhes.</p>
+            <p className="text-xs">Verifique o console para detalhes.</p>
           </div>
         )}
 
