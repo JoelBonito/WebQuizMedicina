@@ -10,6 +10,7 @@ import { useSummaries } from "../hooks/useSummaries";
 import { toast } from "sonner";
 import { ScrollArea } from "./ui/scroll-area";
 import { supabase } from "../lib/supabase";
+import { triggerContentRefresh } from "../lib/events";
 
 interface DifficultiesPanelProps {
   projectId: string | null;
@@ -135,8 +136,11 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
         }
       );
 
-      // Notify ContentPanel to refresh
+      // Notify ContentPanel to refresh (legacy event)
       window.dispatchEvent(new CustomEvent('content-generated'));
+
+      // Trigger content refresh for all hooks (fallback for Realtime)
+      triggerContentRefresh();
     } catch (error) {
       console.error(error);
     } finally {
@@ -183,8 +187,11 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
         markAsRecoverySession(sessionId);
       }
 
-      // Notify ContentPanel to refresh
+      // Notify ContentPanel to refresh (legacy event)
       window.dispatchEvent(new CustomEvent('content-generated'));
+
+      // Trigger content refresh for all hooks (fallback for Realtime)
+      triggerContentRefresh();
     } catch (error) {
       console.error(error);
     } finally {
@@ -230,8 +237,11 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
         markAsRecoverySession(sessionId);
       }
 
-      // Notify ContentPanel to refresh
+      // Notify ContentPanel to refresh (legacy event)
       window.dispatchEvent(new CustomEvent('content-generated'));
+
+      // Trigger content refresh for all hooks (fallback for Realtime)
+      triggerContentRefresh();
     } catch (error) {
       console.error(error);
     } finally {
