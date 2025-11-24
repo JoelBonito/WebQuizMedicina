@@ -32,7 +32,7 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
     });
   }, []);
 
-  // Render mermaid diagram when content changes
+ // Render mermaid diagram when content changes
   useEffect(() => {
     if (!content || !containerRef.current) return;
 
@@ -45,53 +45,54 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
           containerRef.current.innerHTML = '';
         }
 
-        // --- LIMPEZA ROBUSTA ---
+        // --- SANITIZER COM IDs EXPLÍCITOS (SOLUÇÃO FINAL) ---
         // 1. Normaliza quebras de linha
         let rawLines = content.replace(/\\n/g, '\n').split('\n');
 
-        const processedLines = rawLines.map(line => {
+        const processedLines = rawLines.map((line, index) => {
           const trimmed = line.trim();
-
-          // Mantém o cabeçalho mindmap
-          if (trimmed === 'mindmap') return line;
-          if (!trimmed) return line; // Mantém linhas vazias
+          
+          // Mantém cabeçalho 'mindmap' puro
+          if (trimmed === 'mindmap') return 'mindmap';
+          if (!trimmed) return ''; // Remove linhas vazias
 
           // Preserva a indentação original
           const indentMatch = line.match(/^(\s*)/);
           const indent = indentMatch ? indentMatch[1] : '';
 
-          // Remove definições de forma do Mermaid (ex: ((Texto)) -> Texto)
-          // Remove id((Texto)) ou root((Texto)) ou apenas ((Texto))
+          // LIMPEZA DO TEXTO:
           let cleanText = trimmed
-            .replace(/^[\w\d_]+\s*[\(\[\{]+/, '') // Remove ID e inicio da forma (ex: id(( )
-            .replace(/^[\(\[\{]+/, '')            // Remove inicio da forma sem ID (ex: (( )
-            .replace(/[\)\]\}]+$/, '');           // Remove fim da forma (ex: )) )
+            // Remove IDs ou definições de forma antigas que a IA possa ter mandado
+            .replace(/^[\w\d_]+\s*[\(\[\{]+/, '') 
+            .replace(/^[\(\[\{]+/, '')            
+            .replace(/[\)\]\}]+$/, '')
+            // Remove aspas externas que a IA possa ter colocado
+            .replace(/^"|"$/g, '')
+            // IMPORTANTE: Troca aspas duplas internas por simples para não quebrar a string do Mermaid
+            .replace(/"/g, "'");
 
-          // Remove aspas existentes para evitar duplicação
-          cleanText = cleanText.replace(/^"|"$/g, '');
-
-          // Escapa aspas internas que sobraram
-          cleanText = cleanText.replace(/"/g, "'");
-
-          // Retorna o texto limpo, sempre entre aspas para segurança
-          return `${indent}"${cleanText}"`;
+          // GERAÇÃO DE NÓ ROBUSTO:
+          // Cria um ID único (n + index) e força o formato de nó quadrado ["Texto"]
+          // Isso protege qualquer caractere especial dentro do texto (ex: parenteses, dois pontos)
+          return `${indent}n${index}["${cleanText}"]`;
         });
 
-        // Garante que começa com mindmap
-        if (processedLines.length > 0 && !processedLines[0].includes('mindmap')) {
-          processedLines.unshift('mindmap');
+        // Filtra linhas vazias e garante cabeçalho
+        const finalLines = processedLines.filter(l => l !== '');
+        if (finalLines.length > 0 && !finalLines[0].includes('mindmap')) {
+            finalLines.unshift('mindmap');
         }
 
-        const finalContent = processedLines.join('\n');
-        console.log('[MindMap] Conteúdo sanitizado:', finalContent);
-        // -----------------------
+        const finalContent = finalLines.join('\n');
+        console.log('MindMap Final:', finalContent); // Debug
+        // --------------------------------------
 
         const id = `mermaid-${Date.now()}`;
         const { svg } = await mermaid.render(id, finalContent);
 
         if (containerRef.current) {
           containerRef.current.innerHTML = svg;
-
+          
           const svgElement = containerRef.current.querySelector('svg');
           if (svgElement) {
             svgElement.style.maxWidth = '100%';
@@ -101,9 +102,8 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
         }
       } catch (error: any) {
         console.error('Mermaid rendering error:', error);
-        console.log('Conteúdo original que falhou:', content);
-        setRenderError('Erro ao renderizar. Tente gerar novamente.');
-        toast.error('Erro ao renderizar o diagrama');
+        // Se falhar, mostra mensagem amigável
+        setRenderError('Não foi possível visualizar o diagrama complexo, mas o conteúdo foi salvo.');
       } finally {
         setIsRendering(false);
       }
