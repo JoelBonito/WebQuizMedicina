@@ -18,13 +18,15 @@ import {
   AlertCircle,
   AlertTriangle,
   Zap,
-  Lightbulb
+  Lightbulb,
+  Network
 } from "lucide-react";
 import { motion } from "motion/react";
 import { useQuestions } from "../hooks/useQuestions";
 import { useFlashcards } from "../hooks/useFlashcards";
 import { useSummaries } from "../hooks/useSummaries";
 import { useDifficulties } from "../hooks/useDifficulties";
+import { useMindMaps } from "../hooks/useMindMaps";
 import { supabase } from "../lib/supabase";
 import { toast } from "sonner";
 import { isRecoverySession } from "../lib/recoverySessionTracker";
@@ -32,6 +34,7 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "./ui/dial
 import { QuizSession } from "./QuizSession";
 import { FlashcardSession } from "./FlashcardSession";
 import { SummaryViewer } from "./SummaryViewer";
+import { MindMapViewer } from "./MindMapViewer";
 import { Badge } from "./ui/badge";
 import { DifficultiesPanel } from "./DifficultiesPanel";
 import {
@@ -53,7 +56,7 @@ interface ContentPanelProps {
 
 interface GeneratedContent {
   id: string;
-  type: 'quiz' | 'flashcards' | 'summary';
+  type: 'quiz' | 'flashcards' | 'summary' | 'mindmap';
   title: string;
   sourceCount: number;
   createdAt: Date;
@@ -86,6 +89,14 @@ const ACTION_CARDS = [
     textColor: 'text-white',
     iconColor: 'text-white',
   },
+  {
+    id: 'mindmap',
+    title: 'Mapa Mental',
+    icon: Network,
+    bgColor: 'bg-gradient-to-br from-teal-600 to-cyan-500',
+    textColor: 'text-white',
+    iconColor: 'text-white',
+  },
 ];
 
 const getContentStyle = (type: string) => {
@@ -110,6 +121,13 @@ const getContentStyle = (type: string) => {
         bgColor: 'bg-purple-50',
         iconColor: 'text-purple-600',
         label: 'Resumo'
+      };
+    case 'mindmap':
+      return {
+        icon: Network,
+        bgColor: 'bg-teal-50',
+        iconColor: 'text-teal-600',
+        label: 'Mapa Mental'
       };
     default:
       return {
@@ -160,6 +178,7 @@ const getDifficultyIcon = (difficulty: 'fácil' | 'médio' | 'difícil' | 'misto
 export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMode = false }: ContentPanelProps) {
   const [generatedContent, setGeneratedContent] = useState<GeneratedContent[]>([]);
   const [selectedSummary, setSelectedSummary] = useState<any>(null);
+  const [selectedMindMap, setSelectedMindMap] = useState<any>(null);
   const [quizSessionOpen, setQuizSessionOpen] = useState(false);
   const [flashcardSessionOpen, setFlashcardSessionOpen] = useState(false);
   const [difficultiesOpen, setDifficultiesOpen] = useState(false);
@@ -203,6 +222,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
   const { questions, loading: loadingQuiz, generating: generatingQuiz, generateQuiz, refetch: fetchQuestions } = useQuestions(projectId);
   const { flashcards, loading: loadingFlashcards, generating: generatingFlashcards, generateFlashcards, refetch: fetchFlashcards } = useFlashcards(projectId);
   const { summaries, loading: loadingSummaries, generating: generatingSummary, generateSummary, deleteSummary, refetch: fetchSummaries } = useSummaries(projectId);
+  const { mindMaps, loading: loadingMindMaps, generating: generatingMindMap, generateMindMap, deleteMindMap, refetch: fetchMindMaps } = useMindMaps(projectId);
   const { difficulties } = useDifficulties(projectId);
 
   // Helper function to determine difficulty level
@@ -311,11 +331,25 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
       });
     });
 
+    // Add mind maps
+    mindMaps.forEach(mindMap => {
+      // Check if this is recovery content (tipo === 'recovery')
+      const isRecovery = mindMap.tipo === 'recovery';
+      newContent.push({
+        id: mindMap.id,
+        type: 'mindmap',
+        title: customNames[mindMap.id] || mindMap.title,
+        sourceCount: mindMap.source_ids?.length || 0,
+        createdAt: new Date(mindMap.created_at || new Date()),
+        isRecovery,
+      });
+    });
+
     // Sort by date (most recent first)
     newContent.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
     setGeneratedContent(newContent);
-  }, [questions, flashcards, summaries, projectId, selectedSourceIds, customNames]);
+  }, [questions, flashcards, summaries, mindMaps, projectId, selectedSourceIds, customNames]);
 
   // Persist custom names to localStorage
   useEffect(() => {
@@ -332,6 +366,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
         fetchQuestions();
         fetchFlashcards();
         fetchSummaries();
+        fetchMindMaps();
       }, 800); // 800ms delay to ensure data is available
     };
 
@@ -340,9 +375,9 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
     return () => {
       window.removeEventListener('content-generated', handleContentGenerated);
     };
-  }, [fetchQuestions, fetchFlashcards, fetchSummaries]);
+  }, [fetchQuestions, fetchFlashcards, fetchSummaries, fetchMindMaps]);
 
-  const handleGenerateContent = async (type: 'quiz' | 'flashcards' | 'summary') => {
+  const handleGenerateContent = async (type: 'quiz' | 'flashcards' | 'summary' | 'mindmap') => {
     if (selectedSourceIds.length === 0) {
       toast.error("Selecione pelo menos uma fonte para gerar conteúdo");
       return;
@@ -378,6 +413,10 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
           await generateSummary(selectedSourceIds);
           toast.success("Resumo gerado com sucesso!");
           break;
+        case 'mindmap':
+          await generateMindMap(selectedSourceIds, 'standard');
+          toast.success("Mapa mental gerado com sucesso!");
+          break;
       }
     } catch (error) {
       toast.error("Erro ao gerar conteúdo. Verifique se há fontes disponíveis.");
@@ -403,6 +442,12 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
         const summary = summaries.find(s => s.id === content.id);
         if (summary) {
           setSelectedSummary(summary);
+        }
+        break;
+      case 'mindmap':
+        const mindMap = mindMaps.find(m => m.id === content.id);
+        if (mindMap) {
+          setSelectedMindMap(mindMap);
         }
         break;
     }
@@ -453,6 +498,15 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
     }
   };
 
+  const handleDeleteMindMap = async (id: string) => {
+    try {
+      await deleteMindMap(id);
+      toast.success("Mapa mental removido");
+    } catch (error) {
+      toast.error("Erro ao remover mapa mental");
+    }
+  };
+
   const handleDeleteContent = async (content: GeneratedContent) => {
     if (content.type === 'summary') {
       await handleDeleteSummary(content.id);
@@ -462,6 +516,8 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
     } else if (content.type === 'flashcards') {
       const sessionId = content.id.replace('flashcards-', '');
       await handleDeleteFlashcards(sessionId);
+    } else if (content.type === 'mindmap') {
+      await handleDeleteMindMap(content.id);
     }
   };
 
@@ -484,6 +540,21 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
         setCustomNames(newCustomNames);
 
         toast.success("Resumo renomeado");
+      } else if (renamingContent.type === 'mindmap') {
+        // For mind maps, update in database
+        const { error } = await supabase
+          .from('mindmaps')
+          .update({ title: newContentName.trim() })
+          .eq('id', renamingContent.id);
+
+        if (error) throw error;
+
+        // Remove from custom names if exists
+        const newCustomNames = { ...customNames };
+        delete newCustomNames[renamingContent.id];
+        setCustomNames(newCustomNames);
+
+        toast.success("Mapa mental renomeado");
       } else {
         // For quiz/flashcards, store in local state (visualization only)
         setCustomNames({
@@ -514,7 +585,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
     );
   }
 
-  const loading = loadingQuiz || loadingFlashcards || loadingSummaries;
+  const loading = loadingQuiz || loadingFlashcards || loadingSummaries || loadingMindMaps;
 
   return (
     <>
@@ -553,12 +624,13 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
             const isButtonGenerating =
               (card.id === 'quiz' && generatingQuiz) ||
               (card.id === 'flashcards' && generatingFlashcards) ||
-              (card.id === 'summary' && generatingSummary);
+              (card.id === 'summary' && generatingSummary) ||
+              (card.id === 'mindmap' && generatingMindMap);
 
             return (
               <div key={card.id} className="relative">
                 <button
-                  onClick={() => handleGenerateContent(card.id as 'quiz' | 'flashcards' | 'summary')}
+                  onClick={() => handleGenerateContent(card.id as 'quiz' | 'flashcards' | 'summary' | 'mindmap')}
                   disabled={isButtonGenerating}
                   className={`
                     ${card.bgColor}
@@ -847,6 +919,38 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
           setSelectedFlashcardSession(null);
         }}
       />
+
+      {/* Mind Map Dialog - Fullscreen */}
+      <Dialog open={!!selectedMindMap} onOpenChange={() => setSelectedMindMap(null)}>
+        <DialogContent className="!fixed !inset-0 !top-0 !left-0 !right-0 !bottom-0 !translate-x-0 !translate-y-0 !max-w-none !w-screen !h-screen !m-0 !rounded-none !p-0 overflow-hidden supports-[height:100dvh]:!h-dvh">
+          <div className="h-screen supports-[height:100dvh]:h-dvh w-full flex flex-col">
+            <div className="flex items-center justify-between p-6 border-b bg-white">
+              <DialogTitle className="text-2xl font-bold text-gray-900">
+                {selectedMindMap?.title}
+              </DialogTitle>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setSelectedMindMap(null)}
+                className="h-8 w-8 p-0"
+              >
+                <X className="w-5 h-5" />
+              </Button>
+            </div>
+            <DialogDescription className="sr-only">
+              Visualização do mapa mental gerado. Use os controles de zoom para ajustar a visualização.
+            </DialogDescription>
+            <div className="flex-1 min-h-0">
+              {selectedMindMap && (
+                <MindMapViewer
+                  content={selectedMindMap.content_mermaid}
+                  title={selectedMindMap.title}
+                />
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Difficulties Dialog - Fullscreen */}
       <Dialog open={difficultiesOpen} onOpenChange={setDifficultiesOpen}>
