@@ -158,20 +158,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 CONTEÚDO:
 ${combinedContent}
 
-INSTRUÇÕES TÉCNICAS (CRÍTICO):
-1.  **FORMATO JSON**: Sua resposta DEVE ser um objeto JSON válido.
-2.  **SINTAXE MERMAID**: Dentro do campo "mermaid", use a sintaxe 'mindmap'.
-3.  **ESTRUTURA LIMPA**: NÃO use definições de forma como ((...)), [...], ou {{...}}. Use APENAS o texto do nó.
-4.  **INDENTAÇÃO**: A hierarquia é definida APENAS pela indentação (2 espaços por nível).
-5.  **ASPAS**: Coloque TODO o texto de cada nó entre aspas duplas. Exemplo: "Insuficiência Cardíaca".
-6.  **ESCAPING**: Como é JSON, escape aspas duplas internas com \\" e quebras de linha com \\n.
-7.  **SEM MARKDOWN**: Não coloque \`\`\`mermaid dentro do JSON. Apenas o código puro.
+INSTRUÇÕES TÉCNICAS (CRÍTICO - SIGA EXATAMENTE):
+1.  **FORMATO JSON**: Sua resposta DEVE ser um objeto JSON válido com campos "titulo" e "mermaid".
+2.  **SINTAXE MERMAID**: Dentro do campo "mermaid", use APENAS a sintaxe 'mindmap' simples.
+3.  **SEM IDs**: NUNCA use identificadores como n1, n2, id, root, etc. Use APENAS texto puro entre aspas.
+4.  **SEM FORMAS**: NUNCA use ((...)), [...], {{...}}, (()), [], {} ou qualquer definição de forma.
+5.  **INDENTAÇÃO**: A hierarquia é definida APENAS pela indentação (2 espaços por nível).
+6.  **ASPAS**: TODO texto de cada nó deve estar entre aspas duplas. Exemplo: "Insuficiência Cardíaca".
+7.  **ESCAPING**: Como é JSON, escape aspas duplas internas com \\" e quebras de linha com \\n.
+8.  **SEM MARKDOWN**: Não coloque \`\`\`mermaid dentro do JSON. Apenas o código puro.
 
 ESTRUTURA DO MAPA:
-- Raiz: Tema central (sem forma, apenas "Texto").
+- Raiz: Tema central entre aspas.
 - Nível 1: Grandes categorias (Fisiopatologia, Diagnóstico, Tratamento).
 - Nível 2+: Detalhes específicos, drogas, doses, sintomas.
 - Use indentação consistente de 2 espaços por nível.
+
+FORMATO CORRETO (copie exatamente este padrão):
+mindmap
+  "Título Principal"
+    "Categoria 1"
+      "Detalhe 1.1"
+      "Detalhe 1.2"
+    "Categoria 2"
+      "Detalhe 2.1"
+
+FORMATO INCORRETO (NUNCA use isso):
+❌ n1["Texto"]
+❌ root((Texto))
+❌ id[Texto]
+❌ ((Texto))
+❌ [Texto]
 
 EXEMPLO DE OUTPUT ESPERADO (JSON):
 {
