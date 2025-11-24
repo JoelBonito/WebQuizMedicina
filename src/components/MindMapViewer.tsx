@@ -33,59 +33,65 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
     });
   }, []);
 
-  const normalizeContent = (raw: string): string => {
-    if (!raw) return '';
+ const normalizeContent = (raw: string): string => {
+  if (!raw) return '';
 
-    // 1. Normaliza quebras de linha
-    let text = raw.replace(/\\n/g, '\n').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  // 1. Converte \n escapado para quebra real
+  let text = raw.replace(/\\n/g, '\n');
+  
+  // 2. Normaliza quebras de linha
+  text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  
+  // 3. Divide em linhas
+  let lines = text.split('\n');
+  
+  // 4. Remove linhas vazias e processa
+  lines = lines
+    .map(line => line.trimEnd())
+    .filter(line => line.trim() !== '');
+  
+  // 5. Detecta níveis únicos de indentação
+  const indentLevels = new Set<number>();
+  lines.forEach(line => {
+    const spaces = line.length - line.trimStart().length;
+    indentLevels.add(spaces);
+  });
+  
+  // 6. Cria mapeamento de indentação (ordena e mapeia para múltiplos de 2)
+  const sortedLevels = Array.from(indentLevels).sort((a, b) => a - b);
+  const indentMap = new Map<number, number>();
+  sortedLevels.forEach((level, index) => {
+    indentMap.set(level, index * 2);
+  });
+  
+  // 7. Reconstrói com indentação normalizada
+  const normalizedLines = lines.map(line => {
+    const originalSpaces = line.length - line.trimStart().length;
+    const content = line.trimStart();
+    const newSpaces = indentMap.get(originalSpaces) || 0;
     
-    const lines = text.split('\n');
-    const result: string[] = [];
-    
-    let previousIndent = -1;
-    
-    for (let i = 0; i < lines.length; i++) {
-      let line = lines[i];
-      
-      // Remove espaços no final
-      line = line.trimEnd();
-      
-      // Pula linhas vazias
-      if (line.trim() === '') continue;
-      
-      // Captura indentação e conteúdo
-      const leadingSpaces = line.match(/^(\s*)/)?.[1] || '';
-      const indent = leadingSpaces.length;
-      let content = line.trimStart();
-      
-      // Remove aspas externas se existirem (caso de aspas duplicadas)
-      if (content.startsWith('"') && content.endsWith('"') && content.length > 1) {
-        content = content.slice(1, -1);
-      }
-      
-      // Limita comprimento de texto muito longo (workaround para bug do Mermaid)
-      if (content.length > 80) {
-        content = content.substring(0, 77) + '...';
-      }
-      
-      // Reconstrói linha
-      if (content.toLowerCase() === 'mindmap') {
-        result.push('mindmap');
-        previousIndent = 0;
-      } else {
-        // Adiciona quebra extra entre nós irmãos em níveis profundos (>= 8 espaços)
-        // Isso resolve o bug de parse do Mermaid com nós consecutivos
-        if (indent === previousIndent && indent >= 8 && result.length > 0) {
-          // Não adiciona linha vazia, mas garante formatação limpa
-        }
-        
-        result.push(`${leadingSpaces}"${content}"`);
-        previousIndent = indent;
-      }
+    // Remove aspas duplas externas se existirem
+    let cleanContent = content;
+    if (content.startsWith('"') && content.endsWith('"') && content.length > 1) {
+      cleanContent = content.slice(1, -1);
     }
     
-    return result.join('\n');
-  };
+    // Casos especiais
+    if (cleanContent === 'mindmap' || cleanContent.toLowerCase() === 'mindmap') {
+      return 'mindmap';
+    }
+    
+    // Adiciona aspas em todo o resto
+    return ' '.repeat(newSpaces) + `"${cleanContent}"`;
+  });
+  
+  // 8. Garante que começa com "mindmap"
+  if (normalizedLines.length > 0 && !normalizedLines[0].toLowerCase().startsWith('mindmap')) {
+    normalizedLines.unshift('mindmap');
+  }
+  
+  return normalizedLines.join('\n');
+};
 
   useEffect(() => {
     if (!content || !containerRef.current) return;
