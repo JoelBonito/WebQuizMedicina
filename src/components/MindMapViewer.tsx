@@ -83,8 +83,12 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
           // Escapa aspas internas convertendo para single quotes
           cleanText = cleanText.replace(/"/g, "'");
 
-          // Remove caracteres residuais de formas que possam ter sobrado
-          cleanText = cleanText.replace(/[\(\)\[\]\{\}]/g, '');
+          // Remove/substitui caracteres que causam problemas no Mermaid
+          // Parênteses são interpretados como definições de forma pelo parser
+          cleanText = cleanText.replace(/\(/g, '[').replace(/\)/g, ']');
+
+          // Remove outros caracteres residuais de formas
+          cleanText = cleanText.replace(/[\{\}]/g, '');
 
           // Retorna o texto limpo, sempre entre aspas
           return `${indent}"${cleanText}"`;
