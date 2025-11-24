@@ -159,44 +159,39 @@ CONTEÚDO:
 ${combinedContent}
 
 INSTRUÇÕES TÉCNICAS (CRÍTICO - SIGA EXATAMENTE):
-1.  **FORMATO JSON**: Sua resposta DEVE ser um objeto JSON válido com campos "titulo" e "mermaid".
-2.  **SINTAXE MERMAID**: Dentro do campo "mermaid", use APENAS a sintaxe 'mindmap' simples.
-3.  **SEM IDs**: NUNCA use identificadores como n1, n2, id, root, etc. Use APENAS texto puro entre aspas.
-4.  **SEM FORMAS**: NUNCA use ((...)), [...], {{...}}, (()), [], {} ou qualquer definição de forma.
-5.  **PARÊNTESES**: Prefira colchetes [] em vez de parênteses (). Ex: "[Adultos]" em vez de "(Adultos)".
-6.  **CARACTERES SIMPLES**: Use ASCII simples. Evite Unicode: ², ³, →, ↓, ↑, ≥, ≤. Use: 2, 3, ->, v, ^, >=, <=.
-7.  **INDENTAÇÃO**: A hierarquia é definida APENAS pela indentação (2 espaços por nível).
-8.  **ASPAS**: TODO texto de cada nó deve estar entre aspas duplas. Exemplo: "Insuficiência Cardíaca".
-9.  **ESCAPING**: Como é JSON, escape aspas duplas internas com \\" e quebras de linha com \\n.
-10. **SEM MARKDOWN**: Não coloque \`\`\`mermaid dentro do JSON. Apenas o código puro.
+1. **FORMATO JSON**: Sua resposta DEVE ser um objeto JSON válido com campos "titulo" e "mermaid".
+2. **SINTAXE MERMAID**: Dentro do campo "mermaid", use APENAS a sintaxe 'mindmap' simples.
+3. **INDENTAÇÃO OBRIGATÓRIA - EXTREMAMENTE IMPORTANTE**:
+   - Linha 1: "mindmap" (sem indentação)
+   - Linha 2: 2 espaços + "Título Principal"
+   - Linha 3: 4 espaços + "Categoria 1"
+   - Linha 4: 6 espaços + "Subcategoria 1.1"
+   - Linha 5: 6 espaços + "Subcategoria 1.2"
+   - Linha 6: 4 espaços + "Categoria 2"
+   - CADA NÍVEL FILHO deve ter EXATAMENTE 2 espaços A MAIS que o pai
+   - NUNCA pule de 8 para 10 espaços. Sempre: 0, 2, 4, 6, 8, 10, 12...
+4. **SEM IDs**: NUNCA use identificadores como n1, n2, id, root, etc.
+5. **ASPAS OBRIGATÓRIAS**: TODO texto (exceto "mindmap") DEVE estar entre aspas duplas.
+6. **CARACTERES**: Use apenas ASCII. Substitua: → por ->, ≥ por >=, ≤ por <=
+7. **SEM FORMAS**: Nunca use (()), [[]], {{}}, apenas texto entre aspas.
 
-ESTRUTURA DO MAPA:
-- Raiz: Tema central entre aspas.
-- Nível 1: Grandes categorias (Fisiopatologia, Diagnóstico, Tratamento).
-- Nível 2+: Detalhes específicos, drogas, doses, sintomas.
-- Use indentação consistente de 2 espaços por nível.
-
-FORMATO CORRETO (copie exatamente este padrão):
+EXEMPLO CORRETO DE ESTRUTURA (copie este padrão de indentação):
 mindmap
-  "Título Principal"
-    "Categoria 1"
-      "Detalhe 1.1"
-      "Detalhe 1.2"
-    "Categoria 2"
-      "Detalhe 2.1"
+  "Tema Principal"
+    "Categoria A"
+      "Item A.1"
+      "Item A.2"
+        "Detalhe A.2.1"
+        "Detalhe A.2.2"
+      "Item A.3"
+    "Categoria B"
+      "Item B.1"
 
-FORMATO INCORRETO (NUNCA use isso):
-❌ n1["Texto"]
-❌ root((Texto))
-❌ id[Texto]
-❌ ((Texto))
-❌ [Texto]
-
-EXEMPLO DE OUTPUT ESPERADO (JSON):
+EXEMPLO DE OUTPUT JSON:
 {
-  "titulo": "Mapa Mental de Insuficiência Cardíaca",
-  "mermaid": "mindmap\\n  \\"Insuficiência Cardíaca\\"\\n    \\"Fisiopatologia\\"\\n      \\"Disfunção Sistólica\\"\\n      \\"Disfunção Diastólica\\"\\n    \\"Sintomas\\"\\n      \\"Dispneia\\"\\n      \\"Edema\\""
-}
+  "titulo": "Fisiopatologia Renal",
+  "mermaid": "mindmap\\n  \\"Fisiopatologia Renal\\"\\n    \\"Síndrome Nefrótico\\"\\n      \\"Definição\\"\\n        \\"Proteinúria maciça\\"\\n        \\"Hipoalbuminemia\\""
+}`;
 
 Gere o JSON agora:`;
 
