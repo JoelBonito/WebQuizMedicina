@@ -5,7 +5,7 @@ import { ZoomIn, ZoomOut, Maximize2, Download } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface MindMapViewerProps {
-  content: string; // Mermaid mindmap code
+  content: string;
   title?: string;
 }
 
@@ -15,7 +15,6 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
   const [isRendering, setIsRendering] = useState(false);
   const [renderError, setRenderError] = useState<string | null>(null);
 
-  // Inicializa o mermaid uma única vez
   useEffect(() => {
     mermaid.initialize({
       startOnLoad: false,
@@ -28,40 +27,61 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
       },
       mindmap: {
         useMaxWidth: true,
+        padding: 10,
       },
     });
   }, []);
 
-  // Função bem leve para normalizar apenas quebras de linha/caracteres básicos
+  // Normalização mais robusta
   const normalizeContent = (raw: string): string => {
     if (!raw) return '';
 
-    // Se veio com "\n" escapado de JSON, converte para quebras de linha reais
+    // 1. Converte \n escapado para quebra real
     let text = raw.replace(/\\n/g, '\n');
-
-    // Normaliza \r\n / \r
+    
+    // 2. Normaliza todos os tipos de quebra de linha para \n
     text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-
-    const lines = text
-      .split('\n')
-      .map((line) => line.replace(/\s+$/g, '')) // tira espaços no fim
-      .filter((line, idx, arr) => {
-        // remove linhas totalmente vazias extras no topo e no fim
-        if (line.trim() !== '') return true;
-        if (idx === 0) return false;
-        if (idx === arr.length - 1) return false;
-        return true;
-      });
-
-    // Garante que começa com "mindmap"
-    if (lines.length > 0 && !lines[0].trim().startsWith('mindmap')) {
+    
+    // 3. Remove espaços/tabs no FINAL de cada linha (crucial para Mermaid)
+    const lines = text.split('\n').map(line => line.trimEnd());
+    
+    // 4. Remove linhas completamente vazias no início e fim
+    while (lines.length > 0 && lines[0].trim() === '') {
+      lines.shift();
+    }
+    while (lines.length > 0 && lines[lines.length - 1].trim() === '') {
+      lines.pop();
+    }
+    
+    // 5. Garante que a primeira linha é "mindmap"
+    if (lines.length > 0 && !lines[0].trim().toLowerCase().startsWith('mindmap')) {
       lines.unshift('mindmap');
     }
-
-    return lines.join('\n');
+    
+    // 6. Remove linhas vazias duplicadas no meio (deixa no máximo uma)
+    const cleanedLines: string[] = [];
+    let lastWasEmpty = false;
+    
+    for (const line of lines) {
+      const isEmpty = line.trim() === '';
+      if (isEmpty) {
+        if (!lastWasEmpty) {
+          cleanedLines.push('');
+          lastWasEmpty = true;
+        }
+        // Ignora linhas vazias consecutivas
+      } else {
+        cleanedLines.push(line);
+        lastWasEmpty = false;
+      }
+    }
+    
+    // 7. Remove qualquer linha vazia que sobrou
+    const finalLines = cleanedLines.filter(line => line.trim() !== '');
+    
+    return finalLines.join('\n');
   };
 
-  // Renderiza o diagrama sempre que o content mudar
   useEffect(() => {
     if (!content || !containerRef.current) return;
 
@@ -71,19 +91,27 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
 
       try {
         const container = containerRef.current;
+        if (!container) return;
+        
         container.innerHTML = '';
 
         const finalContent = normalizeContent(content);
+        
         console.log('MindMap final enviado ao mermaid:\n', finalContent);
+        console.log('Total de linhas:', finalContent.split('\n').length);
+        
+        // Log das primeiras 15 linhas com detalhe da indentação
+        finalContent.split('\n').slice(0, 15).forEach((line, i) => {
+          const spaces = line.length - line.trimStart().length;
+          console.log(`Linha ${i}: [${spaces} espaços] "${line}"`);
+        });
 
         const id = `mermaid-${Date.now()}`;
         const { svg } = await mermaid.render(id, finalContent);
 
         if (containerRef.current) {
           containerRef.current.innerHTML = svg;
-          const svgElement = containerRef.current.querySelector('svg') as
-            | SVGSVGElement
-            | null;
+          const svgElement = containerRef.current.querySelector('svg');
 
           if (svgElement) {
             svgElement.style.maxWidth = '100%';
@@ -95,16 +123,13 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
         }
       } catch (error: any) {
         console.error('Mermaid rendering error:', error);
-        setRenderError(
-          'Erro ao visualizar o mapa mental. Tente gerar novamente ou revisar o conteúdo.'
-        );
+        setRenderError(error.message || 'Erro desconhecido ao renderizar');
       } finally {
         setIsRendering(false);
       }
     };
 
     renderDiagram();
-    // importante: também reagir ao zoom para re-aplicar o scale no SVG
   }, [content, zoom]);
 
   const handleZoomIn = () => setZoom((prev) => Math.min(prev + 0.2, 3));
@@ -143,7 +168,6 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Controles */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Button
@@ -181,7 +205,6 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
         </Button>
       </div>
 
-      {/* Container do diagrama */}
       <div className="relative min-h-[200px] rounded-lg border bg-white p-3 overflow-auto">
         {isRendering && (
           <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">
@@ -190,9 +213,10 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
         )}
 
         {renderError && (
-          <div className="text-sm text-red-500">
-            <p>Erro ao renderizar o mapa mental.</p>
-            <p className="mt-1">{renderError}</p>
+          <div className="text-sm text-red-500 space-y-2">
+            <p className="font-semibold">Erro ao renderizar o mapa mental:</p>
+            <p className="font-mono text-xs bg-red-50 p-2 rounded">{renderError}</p>
+            <p className="text-xs">Tente gerar novamente ou verifique o console para mais detalhes.</p>
           </div>
         )}
 
