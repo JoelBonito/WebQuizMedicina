@@ -30,6 +30,7 @@ import { useMindMaps } from "../hooks/useMindMaps";
 import { supabase } from "../lib/supabase";
 import { toast } from "sonner";
 import { isRecoverySession } from "../lib/recoverySessionTracker";
+import { triggerContentRefresh } from "../lib/events";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "./ui/dialog";
 import { QuizSession } from "./QuizSession";
 import { FlashcardSession } from "./FlashcardSession";
@@ -393,6 +394,9 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
             : "Quiz gerado com sucesso!"
           );
 
+          // Trigger content refresh for all hooks (fallback for Realtime)
+          triggerContentRefresh();
+
           // Show warning if relevance is low
           if (quizResult?.warning) {
             toast.warning(quizResult.warning.message, {
@@ -408,10 +412,16 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
             ? `Flashcards gerados com sucesso (nível ${flashcardDiff})!`
             : "Flashcards gerados com sucesso!"
           );
+
+          // Trigger content refresh for all hooks (fallback for Realtime)
+          triggerContentRefresh();
           break;
         case 'summary':
           await generateSummary(selectedSourceIds);
           toast.success("Resumo gerado com sucesso!");
+
+          // Trigger content refresh for all hooks (fallback for Realtime)
+          triggerContentRefresh();
           break;
         case 'mindmap':
           await generateMindMap(selectedSourceIds, 'standard');
@@ -729,14 +739,14 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
         <div className="flex justify-center mb-4">
           <button
             onClick={() => setDifficultiesOpen(true)}
-            className="rounded-xl px-4 py-3 min-w-[280px] bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-[0_8px_30px_rgb(0,0,0,0.15),inset_0_1px_0_rgba(255,255,255,0.4),inset_0_-1px_0_rgba(0,0,0,0.2)] hover:shadow-[0_15px_40px_rgba(251,146,60,0.4),inset_0_1px_0_rgba(255,255,255,0.5),inset_0_-1px_0_rgba(0,0,0,0.3)] transition-all duration-300 backdrop-blur-xl border-2 border-white/40 relative overflow-hidden before:absolute before:inset-0 before:bg-[linear-gradient(135deg,rgba(255,255,255,0.4)_0%,rgba(255,255,255,0)_30%,rgba(255,255,255,0)_70%,rgba(255,255,255,0.3)_100%)] before:opacity-70 after:absolute after:inset-0 after:bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.6),transparent_60%)] after:opacity-0 hover:after:opacity-100 after:transition-opacity after:duration-500 hover:scale-[1.05] [box-shadow:0_2px_4px_rgba(255,255,255,0.3)_inset,0_8px_30px_rgba(0,0,0,0.15)] hover:[box-shadow:0_2px_8px_rgba(255,255,255,0.4)_inset,0_15px_40px_rgba(251,146,60,0.4)]"
+            className="text-sm rounded-xl px-4 py-2 min-w-[200px] bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-[0_8px_30px_rgb(0,0,0,0.15),inset_0_1px_0_rgba(255,255,255,0.4),inset_0_-1px_0_rgba(0,0,0,0.2)] hover:shadow-[0_15px_40px_rgba(251,146,60,0.4),inset_0_1px_0_rgba(255,255,255,0.5),inset_0_-1px_0_rgba(0,0,0,0.3)] transition-all duration-300 backdrop-blur-xl border-2 border-white/40 relative overflow-hidden before:absolute before:inset-0 before:bg-[linear-gradient(135deg,rgba(255,255,255,0.4)_0%,rgba(255,255,255,0)_30%,rgba(255,255,255,0)_70%,rgba(255,255,255,0.3)_100%)] before:opacity-70 after:absolute after:inset-0 after:bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.6),transparent_60%)] after:opacity-0 hover:after:opacity-100 after:transition-opacity after:duration-500 hover:scale-[1.05] [box-shadow:0_2px_4px_rgba(255,255,255,0.3)_inset,0_8px_30px_rgba(0,0,0,0.15)] hover:[box-shadow:0_2px_8px_rgba(255,255,255,0.4)_inset,0_15px_40px_rgba(251,146,60,0.4)]"
           >
             <div className="flex items-center justify-center gap-2 mb-1 relative z-10">
               <TrendingUp className="w-4 h-4 drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]" />
               <span className="font-medium drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]">Análise das Dificuldades</span>
             </div>
             {difficulties.length > 0 && (
-              <div className="flex items-center justify-center gap-1 text-xs opacity-90 relative z-10">
+              <div className="flex items-center justify-center gap-1 text-[10px] opacity-90 relative z-10">
                 <Lightbulb className="w-3 h-3" />
                 <span>{difficulties.length} dificuldade{difficulties.length !== 1 ? 's' : ''} rastreada{difficulties.length !== 1 ? 's' : ''}</span>
               </div>

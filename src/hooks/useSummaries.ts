@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './useAuth';
+import { CONTENT_REFRESH_EVENT } from '../lib/events';
 
 export interface Summary {
   id: string;
@@ -81,6 +82,20 @@ export const useSummaries = (projectId: string | null) => {
       supabase.removeChannel(channel);
     };
   }, [projectId, fetchSummaries]);
+
+  // Local event listener (fallback for when Realtime fails)
+  useEffect(() => {
+    const handleRefresh = () => {
+      console.log('[Events] Summaries refresh triggered by local event');
+      fetchSummaries();
+    };
+
+    window.addEventListener(CONTENT_REFRESH_EVENT, handleRefresh);
+
+    return () => {
+      window.removeEventListener(CONTENT_REFRESH_EVENT, handleRefresh);
+    };
+  }, [fetchSummaries]);
 
   const generateSummary = async (sourceIds?: string | string[]) => {
     if (!projectId && !sourceIds) throw new Error('Project or source required');

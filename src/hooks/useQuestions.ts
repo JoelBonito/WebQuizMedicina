@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './useAuth';
+import { CONTENT_REFRESH_EVENT } from '../lib/events';
 
 export interface Question {
   id: string;
@@ -87,6 +88,20 @@ export const useQuestions = (projectId: string | null) => {
       supabase.removeChannel(channel);
     };
   }, [projectId, fetchQuestions]);
+
+  // Local event listener (fallback for when Realtime fails)
+  useEffect(() => {
+    const handleRefresh = () => {
+      console.log('[Events] Questions refresh triggered by local event');
+      fetchQuestions();
+    };
+
+    window.addEventListener(CONTENT_REFRESH_EVENT, handleRefresh);
+
+    return () => {
+      window.removeEventListener(CONTENT_REFRESH_EVENT, handleRefresh);
+    };
+  }, [fetchQuestions]);
 
   const generateQuiz = async (sourceIds?: string | string[], count: number = 15, difficulty?: 'fácil' | 'médio' | 'difícil') => {
     if (!projectId && !sourceIds) throw new Error('Project or source required');
