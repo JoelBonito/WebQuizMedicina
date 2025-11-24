@@ -92,19 +92,28 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
             .replace(/²/g, '2')
             .replace(/³/g, '3')
             .replace(/¹/g, '1')
-            // Setas -> símbolos ASCII
-            .replace(/→/g, '->')
-            .replace(/←/g, '<-')
-            .replace(/↑/g, '^')
-            .replace(/↓/g, 'v')
-            .replace(/↔/g, '<->')
-            // Símbolos matemáticos -> ASCII
-            .replace(/≥/g, '>=')
-            .replace(/≤/g, '<=')
-            .replace(/≠/g, '!=')
-            .replace(/±/g, '+/-')
+            // Símbolos matemáticos PRIMEIRO (antes de substituir < e >)
+            .replace(/≥/g, 'maior ou igual a')
+            .replace(/≤/g, 'menor ou igual a')
+            .replace(/≠/g, 'diferente de')
+            .replace(/±/g, 'mais ou menos')
+            // Setas -> símbolos ASCII (antes de substituir < e >)
+            .replace(/↔/g, 'bidirecional')
+            .replace(/→/g, 'para')
+            .replace(/←/g, 'vem de')
+            .replace(/↑/g, 'aumenta')
+            .replace(/↓/g, 'diminui')
+            // Agora substitui < e > sozinhos
+            .replace(/>/g, 'maior que')
+            .replace(/</g, 'menor que')
             // Remove chaves residuais
-            .replace(/[\{\}]/g, '');
+            .replace(/[\{\}]/g, '')
+            // Remove caracteres de controle e invisíveis
+            .replace(/[\x00-\x1F\x7F-\x9F]/g, '')
+            // Remove espaços múltiplos
+            .replace(/\s+/g, ' ')
+            // Trim
+            .trim();
 
           // Retorna o texto limpo, sempre entre aspas
           return `${indent}"${cleanText}"`;
