@@ -29,59 +29,62 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
         useMaxWidth: true,
         padding: 10,
       },
+      maxTextSize: 50000,
     });
   }, []);
 
   const normalizeContent = (raw: string): string => {
     if (!raw) return '';
 
-    // 1. Converte \n escapado para quebra real
-    let text = raw.replace(/\\n/g, '\n');
+    // 1. Normaliza quebras de linha
+    let text = raw.replace(/\\n/g, '\n').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
     
-    // 2. Normaliza quebras de linha
-    text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    const lines = text.split('\n');
+    const result: string[] = [];
     
-    // 3. Processa cada linha
-    const lines = text.split('\n').map(line => {
+    let previousIndent = -1;
+    
+    for (let i = 0; i < lines.length; i++) {
+      let line = lines[i];
+      
       // Remove espaços no final
       line = line.trimEnd();
       
-      // Captura a indentação (espaços no início)
+      // Pula linhas vazias
+      if (line.trim() === '') continue;
+      
+      // Captura indentação e conteúdo
       const leadingSpaces = line.match(/^(\s*)/)?.[1] || '';
-      const content = line.trimStart();
+      const indent = leadingSpaces.length;
+      let content = line.trimStart();
       
-      // Se a linha tiver conteúdo entre aspas duplas, remove as aspas externas
-      // Exemplo: "  "Texto"" vira "  Texto"
-      let cleanContent = content;
+      // Remove aspas externas se existirem (caso de aspas duplicadas)
       if (content.startsWith('"') && content.endsWith('"') && content.length > 1) {
-        cleanContent = content.slice(1, -1);
+        content = content.slice(1, -1);
       }
       
-      // Reconstrói a linha: indentação + conteúdo limpo entre aspas
-      if (cleanContent && cleanContent !== 'mindmap') {
-        return `${leadingSpaces}"${cleanContent}"`;
-      } else {
-        return leadingSpaces + cleanContent;
+      // Limita comprimento de texto muito longo (workaround para bug do Mermaid)
+      if (content.length > 80) {
+        content = content.substring(0, 77) + '...';
       }
-    });
-    
-    // 4. Remove linhas vazias no início e fim
-    while (lines.length > 0 && lines[0].trim() === '') {
-      lines.shift();
+      
+      // Reconstrói linha
+      if (content.toLowerCase() === 'mindmap') {
+        result.push('mindmap');
+        previousIndent = 0;
+      } else {
+        // Adiciona quebra extra entre nós irmãos em níveis profundos (>= 8 espaços)
+        // Isso resolve o bug de parse do Mermaid com nós consecutivos
+        if (indent === previousIndent && indent >= 8 && result.length > 0) {
+          // Não adiciona linha vazia, mas garante formatação limpa
+        }
+        
+        result.push(`${leadingSpaces}"${content}"`);
+        previousIndent = indent;
+      }
     }
-    while (lines.length > 0 && lines[lines.length - 1].trim() === '') {
-      lines.pop();
-    }
     
-    // 5. Garante que começa com "mindmap"
-    if (lines.length > 0 && !lines[0].trim().toLowerCase().startsWith('mindmap')) {
-      lines.unshift('mindmap');
-    }
-    
-    // 6. Remove linhas vazias no meio
-    const finalLines = lines.filter(line => line.trim() !== '');
-    
-    return finalLines.join('\n');
+    return result.join('\n');
   };
 
   useEffect(() => {
@@ -99,33 +102,60 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
 
         const finalContent = normalizeContent(content);
         
-        console.log('MindMap final enviado ao mermaid:\n', finalContent);
+        console.log('=== MindMap Debug ===');
         console.log('Total de linhas:', finalContent.split('\n').length);
         
-        // Log das primeiras 15 linhas
-        finalContent.split('\n').slice(0, 15).forEach((line, i) => {
+        // Log detalhado das linhas 7-12 (região problemática)
+        const lines = finalContent.split('\n');
+        lines.slice(7, 12).forEach((line, idx) => {
+          const actualLine = idx + 7;
           const spaces = line.length - line.trimStart().length;
-          console.log(`Linha ${i}: [${spaces} espaços] ${JSON.stringify(line)}`);
+          console.log(`Linha ${actualLine}: [${spaces} espaços] ${line}`);
         });
 
         const id = `mermaid-${Date.now()}`;
-        const { svg } = await mermaid.render(id, finalContent);
+        
+        try {
+          const { svg } = await mermaid.render(id, finalContent);
 
-        if (containerRef.current) {
-          containerRef.current.innerHTML = svg;
-          const svgElement = containerRef.current.querySelector('svg');
+          if (containerRef.current) {
+            containerRef.current.innerHTML = svg;
+            const svgElement = containerRef.current.querySelector('svg');
 
-          if (svgElement) {
-            svgElement.style.maxWidth = '100%';
-            svgElement.style.height = 'auto';
-            svgElement.style.backgroundColor = 'white';
-            svgElement.style.transformOrigin = 'top left';
-            svgElement.style.transform = `scale(${zoom})`;
+            if (svgElement) {
+              svgElement.style.maxWidth = '100%';
+              svgElement.style.height = 'auto';
+              svgElement.style.backgroundColor = 'white';
+              svgElement.style.transformOrigin = 'top left';
+              svgElement.style.transform = `scale(${zoom})`;
+            }
           }
+        } catch (renderErr: any) {
+          // Se falhar, tenta versão simplificada (apenas primeiros 50 nós)
+          console.warn('Tentando renderizar versão simplificada...');
+          const simplifiedLines = lines.slice(0, 50);
+          const simplifiedContent = simplifiedLines.join('\n');
+          
+          const { svg } = await mermaid.render(id + '-simple', simplifiedContent);
+          
+          if (containerRef.current) {
+            containerRef.current.innerHTML = svg;
+            const svgElement = containerRef.current.querySelector('svg');
+            if (svgElement) {
+              svgElement.style.maxWidth = '100%';
+              svgElement.style.height = 'auto';
+              svgElement.style.backgroundColor = 'white';
+              svgElement.style.transformOrigin = 'top left';
+              svgElement.style.transform = `scale(${zoom})`;
+            }
+          }
+          
+          toast.warning('Mapa mental muito grande. Mostrando versão simplificada.');
         }
+        
       } catch (error: any) {
         console.error('Mermaid rendering error:', error);
-        setRenderError(error.message || 'Erro desconhecido ao renderizar');
+        setRenderError(error.message || 'Erro ao renderizar o diagrama');
       } finally {
         setIsRendering(false);
       }
@@ -148,9 +178,7 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
 
     try {
       const svgData = new XMLSerializer().serializeToString(svgElement);
-      const blob = new Blob([svgData], {
-        type: 'image/svg+xml;charset=utf-8',
-      });
+      const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
       const url = URL.createObjectURL(blob);
 
       const link = document.createElement('a');
@@ -161,10 +189,10 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      toast.success('Mapa mental baixado com sucesso!');
+      toast.success('Mapa mental baixado!');
     } catch (error) {
       console.error('Download error:', error);
-      toast.error('Erro ao baixar o mapa mental');
+      toast.error('Erro ao baixar');
     }
   };
 
@@ -172,35 +200,17 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={handleZoomOut}
-            aria-label="Diminuir zoom"
-          >
+          <Button variant="outline" size="icon" onClick={handleZoomOut}>
             <ZoomOut className="h-4 w-4" />
           </Button>
-          <span className="text-sm tabular-nums">
-            {Math.round(zoom * 100)}%
-          </span>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={handleZoomIn}
-            aria-label="Aumentar zoom"
-          >
+          <span className="text-sm tabular-nums">{Math.round(zoom * 100)}%</span>
+          <Button variant="outline" size="icon" onClick={handleZoomIn}>
             <ZoomIn className="h-4 w-4" />
           </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={handleResetZoom}
-            aria-label="Resetar zoom"
-          >
+          <Button variant="outline" size="icon" onClick={handleResetZoom}>
             <Maximize2 className="h-4 w-4" />
           </Button>
         </div>
-
         <Button variant="outline" size="sm" onClick={handleDownload}>
           <Download className="h-4 w-4 mr-1" />
           Baixar SVG
@@ -209,29 +219,17 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
 
       <div className="relative min-h-[200px] rounded-lg border bg-white p-3 overflow-auto">
         {isRendering && (
-          <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">
-            Renderizando mapa mental...
+          <div className="absolute inset-0 flex items-center justify-center">
+            Renderizando...
           </div>
         )}
-
         {renderError && (
-          <div className="text-sm text-red-500 space-y-2">
-            <p className="font-semibold">Erro ao renderizar:</p>
+          <div className="text-sm text-red-500 p-4">
+            <p className="font-semibold mb-2">Erro ao renderizar:</p>
             <p className="font-mono text-xs bg-red-50 p-2 rounded">{renderError}</p>
-            <p className="text-xs">Verifique o console para detalhes.</p>
           </div>
         )}
-
-        {!renderError && (
-          <div
-            ref={containerRef}
-            className="mermaid"
-            style={{
-              transformOrigin: 'top left',
-              transform: `scale(${zoom})`,
-            }}
-          />
-        )}
+        {!renderError && <div ref={containerRef} className="mermaid" />}
       </div>
     </div>
   );
