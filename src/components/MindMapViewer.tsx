@@ -10,7 +10,14 @@ import { toast } from 'sonner';
  */
 function sanitizeMermaidCode(code: string): string {
   // Convert literal \n to actual newlines if needed
-  const normalizedCode = code.replace(/\\n/g, '\n');
+  let normalizedCode = code.replace(/\\n/g, '\n');
+
+  // Remove stray quotes that appear after valid shapes like ))" or ]"
+  // This fixes cases where AI adds quotes incorrectly
+  normalizedCode = normalizedCode.replace(/(\)\)|\]|\})\s*"/g, '$1\n');
+
+  // Remove isolated quotes at the start of words (like " Anti-inflamató)
+  normalizedCode = normalizedCode.replace(/\s+"\s+/g, '\n  ');
 
   const lines = normalizedCode.split('\n');
   const processedLines = lines.map(line => {
@@ -21,38 +28,44 @@ function sanitizeMermaidCode(code: string): string {
     const [_, indent, text] = match;
     const trimmedText = text.trim();
 
+    // Skip empty lines
+    if (!trimmedText) return line;
+
     // Don't modify structural keywords
     if (trimmedText === 'mindmap' || trimmedText.startsWith('graph ')) {
       return line;
     }
 
-    // Already quoted - leave as is
-    if (trimmedText.startsWith('"') && trimmedText.endsWith('"')) {
+    // Remove any trailing/leading stray quotes
+    let cleanedText = trimmedText.replace(/^"\s*/, '').replace(/\s*"$/, '');
+
+    // Already properly quoted - leave as is
+    if (trimmedText.startsWith('"') && trimmedText.endsWith('"') && trimmedText.length > 2) {
       return line;
     }
 
     // Valid Mermaid shapes that should not be quoted
     // ((text)), [text], {text}, (text), [[text]], etc.
-    const isValidShape = /^[\(\[\{][\(\[\{]?.+[\)\]\}][\)\]\}]?$/.test(trimmedText);
+    const isValidShape = /^[\(\[\{][\(\[\{]?.+[\)\]\}][\)\]\}]?$/.test(cleanedText);
     if (isValidShape) {
-      return line;
+      return `${indent}${cleanedText}`;
     }
 
     // Arrow syntax - don't quote
-    if (trimmedText.includes('-->') || trimmedText.includes('---')) {
-      return line;
+    if (cleanedText.includes('-->') || cleanedText.includes('---')) {
+      return `${indent}${cleanedText}`;
     }
 
     // Check if text contains problematic characters
-    const hasProblematicChars = /[():\[\]]/.test(trimmedText);
+    const hasProblematicChars = /[():\[\]]/.test(cleanedText);
 
     if (hasProblematicChars) {
       // Escape internal quotes by replacing " with '
-      const escapedText = trimmedText.replace(/"/g, "'");
+      const escapedText = cleanedText.replace(/"/g, "'");
       return `${indent}"${escapedText}"`;
     }
 
-    return line;
+    return `${indent}${cleanedText}`;
   });
 
   return processedLines.join('\n');
