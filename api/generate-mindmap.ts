@@ -164,10 +164,11 @@ INSTRUÇÕES TÉCNICAS (CRÍTICO - SIGA EXATAMENTE):
 3.  **SEM IDs**: NUNCA use identificadores como n1, n2, id, root, etc. Use APENAS texto puro entre aspas.
 4.  **SEM FORMAS**: NUNCA use ((...)), [...], {{...}}, (()), [], {} ou qualquer definição de forma.
 5.  **PARÊNTESES**: Prefira colchetes [] em vez de parênteses (). Ex: "[Adultos]" em vez de "(Adultos)".
-6.  **INDENTAÇÃO**: A hierarquia é definida APENAS pela indentação (2 espaços por nível).
-7.  **ASPAS**: TODO texto de cada nó deve estar entre aspas duplas. Exemplo: "Insuficiência Cardíaca".
-8.  **ESCAPING**: Como é JSON, escape aspas duplas internas com \\" e quebras de linha com \\n.
-9.  **SEM MARKDOWN**: Não coloque \`\`\`mermaid dentro do JSON. Apenas o código puro.
+6.  **CARACTERES SIMPLES**: Use ASCII simples. Evite Unicode: ², ³, →, ↓, ↑, ≥, ≤. Use: 2, 3, ->, v, ^, >=, <=.
+7.  **INDENTAÇÃO**: A hierarquia é definida APENAS pela indentação (2 espaços por nível).
+8.  **ASPAS**: TODO texto de cada nó deve estar entre aspas duplas. Exemplo: "Insuficiência Cardíaca".
+9.  **ESCAPING**: Como é JSON, escape aspas duplas internas com \\" e quebras de linha com \\n.
+10. **SEM MARKDOWN**: Não coloque \`\`\`mermaid dentro do JSON. Apenas o código puro.
 
 ESTRUTURA DO MAPA:
 - Raiz: Tema central entre aspas.
