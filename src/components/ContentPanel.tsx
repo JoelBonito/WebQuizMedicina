@@ -613,7 +613,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
           )}
 
         {/* Grid de Botões de Ação */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
           {ACTION_CARDS.map(card => {
             const CardIcon = card.icon;
             const showSettings = card.id === 'quiz' || card.id === 'flashcards';
@@ -634,8 +634,8 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
                   disabled={isButtonGenerating}
                   className={`
                     ${card.bgColor}
-                    relative p-5 rounded-2xl w-full
-                    flex flex-col items-start gap-2
+                    relative p-4 md:p-3.5 rounded-2xl w-full
+                    flex flex-col items-start gap-1.5 md:gap-2
                     shadow-[0_8px_30px_rgb(0,0,0,0.15),inset_0_1px_0_rgba(255,255,255,0.4),inset_0_-1px_0_rgba(0,0,0,0.2)]
                     hover:shadow-[0_15px_40px_rgb(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.5),inset_0_-1px_0_rgba(0,0,0,0.3)]
                     transition-all duration-300
@@ -658,10 +658,10 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
                   `}
                 >
                   {/* Ícone */}
-                  <CardIcon className={`w-7 h-7 ${card.iconColor} relative z-10 drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)] mt-[-4px]`} />
+                  <CardIcon className={`w-6 h-6 md:w-5 md:h-5 ${card.iconColor} relative z-10 drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)] mt-[-2px]`} />
 
                   {/* Título */}
-                  <span className={`font-semibold text-base ${card.textColor} relative z-10 drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]`}>
+                  <span className={`font-semibold text-sm md:text-xs ${card.textColor} relative z-10 drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]`}>
                     {card.title}
                   </span>
 
@@ -678,8 +678,8 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
                   const diffLevel = currentDifficulty === 'todos' ? 'misto' : (currentDifficulty as 'fácil' | 'médio' | 'difícil');
                   const DiffIcon = getDifficultyIcon(diffLevel);
                   return (
-                    <div className="absolute bottom-3 right-3 text-[10px] font-bold text-white/90 flex items-center gap-1 z-10 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
-                      <DiffIcon className="w-2.5 h-2.5" />
+                    <div className="absolute bottom-2 md:bottom-2 right-2 md:right-2 text-[9px] md:text-[8px] font-bold text-white/90 flex items-center gap-0.5 md:gap-1 z-10 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
+                      <DiffIcon className="w-2 h-2 md:w-2 md:h-2" />
                       <span>{currentDifficulty === 'todos' ? 'misto' : currentDifficulty}</span>
                     </div>
                   );
@@ -691,10 +691,10 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
                     <DropdownMenuTrigger asChild>
                       <button
                         onClick={(e) => e.stopPropagation()}
-                        className="absolute top-3 right-3 p-1.5 rounded-lg hover:scale-110 transition-all z-10 group/edit"
+                        className="absolute top-2 md:top-2 right-2 md:right-2 p-1 md:p-1 rounded-lg hover:scale-110 transition-all z-10 group/edit"
                         aria-label="Editar dificuldade"
                       >
-                        <Edit className="w-4 h-4 text-white/90 group-hover/edit:text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
+                        <Edit className="w-3.5 h-3.5 md:w-3 md:h-3 text-white/90 group-hover/edit:text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48">
