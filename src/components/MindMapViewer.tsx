@@ -32,7 +32,7 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
     });
   }, []);
 
-  // Render mermaid diagram when content changes
+// Render mermaid diagram when content changes
   useEffect(() => {
     if (!content || !containerRef.current) return;
 
@@ -45,18 +45,17 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
           containerRef.current.innerHTML = '';
         }
 
-        // --- LIMPEZA ROBUSTA ---
-        // 1. Normaliza quebras de linha
+        // --- SANITIZER CORRIGIDO (SEM IDs) ---
         let rawLines = content.replace(/\\n/g, '\n').split('\n');
 
-        const processedLines = rawLines.map(line => {
+        const processedLines = rawLines.map((line) => { // Removemos o index aqui
           const trimmed = line.trim();
+          
+          // Mantém cabeçalho 'mindmap'
+          if (trimmed === 'mindmap') return 'mindmap';
+          if (!trimmed) return '';
 
-          // Mantém o cabeçalho mindmap
-          if (trimmed === 'mindmap') return line;
-          if (!trimmed) return line; // Mantém linhas vazias
-
-          // Preserva a indentação original
+          // Preserva a indentação original (CRUCIAL)
           const indentMatch = line.match(/^(\s*)/);
           const indent = indentMatch ? indentMatch[1] : '';
 
@@ -90,33 +89,34 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
           return `${indent}"${cleanText}"`;
         });
 
-        // Garante que começa com mindmap
-        if (processedLines.length > 0 && !processedLines[0].includes('mindmap')) {
-          processedLines.unshift('mindmap');
+        // Reconstrói o conteúdo
+        const finalLines = processedLines.filter(l => l !== '');
+        
+        // Garante o cabeçalho mindmap se não existir
+        if (finalLines.length > 0 && !finalLines[0].includes('mindmap')) {
+            finalLines.unshift('mindmap');
         }
 
-        const finalContent = processedLines.join('\n');
-        console.log('[MindMap] Conteúdo sanitizado:', finalContent);
-        // -----------------------
+        const finalContent = finalLines.join('\n');
+        console.log('MindMap Corrigido:', finalContent); // Debug
+        // --------------------------------------
 
         const id = `mermaid-${Date.now()}`;
         const { svg } = await mermaid.render(id, finalContent);
 
         if (containerRef.current) {
           containerRef.current.innerHTML = svg;
-
+          
           const svgElement = containerRef.current.querySelector('svg');
           if (svgElement) {
             svgElement.style.maxWidth = '100%';
             svgElement.style.height = 'auto';
-            svgElement.style.backgroundColor = 'white';
+            svgElement.style.backgroundColor = 'white'; // Garante visibilidade
           }
         }
       } catch (error: any) {
         console.error('Mermaid rendering error:', error);
-        console.log('Conteúdo original que falhou:', content);
-        setRenderError('Erro ao renderizar. Tente gerar novamente.');
-        toast.error('Erro ao renderizar o diagrama');
+        setRenderError('Erro ao visualizar. Tente gerar novamente.');
       } finally {
         setIsRendering(false);
       }
@@ -124,7 +124,7 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
 
     renderDiagram();
   }, [content]);
-
+  
   const handleZoomIn = () => {
     setZoom((prev) => Math.min(prev + 0.2, 3));
   };
