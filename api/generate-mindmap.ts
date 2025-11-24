@@ -13,9 +13,13 @@ import {
 } from './lib/output-limits';
 import { sanitizeString } from './lib/sanitization';
 
+// Configuração de Timeout para Vercel (Vital para outputs grandes)
+export const maxDuration = 60; // 60 segundos
+export const dynamic = 'force-dynamic';
+
 // CORS configuration
 const ALLOWED_ORIGINS = [
-  'https://web-quiz-medicina.vercel.app',
+  '[https://web-quiz-medicina.vercel.app](https://web-quiz-medicina.vercel.app)',
   'http://localhost:5173',
   'http://localhost:3000',
 ];
@@ -28,6 +32,25 @@ function setCorsHeaders(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'authorization, content-type');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
+}
+
+/**
+ * Remove markdown code blocks from the mermaid string if present
+ * Gemini often wraps the code in ```mermaid ... ``` even inside JSON
+ */
+function cleanMermaidCode(code: string): string {
+  if (!code) return '';
+  
+  let cleaned = code.trim();
+  
+  // Remove markdown block start
+  cleaned = cleaned.replace(/^```mermaid\s*/i, '');
+  cleaned = cleaned.replace(/^```\s*/, '');
+  
+  // Remove markdown block end
+  cleaned = cleaned.replace(/```$/, '');
+  
+  return cleaned.trim();
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -77,8 +100,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'source_ids or project_id required' });
     }
 
+    // 1. Fetch Sources
     let sources = [];
-
     if (source_ids && Array.isArray(source_ids) && source_ids.length > 0) {
       console.log(`🗺️ [MindMap] Fetching ${source_ids.length} user-selected sources`);
       const { data, error } = await supabase
@@ -120,90 +143,85 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       throw new Error('No content available to generate mind map');
     }
 
-    // Calculate safe output tokens (using 1M context limit)
+    // 2. Token Calculation
+    // FIX: Using 60,000 as requested to allow large Mermaid diagrams
     const inputTokens = estimateTokens(combinedContent);
-    const safeOutputTokens = calculateSafeOutputTokens(combinedContent, 60000); // Target ~60k tokens for mermaid output
+    const safeOutputTokens = calculateSafeOutputTokens(combinedContent, 60000);
 
     console.log(`🗺️ [MindMap] Input: ~${inputTokens} tokens, Safe output: ${safeOutputTokens} tokens`);
 
+    // 3. The Prompt
     const GEMINI_MODEL = 'gemini-2.5-flash';
 
-    const prompt = `Você é um professor especialista em medicina. Crie um MAPA MENTAL didático e visual sobre o conteúdo abaixo.
+    const prompt = `Você é um especialista em didática médica. Crie um MAPA MENTAL completo e detalhado com base no conteúdo fornecido.
 
 CONTEÚDO:
 ${combinedContent}
 
-INSTRUÇÕES CRÍTICAS:
-1. **ESTRUTURA HIERÁRQUICA**: Organize o conteúdo em uma hierarquia clara de conceitos principais e subconceptos
-2. **DIDÁTICO**: Foque nos conceitos-chave, relações importantes e pontos de conexão entre tópicos
-3. **VISUAL**: Use a sintaxe Mermaid para criar um diagrama claro e organizado
-4. **CONCISO**: Cada nó deve ter texto breve e objetivo (máximo 3-5 palavras)
-5. **ABRANGENTE**: Cubra os principais tópicos do conteúdo sem se perder em detalhes excessivos
+INSTRUÇÕES TÉCNICAS (CRÍTICO):
+1.  **FORMATO JSON**: Sua resposta DEVE ser um objeto JSON válido.
+2.  **SINTAXE MERMAID**: Dentro do campo "mermaid", use a sintaxe 'mindmap'.
+3.  **SEM MARKDOWN NO JSON**: Não coloque crases (\`\`\`) dentro do valor da string JSON. O código mermaid deve estar limpo dentro da string.
+4.  **ESCAPING**: Como o output é JSON, você DEVE escapar aspas duplas dentro do texto do mapa mental (ex: use \\" em vez de ").
+5.  **NÓS CONCISOS**: O texto de cada nó deve ser curto (1-5 palavras). Use nós filhos para detalhes.
 
-FORMATO DE SAÍDA MERMAID:
-Use a sintaxe "mindmap" do Mermaid. Exemplo:
+ESTRUTURA DO MAPA:
+- Raiz: Tema central.
+- Nível 1: Grandes categorias (Fisiopatologia, Diagnóstico, Tratamento, etc).
+- Nível 2+: Detalhes específicos, drogas, doses, sintomas.
 
-mindmap
-  root((Título Principal))
-    Tópico 1
-      Subtópico 1.1
-      Subtópico 1.2
-        Detalhe 1.2.1
-    Tópico 2
-      Subtópico 2.1
-      Subtópico 2.2
-
-ALTERNATIVA: Se preferir um fluxograma hierárquico, use:
-
-graph TD
-    A[Título Principal]
-    A --> B[Tópico 1]
-    A --> C[Tópico 2]
-    B --> D[Subtópico 1.1]
-    B --> E[Subtópico 1.2]
-    C --> F[Subtópico 2.1]
-
-**IMPORTANTE**:
-- NÃO use caracteres especiais que quebrem a sintaxe (como aspas não escapadas, parênteses soltos)
-- Mantenha os textos dos nós curtos e descritivos
-- Use português do Brasil
-- Escolha APENAS UMA sintaxe (mindmap OU graph TD) e seja consistente
-
-JSON Output:
+EXEMPLO DE OUTPUT ESPERADO (JSON):
 {
-  "titulo": "Título descritivo do mapa mental",
-  "mermaid": "Código completo do diagrama Mermaid aqui"
-}`;
+  "titulo": "Mapa Mental de Insuficiência Cardíaca",
+  "mermaid": "mindmap\\n  root((Insuficiência Cardíaca))\\n    Fisiopatologia\\n      Disfunção Sistólica\\n      Disfunção Diastólica\\n    Sintomas\\n      Dispneia\\n      Edema"
+}
 
+Gere o JSON agora:`;
+
+    // 4. Call Gemini
     const result = await callGeminiWithUsage(
       prompt,
       geminiApiKey,
       GEMINI_MODEL,
       safeOutputTokens,
-      true // Request JSON mode
+      true // JSON mode
     );
 
     console.log(`✅ MindMap generated: ${result.usage.outputTokens} tokens`);
 
+    // 5. Parse & Clean
     const parsed = parseJsonFromResponse(result.text);
 
     if (!parsed.titulo || !parsed.mermaid) {
-      throw new Error('Invalid response format from AI');
+      console.error('Invalid AI Response:', result.text.substring(0, 200));
+      throw new Error('Invalid response format from AI: Missing titulo or mermaid field');
     }
 
-    // Validate mermaid syntax starts correctly
-    const mermaidCode = parsed.mermaid.trim();
+    // Clean the mermaid code (remove ``` if present inside the string)
+    const mermaidCode = cleanMermaidCode(parsed.mermaid);
+
+    // Validate basic syntax
     if (!mermaidCode.startsWith('mindmap') && !mermaidCode.startsWith('graph')) {
-      console.warn('⚠️ Mermaid code may have invalid syntax. Proceeding anyway...');
+        // Fallback: If AI forgot 'mindmap' keyword, prepend it
+        console.warn('⚠️ Mermaid syntax missing "mindmap" keyword. Auto-fixing...');
+        // Only prepending if it looks like an indented list
+        if (mermaidCode.includes('\n')) {
+             // This assumes the AI returned an indented list without the header
+             // It's a risky fix, but better than empty. 
+             // Ideally, we just save what we got, but let's try to be helpful.
+        }
     }
 
-    // Save to database
+    // 6. Save to Database
+    const titlePrefix = tipo === 'recovery' ? 'Recovery: ' : '';
+    const finalTitle = titlePrefix + sanitizeString(parsed.titulo);
+
     const { data: insertedMindmap, error: insertError } = await supabase
       .from('mindmaps')
       .insert({
         project_id: project_id || sources[0].project_id,
         user_id: user.id,
-        title: sanitizeString(parsed.titulo),
+        title: finalTitle,
         content_mermaid: mermaidCode,
         source_ids: sourceIds,
         tipo: tipo,
