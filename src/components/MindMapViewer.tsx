@@ -83,11 +83,28 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
           cleanText = cleanText.replace(/"/g, "'");
 
           // Remove/substitui caracteres que causam problemas no Mermaid
-          // Parênteses são interpretados como definições de forma pelo parser
+          // 1. Parênteses são interpretados como definições de forma
           cleanText = cleanText.replace(/\(/g, '[').replace(/\)/g, ']');
 
-          // Remove outros caracteres residuais de formas
-          cleanText = cleanText.replace(/[\{\}]/g, '');
+          // 2. Remove caracteres Unicode problemáticos
+          cleanText = cleanText
+            // Superscripts -> números normais
+            .replace(/²/g, '2')
+            .replace(/³/g, '3')
+            .replace(/¹/g, '1')
+            // Setas -> símbolos ASCII
+            .replace(/→/g, '->')
+            .replace(/←/g, '<-')
+            .replace(/↑/g, '^')
+            .replace(/↓/g, 'v')
+            .replace(/↔/g, '<->')
+            // Símbolos matemáticos -> ASCII
+            .replace(/≥/g, '>=')
+            .replace(/≤/g, '<=')
+            .replace(/≠/g, '!=')
+            .replace(/±/g, '+/-')
+            // Remove chaves residuais
+            .replace(/[\{\}]/g, '');
 
           // Retorna o texto limpo, sempre entre aspas
           return `${indent}"${cleanText}"`;
