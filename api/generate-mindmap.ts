@@ -161,40 +161,22 @@ ${combinedContent}
 INSTRUÇÕES TÉCNICAS (CRÍTICO):
 1.  **FORMATO JSON**: Sua resposta DEVE ser um objeto JSON válido.
 2.  **SINTAXE MERMAID**: Dentro do campo "mermaid", use a sintaxe 'mindmap'.
-3.  **SEM MARKDOWN NO JSON**: Não coloque crases (\`\`\`) dentro do valor da string JSON. O código mermaid deve estar limpo dentro da string.
-4.  **ESCAPING**: Como o output é JSON, você DEVE escapar aspas duplas dentro do texto do mapa mental (ex: use \\" em vez de ").
-5.  **NÓS CONCISOS**: O texto de cada nó deve ser curto (1-5 palavras). Use nós filhos para detalhes.
+3.  **ESTRUTURA LIMPA**: NÃO use definições de forma como ((...)), [...], ou {{...}}. Use APENAS o texto do nó.
+4.  **INDENTAÇÃO**: A hierarquia é definida APENAS pela indentação (2 espaços por nível).
+5.  **ASPAS**: Coloque TODO o texto de cada nó entre aspas duplas. Exemplo: "Insuficiência Cardíaca".
+6.  **ESCAPING**: Como é JSON, escape aspas duplas internas com \\" e quebras de linha com \\n.
+7.  **SEM MARKDOWN**: Não coloque \`\`\`mermaid dentro do JSON. Apenas o código puro.
 
 ESTRUTURA DO MAPA:
-- Raiz: Tema central.
-- Nível 1: Grandes categorias (Fisiopatologia, Diagnóstico, Tratamento, etc).
+- Raiz: Tema central (sem forma, apenas "Texto").
+- Nível 1: Grandes categorias (Fisiopatologia, Diagnóstico, Tratamento).
 - Nível 2+: Detalhes específicos, drogas, doses, sintomas.
-
-INSTRUÇÕES CRÍTICAS DE SINTAXE MERMAID:
-1. **CARACTERES ESPECIAIS**: Se um texto de nó contiver parênteses '()', dois pontos ':', colchetes '[]' ou vírgulas ',', você DEVE envolver todo o texto entre aspas duplas.
-
-   Exemplos CORRETOS:
-   - "Hidralazina (Arterial): Uso em Pré-eclâmpsia"
-   - "Dose: 5-10mg IV"
-   - "Contraindicações [Importantes]"
-
-   Exemplos ERRADOS (causam erro de parsing):
-   - Hidralazina (Arterial): Uso em Pré-eclâmpsia
-   - Dose: 5-10mg IV
-
-2. **ESCAPE DE ASPAS**: Se o texto já contiver aspas duplas internas, substitua-as por aspas simples antes de envolver em aspas duplas.
-   Exemplo: "Medicamento 'especial' (uso criterioso)"
-
-3. **NO JSON**: Como o output é JSON, você deve escapar quebras de linha (\\n) e aspas duplas (\\").
-
-4. **SINTAXE VÁLIDA**: Use apenas a sintaxe 'mindmap', sem caracteres especiais soltos fora de aspas.
-
-5. **PORTUGUÊS DO BRASIL**: Use apenas português brasileiro.
+- Use indentação consistente de 2 espaços por nível.
 
 EXEMPLO DE OUTPUT ESPERADO (JSON):
 {
   "titulo": "Mapa Mental de Insuficiência Cardíaca",
-  "mermaid": "mindmap\\n  root((Insuficiência Cardíaca))\\n    Fisiopatologia\\n      Disfunção Sistólica\\n      Disfunção Diastólica\\n    Sintomas\\n      Dispneia\\n      Edema"
+  "mermaid": "mindmap\\n  \\"Insuficiência Cardíaca\\"\\n    \\"Fisiopatologia\\"\\n      \\"Disfunção Sistólica\\"\\n      \\"Disfunção Diastólica\\"\\n    \\"Sintomas\\"\\n      \\"Dispneia\\"\\n      \\"Edema\\""
 }
 
 Gere o JSON agora:`;

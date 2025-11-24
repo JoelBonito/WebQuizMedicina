@@ -4,73 +4,6 @@ import { Button } from './ui/button';
 import { ZoomIn, ZoomOut, Maximize2, Download } from 'lucide-react';
 import { toast } from 'sonner';
 
-/**
- * Sanitizes Mermaid code to prevent parsing errors from special characters
- * Wraps text containing (), :, [], etc. in quotes if not already quoted
- */
-function sanitizeMermaidCode(code: string): string {
-  // Convert literal \n to actual newlines if needed
-  let normalizedCode = code.replace(/\\n/g, '\n');
-
-  // Remove stray quotes that appear after valid shapes like ))" or ]"
-  // This fixes cases where AI adds quotes incorrectly
-  normalizedCode = normalizedCode.replace(/(\)\)|\]|\})\s*"/g, '$1\n');
-
-  // Remove isolated quotes at the start of words (like " Anti-inflamató)
-  normalizedCode = normalizedCode.replace(/\s+"\s+/g, '\n  ');
-
-  const lines = normalizedCode.split('\n');
-  const processedLines = lines.map(line => {
-    // Match line with optional indentation and content
-    const match = line.match(/^(\s*)(.+)$/);
-    if (!match) return line;
-
-    const [_, indent, text] = match;
-    const trimmedText = text.trim();
-
-    // Skip empty lines
-    if (!trimmedText) return line;
-
-    // Don't modify structural keywords
-    if (trimmedText === 'mindmap' || trimmedText.startsWith('graph ')) {
-      return line;
-    }
-
-    // Remove any trailing/leading stray quotes
-    let cleanedText = trimmedText.replace(/^"\s*/, '').replace(/\s*"$/, '');
-
-    // Already properly quoted - leave as is
-    if (trimmedText.startsWith('"') && trimmedText.endsWith('"') && trimmedText.length > 2) {
-      return line;
-    }
-
-    // Valid Mermaid shapes that should not be quoted
-    // ((text)), [text], {text}, (text), [[text]], etc.
-    const isValidShape = /^[\(\[\{][\(\[\{]?.+[\)\]\}][\)\]\}]?$/.test(cleanedText);
-    if (isValidShape) {
-      return `${indent}${cleanedText}`;
-    }
-
-    // Arrow syntax - don't quote
-    if (cleanedText.includes('-->') || cleanedText.includes('---')) {
-      return `${indent}${cleanedText}`;
-    }
-
-    // Check if text contains problematic characters
-    const hasProblematicChars = /[():\[\]]/.test(cleanedText);
-
-    if (hasProblematicChars) {
-      // Escape internal quotes by replacing " with '
-      const escapedText = cleanedText.replace(/"/g, "'");
-      return `${indent}"${escapedText}"`;
-    }
-
-    return `${indent}${cleanedText}`;
-  });
-
-  return processedLines.join('\n');
-}
-
 interface MindMapViewerProps {
   content: string; // Mermaid diagram code
   title?: string;
@@ -108,34 +41,68 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
       setRenderError(null);
 
       try {
-        // Clear previous diagram
         if (containerRef.current) {
           containerRef.current.innerHTML = '';
         }
 
-        // Generate unique ID for this diagram
+        // --- LIMPEZA ROBUSTA ---
+        // 1. Normaliza quebras de linha
+        let rawLines = content.replace(/\\n/g, '\n').split('\n');
+
+        const processedLines = rawLines.map(line => {
+          const trimmed = line.trim();
+
+          // Mantém o cabeçalho mindmap
+          if (trimmed === 'mindmap') return line;
+          if (!trimmed) return line; // Mantém linhas vazias
+
+          // Preserva a indentação original
+          const indentMatch = line.match(/^(\s*)/);
+          const indent = indentMatch ? indentMatch[1] : '';
+
+          // Remove definições de forma do Mermaid (ex: ((Texto)) -> Texto)
+          // Remove id((Texto)) ou root((Texto)) ou apenas ((Texto))
+          let cleanText = trimmed
+            .replace(/^[\w\d_]+\s*[\(\[\{]+/, '') // Remove ID e inicio da forma (ex: id(( )
+            .replace(/^[\(\[\{]+/, '')            // Remove inicio da forma sem ID (ex: (( )
+            .replace(/[\)\]\}]+$/, '');           // Remove fim da forma (ex: )) )
+
+          // Remove aspas existentes para evitar duplicação
+          cleanText = cleanText.replace(/^"|"$/g, '');
+
+          // Escapa aspas internas que sobraram
+          cleanText = cleanText.replace(/"/g, "'");
+
+          // Retorna o texto limpo, sempre entre aspas para segurança
+          return `${indent}"${cleanText}"`;
+        });
+
+        // Garante que começa com mindmap
+        if (processedLines.length > 0 && !processedLines[0].includes('mindmap')) {
+          processedLines.unshift('mindmap');
+        }
+
+        const finalContent = processedLines.join('\n');
+        console.log('[MindMap] Conteúdo sanitizado:', finalContent);
+        // -----------------------
+
         const id = `mermaid-${Date.now()}`;
+        const { svg } = await mermaid.render(id, finalContent);
 
-        // Sanitize mermaid code to prevent parsing errors from special characters
-        const sanitizedContent = sanitizeMermaidCode(content);
-
-        // Render the diagram
-        const { svg } = await mermaid.render(id, sanitizedContent);
-
-        // Insert the rendered SVG
         if (containerRef.current) {
           containerRef.current.innerHTML = svg;
 
-          // Add responsive scaling
           const svgElement = containerRef.current.querySelector('svg');
           if (svgElement) {
             svgElement.style.maxWidth = '100%';
             svgElement.style.height = 'auto';
+            svgElement.style.backgroundColor = 'white';
           }
         }
       } catch (error: any) {
         console.error('Mermaid rendering error:', error);
-        setRenderError(error.message || 'Erro ao renderizar o mapa mental');
+        console.log('Conteúdo original que falhou:', content);
+        setRenderError('Erro ao renderizar. Tente gerar novamente.');
         toast.error('Erro ao renderizar o diagrama');
       } finally {
         setIsRendering(false);
