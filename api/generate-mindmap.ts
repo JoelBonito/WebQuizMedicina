@@ -19,7 +19,7 @@ export const dynamic = 'force-dynamic';
 
 // CORS configuration
 const ALLOWED_ORIGINS = [
-  '[https://web-quiz-medicina.vercel.app](https://web-quiz-medicina.vercel.app)',
+  'https://web-quiz-medicina.vercel.app',
   'http://localhost:5173',
   'http://localhost:3000',
 ];
@@ -150,7 +150,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     console.log(`🗺️ [MindMap] Input: ~${inputTokens} tokens, Safe output: ${safeOutputTokens} tokens`);
 
-    // 3. The Prompt
+    // 3. The Improved Prompt with Strict Indentation Rules
     const GEMINI_MODEL = 'gemini-2.5-flash';
 
     const prompt = `Você é um especialista em didática médica. Crie um MAPA MENTAL completo e detalhado com base no conteúdo fornecido.
@@ -159,41 +159,75 @@ CONTEÚDO:
 ${combinedContent}
 
 INSTRUÇÕES TÉCNICAS (CRÍTICO - SIGA EXATAMENTE):
-1. **FORMATO JSON**: Sua resposta DEVE ser um objeto JSON válido com campos "titulo" e "mermaid".
-2. **SINTAXE MERMAID**: Dentro do campo "mermaid", use APENAS a sintaxe 'mindmap' simples.
-3. **INDENTAÇÃO OBRIGATÓRIA - EXTREMAMENTE IMPORTANTE**:
-   - Linha 1: "mindmap" (sem indentação)
-   - Linha 2: 2 espaços + "Título Principal"
-   - Linha 3: 4 espaços + "Categoria 1"
-   - Linha 4: 6 espaços + "Subcategoria 1.1"
-   - Linha 5: 6 espaços + "Subcategoria 1.2"
-   - Linha 6: 4 espaços + "Categoria 2"
-   - CADA NÍVEL FILHO deve ter EXATAMENTE 2 espaços A MAIS que o pai
-   - NUNCA pule de 8 para 10 espaços. Sempre: 0, 2, 4, 6, 8, 10, 12...
-4. **SEM IDs**: NUNCA use identificadores como n1, n2, id, root, etc.
-5. **ASPAS OBRIGATÓRIAS**: TODO texto (exceto "mindmap") DEVE estar entre aspas duplas.
-6. **CARACTERES**: Use apenas ASCII. Substitua: → por ->, ≥ por >=, ≤ por <=
-7. **SEM FORMAS**: Nunca use (()), [[]], {{}}, apenas texto entre aspas.
 
-EXEMPLO CORRETO DE ESTRUTURA (copie este padrão de indentação):
+1. **FORMATO JSON OBRIGATÓRIO**: 
+   - Sua resposta DEVE ser APENAS um objeto JSON válido
+   - Campos obrigatórios: "titulo" (string) e "mermaid" (string)
+   - Nada antes ou depois do JSON
+
+2. **INDENTAÇÃO - REGRA MAIS IMPORTANTE**:
+   - Linha 1: mindmap (sem aspas, sem espaços)
+   - Linha 2: 2 espaços + "Texto entre aspas"
+   - Linha 3: 4 espaços + "Texto entre aspas"
+   - Linha 4: 6 espaços + "Texto entre aspas"
+   - SEMPRE incremente EXATAMENTE 2 espaços por nível
+   - NUNCA pule níveis (não vá de 4 para 8 espaços, sempre 4→6)
+   - Sequência correta: 0, 2, 4, 6, 8, 10, 12, 14...
+   
+3. **ASPAS DUPLAS**:
+   - TODO texto deve estar entre aspas duplas (exceto a palavra mindmap)
+   - Se precisar aspas dentro do texto, escape com \\"
+
+4. **ESTRUTURA HIERÁRQUICA**:
+   - Filhos devem ter EXATAMENTE 2 espaços a mais que o pai
+   - Irmãos devem ter EXATAMENTE o mesmo número de espaços
+   - Para voltar a um nível anterior, diminua 2 espaços
+
+5. **CARACTERES PERMITIDOS**:
+   - Use apenas ASCII básico
+   - Substitua: → por ->, ≥ por >=, ≤ por <=, • por -, α por alfa, β por beta
+   - Evite parênteses quando possível, use colchetes: [exemplo] ao invés de (exemplo)
+
+6. **PROIBIDO**:
+   - NÃO use IDs como n1, n2, root
+   - NÃO use formas como (()), [[]], {{}}
+   - NÃO use markdown dentro do JSON
+   - NÃO pule níveis de indentação
+
+EXEMPLO PERFEITO DE ESTRUTURA:
 mindmap
-  "Tema Principal"
-    "Categoria A"
-      "Item A.1"
-      "Item A.2"
-        "Detalhe A.2.1"
-        "Detalhe A.2.2"
-      "Item A.3"
-    "Categoria B"
-      "Item B.1"
+  "Insuficiência Cardíaca"
+    "Fisiopatologia"
+      "Disfunção Sistólica"
+        "Fração de Ejeção < 40%"
+        "Dilatação Ventricular"
+      "Disfunção Diastólica"
+        "Relaxamento Prejudicado"
+        "Complacência Reduzida"
+    "Sintomas"
+      "Congestivos"
+        "Dispneia"
+        "Ortopneia"
+        "Edema"
+      "Baixo Débito"
+        "Fadiga"
+        "Confusão Mental"
 
-EXEMPLO DE OUTPUT JSON:
+EXEMPLO DO JSON ESPERADO:
 {
-  "titulo": "Fisiopatologia Renal",
-  "mermaid": "mindmap\\n  \\"Fisiopatologia Renal\\"\\n    \\"Síndrome Nefrótico\\"\\n      \\"Definição\\"\\n        \\"Proteinúria maciça\\"\\n        \\"Hipoalbuminemia\\""
-}`;
+  "titulo": "Mapa Mental de Insuficiência Cardíaca",
+  "mermaid": "mindmap\\n  \\"Insuficiência Cardíaca\\"\\n    \\"Fisiopatologia\\"\\n      \\"Disfunção Sistólica\\"\\n        \\"Fração de Ejeção < 40%\\"\\n        \\"Dilatação Ventricular\\"\\n      \\"Disfunção Diastólica\\"\\n        \\"Relaxamento Prejudicado\\"\\n        \\"Complacência Reduzida\\"\\n    \\"Sintomas\\"\\n      \\"Congestivos\\"\\n        \\"Dispneia\\"\\n        \\"Ortopneia\\""
+}
 
-Gere o JSON agora:`;
+REGRAS DE INDENTAÇÃO (MEMORIZE):
+- 0 espaços: mindmap
+- 2 espaços: nível 1 (título principal)
+- 4 espaços: nível 2 (categorias principais)
+- 6 espaços: nível 3 (subcategorias)
+- 8 espaços: nível 4 (detalhes)
+- 10 espaços: nível 5 (sub-detalhes)
+
+Gere o JSON agora, seguindo EXATAMENTE as regras de indentação:`;
 
     // 4. Call Gemini
     const result = await callGeminiWithUsage(
@@ -219,14 +253,14 @@ Gere o JSON agora:`;
 
     // Validate basic syntax
     if (!mermaidCode.startsWith('mindmap') && !mermaidCode.startsWith('graph')) {
-        // Fallback: If AI forgot 'mindmap' keyword, prepend it
-        console.warn('⚠️ Mermaid syntax missing "mindmap" keyword. Auto-fixing...');
-        // Only prepending if it looks like an indented list
-        if (mermaidCode.includes('\n')) {
-             // This assumes the AI returned an indented list without the header
-             // It's a risky fix, but better than empty. 
-             // Ideally, we just save what we got, but let's try to be helpful.
-        }
+      // Fallback: If AI forgot 'mindmap' keyword, prepend it
+      console.warn('⚠️ Mermaid syntax missing "mindmap" keyword. Auto-fixing...');
+      // Only prepending if it looks like an indented list
+      if (mermaidCode.includes('\n')) {
+        // This assumes the AI returned an indented list without the header
+        // It's a risky fix, but better than empty.
+        parsed.mermaid = 'mindmap\n' + mermaidCode;
+      }
     }
 
     // 6. Save to Database
