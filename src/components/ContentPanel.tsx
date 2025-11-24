@@ -30,6 +30,7 @@ import { useMindMaps } from "../hooks/useMindMaps";
 import { supabase } from "../lib/supabase";
 import { toast } from "sonner";
 import { isRecoverySession } from "../lib/recoverySessionTracker";
+import { triggerContentRefresh } from "../lib/events";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "./ui/dialog";
 import { QuizSession } from "./QuizSession";
 import { FlashcardSession } from "./FlashcardSession";
@@ -393,6 +394,9 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
             : "Quiz gerado com sucesso!"
           );
 
+          // Trigger content refresh for all hooks (fallback for Realtime)
+          triggerContentRefresh();
+
           // Show warning if relevance is low
           if (quizResult?.warning) {
             toast.warning(quizResult.warning.message, {
@@ -408,10 +412,16 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
             ? `Flashcards gerados com sucesso (nível ${flashcardDiff})!`
             : "Flashcards gerados com sucesso!"
           );
+
+          // Trigger content refresh for all hooks (fallback for Realtime)
+          triggerContentRefresh();
           break;
         case 'summary':
           await generateSummary(selectedSourceIds);
           toast.success("Resumo gerado com sucesso!");
+
+          // Trigger content refresh for all hooks (fallback for Realtime)
+          triggerContentRefresh();
           break;
         case 'mindmap':
           await generateMindMap(selectedSourceIds, 'standard');
