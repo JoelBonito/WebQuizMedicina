@@ -60,20 +60,33 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
           const indentMatch = line.match(/^(\s*)/);
           const indent = indentMatch ? indentMatch[1] : '';
 
-          // Remove definições de forma do Mermaid (ex: ((Texto)) -> Texto)
-          // Remove id((Texto)) ou root((Texto)) ou apenas ((Texto))
-          let cleanText = trimmed
-            .replace(/^[\w\d_]+\s*[\(\[\{]+/, '') // Remove ID e inicio da forma (ex: id(( )
-            .replace(/^[\(\[\{]+/, '')            // Remove inicio da forma sem ID (ex: (( )
-            .replace(/[\)\]\}]+$/, '');           // Remove fim da forma (ex: )) )
+          let cleanText = trimmed;
 
-          // Remove aspas existentes para evitar duplicação
-          cleanText = cleanText.replace(/^"|"$/g, '');
+          // CASO 1: Detecta padrão id["texto"] ou id("texto") e extrai apenas o texto
+          const idWithQuotesMatch = trimmed.match(/^[\w\d_]+\s*[\(\[]\s*"([^"]*)"\s*[\)\]]/);
+          if (idWithQuotesMatch) {
+            // Extrai o texto de dentro das aspas: n1["Texto"] -> Texto
+            cleanText = idWithQuotesMatch[1];
+          } else {
+            // CASO 2: Remove definições de forma do Mermaid (ex: ((Texto)) -> Texto)
+            cleanText = trimmed
+              .replace(/^[\w\d_]+\s*\(\(/, '') // Remove id(( no início
+              .replace(/^\(\(/, '')             // Remove (( no início
+              .replace(/\)\)$/, '')             // Remove )) no final
+              .replace(/^\[/, '')               // Remove [ no início
+              .replace(/\]$/, '');              // Remove ] no final
 
-          // Escapa aspas internas que sobraram
+            // Remove aspas existentes para evitar duplicação
+            cleanText = cleanText.replace(/^"|"$/g, '');
+          }
+
+          // Escapa aspas internas convertendo para single quotes
           cleanText = cleanText.replace(/"/g, "'");
 
-          // Retorna o texto limpo, sempre entre aspas para segurança
+          // Remove caracteres residuais de formas que possam ter sobrado
+          cleanText = cleanText.replace(/[\(\)\[\]\{\}]/g, '');
+
+          // Retorna o texto limpo, sempre entre aspas
           return `${indent}"${cleanText}"`;
         });
 
