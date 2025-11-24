@@ -32,7 +32,7 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
     });
   }, []);
 
- // Render mermaid diagram when content changes
+// Render mermaid diagram when content changes
   useEffect(() => {
     if (!content || !containerRef.current) return;
 
@@ -45,46 +45,49 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
           containerRef.current.innerHTML = '';
         }
 
-        // --- SANITIZER COM IDs EXPLÍCITOS (SOLUÇÃO FINAL) ---
-        // 1. Normaliza quebras de linha
+        // --- SANITIZER CORRIGIDO (SEM IDs) ---
         let rawLines = content.replace(/\\n/g, '\n').split('\n');
 
-        const processedLines = rawLines.map((line, index) => {
+        const processedLines = rawLines.map((line) => { // Removemos o index aqui
           const trimmed = line.trim();
           
-          // Mantém cabeçalho 'mindmap' puro
+          // Mantém cabeçalho 'mindmap'
           if (trimmed === 'mindmap') return 'mindmap';
-          if (!trimmed) return ''; // Remove linhas vazias
+          if (!trimmed) return '';
 
-          // Preserva a indentação original
+          // Preserva a indentação original (CRUCIAL)
           const indentMatch = line.match(/^(\s*)/);
           const indent = indentMatch ? indentMatch[1] : '';
 
           // LIMPEZA DO TEXTO:
           let cleanText = trimmed
-            // Remove IDs ou definições de forma antigas que a IA possa ter mandado
+            // Remove IDs ou definições de forma antigas (ex: id((...)))
             .replace(/^[\w\d_]+\s*[\(\[\{]+/, '') 
+            // Remove definições de forma simples (ex: ((...)))
             .replace(/^[\(\[\{]+/, '')            
+            // Remove fechamento de formas (ex: )) )
             .replace(/[\)\]\}]+$/, '')
-            // Remove aspas externas que a IA possa ter colocado
+            // Remove aspas externas existentes
             .replace(/^"|"$/g, '')
-            // IMPORTANTE: Troca aspas duplas internas por simples para não quebrar a string do Mermaid
+            // Troca aspas duplas internas por simples para evitar quebra
             .replace(/"/g, "'");
 
-          // GERAÇÃO DE NÓ ROBUSTO:
-          // Cria um ID único (n + index) e força o formato de nó quadrado ["Texto"]
-          // Isso protege qualquer caractere especial dentro do texto (ex: parenteses, dois pontos)
-          return `${indent}n${index}["${cleanText}"]`;
+          // --- CORREÇÃO AQUI ---
+          // NÃO usamos IDs (n1, n2). Apenas envolvemos o texto em aspas.
+          // Isso é o que o mindmap espera.
+          return `${indent}"${cleanText}"`;
         });
 
-        // Filtra linhas vazias e garante cabeçalho
+        // Reconstrói o conteúdo
         const finalLines = processedLines.filter(l => l !== '');
+        
+        // Garante o cabeçalho mindmap se não existir
         if (finalLines.length > 0 && !finalLines[0].includes('mindmap')) {
             finalLines.unshift('mindmap');
         }
 
         const finalContent = finalLines.join('\n');
-        console.log('MindMap Final:', finalContent); // Debug
+        console.log('MindMap Corrigido:', finalContent); // Debug
         // --------------------------------------
 
         const id = `mermaid-${Date.now()}`;
@@ -97,13 +100,12 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
           if (svgElement) {
             svgElement.style.maxWidth = '100%';
             svgElement.style.height = 'auto';
-            svgElement.style.backgroundColor = 'white';
+            svgElement.style.backgroundColor = 'white'; // Garante visibilidade
           }
         }
       } catch (error: any) {
         console.error('Mermaid rendering error:', error);
-        // Se falhar, mostra mensagem amigável
-        setRenderError('Não foi possível visualizar o diagrama complexo, mas o conteúdo foi salvo.');
+        setRenderError('Erro ao visualizar. Tente gerar novamente.');
       } finally {
         setIsRendering(false);
       }
@@ -111,7 +113,7 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
 
     renderDiagram();
   }, [content]);
-
+  
   const handleZoomIn = () => {
     setZoom((prev) => Math.min(prev + 0.2, 3));
   };
