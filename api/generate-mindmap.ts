@@ -122,7 +122,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Calculate safe output tokens (using 1M context limit)
     const inputTokens = estimateTokens(combinedContent);
-    const safeOutputTokens = calculateSafeOutputTokens(combinedContent, 8000); // Target ~8k tokens for mermaid output
+    const safeOutputTokens = calculateSafeOutputTokens(combinedContent, 60000); // Target ~60k tokens for mermaid output
 
     console.log(`🗺️ [MindMap] Input: ~${inputTokens} tokens, Safe output: ${safeOutputTokens} tokens`);
 
