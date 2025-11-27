@@ -60,7 +60,7 @@
             "@sentry/vite-plugin": "^2.22.8",
             "@types/node": "^24.10.1",
             "@types/uuid": "^10.0.0",
-            "@vercel/node": "^3.0.0",
+            "@vercel/node": "^5.5.12",
             "@vitejs/plugin-react-swc": "^3.10.2",
             "autoprefixer": "^10.4.22",
             "cypress": "^15.7.0",
