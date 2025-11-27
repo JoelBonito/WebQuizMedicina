@@ -13,6 +13,7 @@ import {
 } from "../_shared/validation.ts";
 import { AuditEventType, AuditLogger } from "../_shared/audit.ts";
 import { callGeminiWithUsage, parseJsonFromResponse } from "../_shared/gemini.ts";
+import { createContextCache, safeDeleteCache } from "../_shared/gemini-cache.ts";
 import { calculateBatchSizes, SAFE_OUTPUT_LIMIT } from "../_shared/output-limits.ts";
 import { logTokenUsage, type TokenUsage } from "../_shared/token-logger.ts";
 
@@ -98,6 +99,13 @@ serve(async (req) => {
 
     if (sources.length === 0) throw new Error("No sources found");
 
+    // Validate that at least one source has extracted content
+    const sourcesWithContent = sources.filter(s => s.extracted_content && s.extracted_content.trim());
+    if (sourcesWithContent.length === 0) {
+      const sourceStatuses = sources.map(s => `${s.name} (status: ${s.status})`).join(', ');
+      throw new Error(`Sources found but no content available. Sources: ${sourceStatuses}. Please ensure sources have been processed and have status 'ready'.`);
+    }
+
     // CRITICAL CHANGE: Quiz now uses FULL extracted_content (no embeddings/filtering)
     // Reason: Quiz should assess knowledge of ALL material studied, not filter to specific topics
     // Embeddings/semantic search would lose 70-80% of content, reducing assessment coverage
@@ -109,7 +117,7 @@ serve(async (req) => {
     // Combine ALL content from ALL sources (no filtering)
     // Limit to 5 most recent sources to keep input manageable (~300k chars / ~75k tokens)
     const MAX_SOURCES = 5;
-    const usedSources = sources.slice(0, MAX_SOURCES);
+    const usedSources = sourcesWithContent.slice(0, MAX_SOURCES);
 
     for (const source of usedSources) {
       if (source.extracted_content) {

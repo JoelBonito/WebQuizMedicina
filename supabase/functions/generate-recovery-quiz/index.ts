@@ -227,7 +227,10 @@ serve(async (req) => {
       }
     }
 
-    if (!combinedContent.trim()) throw new Error("No content available for recovery quiz");
+    if (!combinedContent.trim()) {
+      const sourceStatuses = sources.map(s => `${s.name} (status: ${s.status})`).join(', ');
+      throw new Error(`No content available for recovery quiz. Sources: ${sourceStatuses}. Please ensure sources have been processed and have status 'ready'.`);
+    }
 
     // 9. Generate Quiz with Strategy-Specific Prompt
     const batchSizes = calculateBatchSizes('QUIZ_MULTIPLE_CHOICE', count);

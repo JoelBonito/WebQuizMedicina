@@ -227,7 +227,10 @@ serve(async (req) => {
       }
     }
 
-    if (!combinedContent.trim()) throw new Error("No content available for recovery flashcards");
+    if (!combinedContent.trim()) {
+      const sourceStatuses = sources.map(s => `${s.name} (status: ${s.status})`).join(', ');
+      throw new Error(`No content available for recovery flashcards. Sources: ${sourceStatuses}. Please ensure sources have been processed and have status 'ready'.`);
+    }
 
     // 9. Generate Flashcards with Atomization Prompt
     const batchSizes = calculateBatchSizes('FLASHCARD', count);
