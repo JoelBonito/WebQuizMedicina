@@ -8,7 +8,6 @@ import {
   Loader2,
   BookOpen,
   MoreVertical,
-  Settings,
   Sparkles,
   X,
   TrendingUp,
@@ -19,7 +18,8 @@ import {
   AlertTriangle,
   Zap,
   Lightbulb,
-  Network
+  Network,
+  BarChart3
 } from "lucide-react";
 import { motion } from "motion/react";
 import { useQuestions } from "../hooks/useQuestions";
@@ -27,7 +27,9 @@ import { useFlashcards } from "../hooks/useFlashcards";
 import { useSummaries } from "../hooks/useSummaries";
 import { useDifficulties } from "../hooks/useDifficulties";
 import { useMindMaps } from "../hooks/useMindMaps";
-import { supabase } from "../lib/supabase";
+
+import { db } from "../lib/firebase";
+import { collection, query, where, getDocs, updateDoc, doc, writeBatch } from "firebase/firestore";
 import { toast } from "sonner";
 import { isRecoverySession } from "../lib/recoverySessionTracker";
 import { triggerContentRefresh } from "../lib/events";
@@ -53,6 +55,7 @@ interface ContentPanelProps {
   projectId: string | null;
   selectedSourceIds?: string[];
   isFullscreenMode?: boolean;
+  onViewStats?: () => void;
 }
 
 interface GeneratedContent {
@@ -101,7 +104,7 @@ const ACTION_CARDS = [
 ];
 
 const getContentStyle = (type: string) => {
-  switch(type) {
+  switch (type) {
     case 'quiz':
       return {
         icon: HelpCircle,
@@ -150,7 +153,7 @@ const formatTimeAgo = (date: Date) => {
 
 // Helper function to get badge color based on difficulty
 const getDifficultyBadgeStyle = (difficulty: 'fácil' | 'médio' | 'difícil' | 'misto') => {
-  switch(difficulty) {
+  switch (difficulty) {
     case 'fácil':
       return 'bg-gradient-to-br from-green-50 to-emerald-50 text-green-700';
     case 'médio':
@@ -164,7 +167,7 @@ const getDifficultyBadgeStyle = (difficulty: 'fácil' | 'médio' | 'difícil' | 
 
 // Helper function to get icon based on difficulty
 const getDifficultyIcon = (difficulty: 'fácil' | 'médio' | 'difícil' | 'misto') => {
-  switch(difficulty) {
+  switch (difficulty) {
     case 'fácil':
       return CheckCircle;
     case 'médio':
@@ -176,7 +179,7 @@ const getDifficultyIcon = (difficulty: 'fácil' | 'médio' | 'difícil' | 'misto
   }
 };
 
-export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMode = false }: ContentPanelProps) {
+export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMode = false, onViewStats }: ContentPanelProps) {
   const [generatedContent, setGeneratedContent] = useState<GeneratedContent[]>([]);
   const [selectedSummary, setSelectedSummary] = useState<any>(null);
   const [selectedMindMap, setSelectedMindMap] = useState<any>(null);
@@ -248,6 +251,21 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
 
     const newContent: GeneratedContent[] = [];
 
+    // Helper to safely convert Firestore timestamp to Date
+    const getSafeDate = (timestamp: any): Date => {
+      if (!timestamp) return new Date();
+      // Handle Firestore Timestamp (has toDate method)
+      if (timestamp && typeof timestamp.toDate === 'function') {
+        return timestamp.toDate();
+      }
+      // Handle serialized Timestamp (has seconds property)
+      if (timestamp && typeof timestamp.seconds === 'number') {
+        return new Date(timestamp.seconds * 1000);
+      }
+      // Handle standard Date string/number/object
+      return new Date(timestamp);
+    };
+
     // Group questions by session_id
     const questionsBySession = questions.reduce((acc, question) => {
       const sessionId = question.session_id || 'no-session';
@@ -265,7 +283,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
       const contentId = `quiz-${sessionId}`;
       // Check content_type from database as source of truth (with fallback to localStorage for legacy content)
       const isRecovery = mostRecent.content_type === 'recovery' ||
-                        (mostRecent.content_type === undefined && isRecoverySession(sessionId));
+        (mostRecent.content_type === undefined && isRecoverySession(sessionId));
       const defaultTitle = isRecovery
         ? `Quiz Recovery - ${sessionQuestions.length} questões`
         : `Quiz - ${sessionQuestions.length} questões`;
@@ -277,7 +295,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
         type: 'quiz',
         title: finalTitle,
         sourceCount: selectedSourceIds.length,
-        createdAt: new Date(mostRecent.created_at || new Date()),
+        createdAt: getSafeDate(mostRecent.created_at),
         difficulty,
         isRecovery,
       });
@@ -300,7 +318,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
       const contentId = `flashcards-${sessionId}`;
       // Check content_type from database as source of truth (with fallback to localStorage for legacy content)
       const isRecovery = mostRecent.content_type === 'recovery' ||
-                        (mostRecent.content_type === undefined && isRecoverySession(sessionId));
+        (mostRecent.content_type === undefined && isRecoverySession(sessionId));
       const defaultTitle = isRecovery
         ? `Flashcards Recovery - ${sessionFlashcards.length} cards`
         : `Flashcards - ${sessionFlashcards.length} cards`;
@@ -312,7 +330,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
         type: 'flashcards',
         title: finalTitle,
         sourceCount: selectedSourceIds.length,
-        createdAt: new Date(mostRecent.created_at || new Date()),
+        createdAt: getSafeDate(mostRecent.created_at),
         difficulty,
         isRecovery,
       });
@@ -327,7 +345,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
         type: 'summary',
         title: customNames[summary.id] || summary.titulo,
         sourceCount: summary.source_ids?.length || 0,
-        createdAt: new Date(summary.created_at || new Date()),
+        createdAt: getSafeDate(summary.created_at),
         isRecovery,
       });
     });
@@ -341,7 +359,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
         type: 'mindmap',
         title: customNames[mindMap.id] || mindMap.title,
         sourceCount: mindMap.source_ids?.length || 0,
-        createdAt: new Date(mindMap.created_at || new Date()),
+        createdAt: getSafeDate(mindMap.created_at),
         isRecovery,
       });
     });
@@ -385,10 +403,10 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
     }
 
     try {
-      switch(type) {
+      switch (type) {
         case 'quiz':
           const quizDiff = quizDifficulty !== 'todos' ? quizDifficulty : undefined;
-          const quizResult = await generateQuiz(selectedSourceIds, 20, quizDiff);
+          const quizResult = (await generateQuiz(selectedSourceIds, 20, quizDiff)) as any;
           toast.success(quizDiff
             ? `Quiz gerado com sucesso (nível ${quizDiff})!`
             : "Quiz gerado com sucesso!"
@@ -435,7 +453,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
   };
 
   const handleOpenContent = (content: GeneratedContent) => {
-    switch(content.type) {
+    switch (content.type) {
       case 'quiz':
         // Extract session_id from content.id (format: "quiz-{sessionId}")
         const quizSessionId = content.id.replace('quiz-', '');
@@ -472,14 +490,18 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
     }
   };
 
+
+
   const handleDeleteQuiz = async (sessionId: string) => {
     try {
-      const { error } = await supabase
-        .from('questions')
-        .delete()
-        .eq('session_id', sessionId);
+      const q = query(collection(db, 'questions'), where('session_id', '==', sessionId));
+      const snapshot = await getDocs(q);
 
-      if (error) throw error;
+      const batch = writeBatch(db);
+      snapshot.docs.forEach((doc) => {
+        batch.delete(doc.ref);
+      });
+      await batch.commit();
 
       // Refetch questions to update UI
       await fetchQuestions();
@@ -492,12 +514,14 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
 
   const handleDeleteFlashcards = async (sessionId: string) => {
     try {
-      const { error } = await supabase
-        .from('flashcards')
-        .delete()
-        .eq('session_id', sessionId);
+      const q = query(collection(db, 'flashcards'), where('session_id', '==', sessionId));
+      const snapshot = await getDocs(q);
 
-      if (error) throw error;
+      const batch = writeBatch(db);
+      snapshot.docs.forEach((doc) => {
+        batch.delete(doc.ref);
+      });
+      await batch.commit();
 
       // Refetch flashcards to update UI
       await fetchFlashcards();
@@ -537,12 +561,9 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
     try {
       if (renamingContent.type === 'summary') {
         // For summaries, update in database
-        const { error } = await supabase
-          .from('summaries')
-          .update({ titulo: newContentName.trim() })
-          .eq('id', renamingContent.id);
-
-        if (error) throw error;
+        await updateDoc(doc(db, 'summaries', renamingContent.id), {
+          titulo: newContentName.trim()
+        });
 
         // Remove from custom names if exists
         const newCustomNames = { ...customNames };
@@ -552,12 +573,9 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
         toast.success("Resumo renomeado");
       } else if (renamingContent.type === 'mindmap') {
         // For mind maps, update in database
-        const { error } = await supabase
-          .from('mindmaps')
-          .update({ title: newContentName.trim() })
-          .eq('id', renamingContent.id);
-
-        if (error) throw error;
+        await updateDoc(doc(db, 'mindmaps', renamingContent.id), {
+          title: newContentName.trim()
+        });
 
         // Remove from custom names if exists
         const newCustomNames = { ...customNames };
@@ -599,11 +617,10 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
 
   return (
     <>
-      <div className={`w-full flex flex-col ${
-        isFullscreenMode
-          ? "bg-gray-50/50"
-          : "bg-gray-50/50 rounded-3xl border border-gray-200 h-full overflow-hidden"
-      }`}>
+      <div className={`w-full flex flex-col ${isFullscreenMode
+        ? "bg-gray-50/50"
+        : "bg-gray-50/50 rounded-3xl border border-gray-200 h-full overflow-hidden"
+        }`}>
         {/* Banda colorida do topo */}
         <div className="h-1.5 w-full bg-gradient-to-r from-green-500 to-emerald-500" />
 
@@ -622,27 +639,27 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
             </div>
           )}
 
-        {/* Grid de Botões de Ação */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-          {ACTION_CARDS.map(card => {
-            const CardIcon = card.icon;
-            const showSettings = card.id === 'quiz' || card.id === 'flashcards';
-            const currentDifficulty = card.id === 'quiz' ? quizDifficulty : flashcardDifficulty;
-            const setDifficulty = card.id === 'quiz' ? setQuizDifficulty : setFlashcardDifficulty;
+          {/* Grid de Botões de Ação */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+            {ACTION_CARDS.map(card => {
+              const CardIcon = card.icon;
+              const showSettings = card.id === 'quiz' || card.id === 'flashcards';
+              const currentDifficulty = card.id === 'quiz' ? quizDifficulty : flashcardDifficulty;
+              const setDifficulty = card.id === 'quiz' ? setQuizDifficulty : setFlashcardDifficulty;
 
-            // Each button is disabled only when its own content is generating
-            const isButtonGenerating =
-              (card.id === 'quiz' && generatingQuiz) ||
-              (card.id === 'flashcards' && generatingFlashcards) ||
-              (card.id === 'summary' && generatingSummary) ||
-              (card.id === 'mindmap' && generatingMindMap);
+              // Each button is disabled only when its own content is generating
+              const isButtonGenerating =
+                (card.id === 'quiz' && generatingQuiz) ||
+                (card.id === 'flashcards' && generatingFlashcards) ||
+                (card.id === 'summary' && generatingSummary) ||
+                (card.id === 'mindmap' && generatingMindMap);
 
-            return (
-              <div key={card.id} className="relative">
-                <button
-                  onClick={() => handleGenerateContent(card.id as 'quiz' | 'flashcards' | 'summary' | 'mindmap')}
-                  disabled={isButtonGenerating}
-                  className={`
+              return (
+                <div key={card.id} className="relative">
+                  <button
+                    onClick={() => handleGenerateContent(card.id as 'quiz' | 'flashcards' | 'summary' | 'mindmap')}
+                    disabled={isButtonGenerating}
+                    className={`
                     ${card.bgColor}
                     relative p-4 md:p-3.5 rounded-2xl w-full
                     flex flex-col items-start gap-1.5 md:gap-2
@@ -666,206 +683,221 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
                     [box-shadow:0_2px_4px_rgba(255,255,255,0.3)_inset,0_8px_30px_rgba(0,0,0,0.15)]
                     hover:[box-shadow:0_2px_8px_rgba(255,255,255,0.4)_inset,0_15px_40px_rgba(0,0,0,0.25)]
                   `}
-                >
-                  {/* Ícone */}
-                  <CardIcon className={`w-6 h-6 md:w-5 md:h-5 ${card.iconColor} relative z-10 drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)] mt-[-2px]`} />
-
-                  {/* Título */}
-                  <span className={`font-semibold text-sm md:text-xs ${card.textColor} relative z-10 drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]`}>
-                    {card.title}
-                  </span>
-
-                  {/* Loading indicator - only for this specific button */}
-                  {isButtonGenerating && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-white/90 backdrop-blur-md rounded-2xl z-20">
-                      <Loader2 className="w-6 h-6 animate-spin text-gray-600" />
-                    </div>
-                  )}
-                </button>
-
-                {/* Badge de dificuldade - canto inferior direito sem fundo */}
-                {showSettings && (() => {
-                  const diffLevel = currentDifficulty === 'todos' ? 'misto' : (currentDifficulty as 'fácil' | 'médio' | 'difícil');
-                  const DiffIcon = getDifficultyIcon(diffLevel);
-                  return (
-                    <div className="absolute bottom-2 md:bottom-2 right-2 md:right-2 text-[9px] md:text-[8px] font-bold text-white/90 flex items-center gap-0.5 md:gap-1 z-10 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
-                      <DiffIcon className="w-2 h-2 md:w-2 md:h-2" />
-                      <span>{currentDifficulty === 'todos' ? 'misto' : currentDifficulty}</span>
-                    </div>
-                  );
-                })()}
-
-                {/* Botão de configuração - sem fundo */}
-                {showSettings && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button
-                        onClick={(e) => e.stopPropagation()}
-                        className="absolute top-2 md:top-2 right-2 md:right-2 p-1 md:p-1 rounded-lg hover:scale-110 transition-all z-10 group/edit"
-                        aria-label="Editar dificuldade"
-                      >
-                        <Edit className="w-3.5 h-3.5 md:w-3 md:h-3 text-white/90 group-hover/edit:text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
-                      <DropdownMenuLabel>Nível de Dificuldade</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuRadioGroup
-                        value={currentDifficulty}
-                        onValueChange={(value) => setDifficulty(value as typeof currentDifficulty)}
-                      >
-                        <DropdownMenuRadioItem value="todos">
-                          Todos os níveis
-                        </DropdownMenuRadioItem>
-                        <DropdownMenuRadioItem value="fácil">
-                          Fácil
-                        </DropdownMenuRadioItem>
-                        <DropdownMenuRadioItem value="médio">
-                          Médio
-                        </DropdownMenuRadioItem>
-                        <DropdownMenuRadioItem value="difícil">
-                          Difícil
-                        </DropdownMenuRadioItem>
-                      </DropdownMenuRadioGroup>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Botão Análise das Dificuldades - Centralizado */}
-        <div className="flex justify-center mb-4">
-          <button
-            onClick={() => setDifficultiesOpen(true)}
-            className="text-sm rounded-xl px-4 py-2 min-w-[200px] bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-[0_8px_30px_rgb(0,0,0,0.15),inset_0_1px_0_rgba(255,255,255,0.4),inset_0_-1px_0_rgba(0,0,0,0.2)] hover:shadow-[0_15px_40px_rgba(251,146,60,0.4),inset_0_1px_0_rgba(255,255,255,0.5),inset_0_-1px_0_rgba(0,0,0,0.3)] transition-all duration-300 backdrop-blur-xl border-2 border-white/40 relative overflow-hidden before:absolute before:inset-0 before:bg-[linear-gradient(135deg,rgba(255,255,255,0.4)_0%,rgba(255,255,255,0)_30%,rgba(255,255,255,0)_70%,rgba(255,255,255,0.3)_100%)] before:opacity-70 after:absolute after:inset-0 after:bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.6),transparent_60%)] after:opacity-0 hover:after:opacity-100 after:transition-opacity after:duration-500 hover:scale-[1.05] [box-shadow:0_2px_4px_rgba(255,255,255,0.3)_inset,0_8px_30px_rgba(0,0,0,0.15)] hover:[box-shadow:0_2px_8px_rgba(255,255,255,0.4)_inset,0_15px_40px_rgba(251,146,60,0.4)]"
-          >
-            <div className="flex items-center justify-center gap-2 mb-1 relative z-10">
-              <TrendingUp className="w-4 h-4 drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]" />
-              <span className="font-medium drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]">Análise das Dificuldades</span>
-            </div>
-            {difficulties.length > 0 && (
-              <div className="flex items-center justify-center gap-1 text-[10px] opacity-90 relative z-10">
-                <Lightbulb className="w-3 h-3" />
-                <span>{difficulties.length} dificuldade{difficulties.length !== 1 ? 's' : ''} rastreada{difficulties.length !== 1 ? 's' : ''}</span>
-              </div>
-            )}
-          </button>
-        </div>
-
-        {/* Divider */}
-        <div className="border-t border-gray-200 my-4" />
-
-        {/* Lista de Conteúdo Gerado */}
-        <div className="flex-1 min-h-0 overflow-y-auto pr-2 custom-scrollbar">
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-[#0891B2]" />
-            </div>
-          ) : generatedContent.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              <Sparkles className="w-12 h-12 mx-auto mb-3 text-gray-400" />
-              <p className="font-medium mb-1">Nenhum conteúdo gerado ainda</p>
-              <p className="text-sm">Clique em um dos botões acima para começar</p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {generatedContent.map((content, index) => {
-                const style = getContentStyle(content.type);
-                const Icon = style.icon;
-
-                return (
-                  <motion.div
-                    key={content.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                    onClick={() => handleOpenContent(content)}
-                    className="flex items-center gap-4 p-4 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer group"
                   >
                     {/* Ícone */}
-                    <div className={`w-12 h-12 rounded-xl ${style.bgColor} flex items-center justify-center flex-shrink-0`}>
-                      <Icon className={`w-6 h-6 ${style.iconColor}`} />
-                    </div>
+                    <CardIcon className={`w-6 h-6 md:w-5 md:h-5 ${card.iconColor} relative z-10 drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)] mt-[-2px]`} />
 
-                    {/* Informações */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-medium text-gray-900 truncate">
-                          {content.title}
-                        </h3>
-                        {/* Recovery Badge */}
-                        {content.isRecovery && (
-                          <Badge className="text-xs px-2 py-0.5 rounded-md bg-gradient-to-r from-orange-100 to-amber-100 text-orange-700 border border-orange-200 shrink-0 flex items-center gap-1">
-                            <TrendingUp className="w-3 h-3" />
-                            Recovery
-                          </Badge>
-                        )}
+                    {/* Título */}
+                    <span className={`font-semibold text-sm md:text-xs ${card.textColor} relative z-10 drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]`}>
+                      {card.title}
+                    </span>
+
+                    {/* Loading indicator - only for this specific button */}
+                    {isButtonGenerating && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-white/90 backdrop-blur-md rounded-2xl z-20">
+                        <Loader2 className="w-6 h-6 animate-spin text-gray-600" />
                       </div>
-                      <p className="text-sm text-gray-500">
-                        {style.label} · {content.sourceCount} fontes · {formatTimeAgo(content.createdAt)}
-                      </p>
-                    </div>
+                    )}
+                  </button>
 
-                    {/* Badge de dificuldade */}
-                    {content.difficulty && (() => {
-                      const DiffIcon = getDifficultyIcon(content.difficulty);
-                      return (
-                        <Badge className={`text-xs px-2.5 py-1 rounded-lg font-medium shadow-sm shrink-0 flex items-center gap-1 ${getDifficultyBadgeStyle(content.difficulty)}`}>
-                          <DiffIcon className="w-3 h-3" />
-                          {content.difficulty}
-                        </Badge>
-                      );
-                    })()}
+                  {/* Badge de dificuldade - canto inferior direito sem fundo */}
+                  {showSettings && (() => {
+                    const diffLevel = currentDifficulty === 'todos' ? 'misto' : (currentDifficulty as 'fácil' | 'médio' | 'difícil');
+                    const DiffIcon = getDifficultyIcon(diffLevel);
+                    return (
+                      <div className="absolute bottom-2 md:bottom-2 right-2 md:right-2 text-[9px] md:text-[8px] font-bold text-white/90 flex items-center gap-0.5 md:gap-1 z-10 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
+                        <DiffIcon className="w-2 h-2 md:w-2 md:h-2" />
+                        <span>{currentDifficulty === 'todos' ? 'misto' : currentDifficulty}</span>
+                      </div>
+                    );
+                  })()}
 
-                    {/* Menu de ações */}
+                  {/* Botão de configuração - sem fundo */}
+                  {showSettings && (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                          }}
-                          className="p-2 hover:bg-gray-200 rounded-lg transition-opacity"
+                          onClick={(e) => e.stopPropagation()}
+                          className="absolute top-2 md:top-2 right-2 md:right-2 p-1 md:p-1 rounded-lg hover:scale-110 transition-all z-10 group/edit"
+                          aria-label="Editar dificuldade"
                         >
-                          <MoreVertical className="w-5 h-5 text-gray-600" />
+                          <Edit className="w-3.5 h-3.5 md:w-3 md:h-3 text-white/90 group-hover/edit:text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
                         </button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent
-                        align="end"
-                        className="w-48"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <DropdownMenuItem
-                          onSelect={(e) => {
-                            e.preventDefault();
-                            setRenamingContent({ id: content.id, currentName: content.title, type: content.type });
-                            setNewContentName(content.title);
-                          }}
-                        >
-                          <Edit className="w-4 h-4 mr-2" />
-                          Renomear
-                        </DropdownMenuItem>
+                      <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuLabel>Nível de Dificuldade</DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onSelect={(e) => {
-                            e.preventDefault();
-                            handleDeleteContent(content);
-                          }}
-                          className="text-red-600 focus:text-red-600"
+                        <DropdownMenuRadioGroup
+                          value={currentDifficulty}
+                          onValueChange={(value) => setDifficulty(value as typeof currentDifficulty)}
                         >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Deletar
-                        </DropdownMenuItem>
+                          <DropdownMenuRadioItem value="todos">
+                            Todos os níveis
+                          </DropdownMenuRadioItem>
+                          <DropdownMenuRadioItem value="fácil">
+                            Fácil
+                          </DropdownMenuRadioItem>
+                          <DropdownMenuRadioItem value="médio">
+                            Médio
+                          </DropdownMenuRadioItem>
+                          <DropdownMenuRadioItem value="difícil">
+                            Difícil
+                          </DropdownMenuRadioItem>
+                        </DropdownMenuRadioGroup>
                       </DropdownMenuContent>
                     </DropdownMenu>
-                  </motion.div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Botões Centrais: Análise das Dificuldades e Estatísticas */}
+          <div className="flex justify-center gap-4 mb-4">
+            <button
+              onClick={() => setDifficultiesOpen(true)}
+              className="text-sm rounded-xl px-4 py-2 min-w-[200px] bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-[0_8px_30px_rgb(0,0,0,0.15),inset_0_1px_0_rgba(255,255,255,0.4),inset_0_-1px_0_rgba(0,0,0,0.2)] hover:shadow-[0_15px_40px_rgba(251,146,60,0.4),inset_0_1px_0_rgba(255,255,255,0.5),inset_0_-1px_0_rgba(0,0,0,0.3)] transition-all duration-300 backdrop-blur-xl border-2 border-white/40 relative overflow-hidden before:absolute before:inset-0 before:bg-[linear-gradient(135deg,rgba(255,255,255,0.4)_0%,rgba(255,255,255,0)_30%,rgba(255,255,255,0)_70%,rgba(255,255,255,0.3)_100%)] before:opacity-70 after:absolute after:inset-0 after:bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.6),transparent_60%)] after:opacity-0 hover:after:opacity-100 after:transition-opacity after:duration-500 hover:scale-[1.05] [box-shadow:0_2px_4px_rgba(255,255,255,0.3)_inset,0_8px_30px_rgba(0,0,0,0.15)] hover:[box-shadow:0_2px_8px_rgba(255,255,255,0.4)_inset,0_15px_40px_rgba(251,146,60,0.4)]"
+            >
+              <div className="flex items-center justify-center gap-2 mb-1 relative z-10">
+                <TrendingUp className="w-4 h-4 drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]" />
+                <span className="font-medium drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]">Análise das Dificuldades</span>
+              </div>
+              {difficulties.length > 0 && (
+                <div className="flex items-center justify-center gap-1 text-[10px] opacity-90 relative z-10">
+                  <Lightbulb className="w-3 h-3" />
+                  <span>{difficulties.length} dificuldade{difficulties.length !== 1 ? 's' : ''} rastreada{difficulties.length !== 1 ? 's' : ''}</span>
+                </div>
+              )}
+            </button>
+
+            {onViewStats && (
+              <button
+                onClick={onViewStats}
+                className="text-sm rounded-xl px-4 py-2 min-w-[200px] bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shadow-[0_8px_30px_rgb(0,0,0,0.15),inset_0_1px_0_rgba(255,255,255,0.4),inset_0_-1px_0_rgba(0,0,0,0.2)] hover:shadow-[0_15px_40px_rgba(59,130,246,0.4),inset_0_1px_0_rgba(255,255,255,0.5),inset_0_-1px_0_rgba(0,0,0,0.3)] transition-all duration-300 backdrop-blur-xl border-2 border-white/40 relative overflow-hidden before:absolute before:inset-0 before:bg-[linear-gradient(135deg,rgba(255,255,255,0.4)_0%,rgba(255,255,255,0)_30%,rgba(255,255,255,0)_70%,rgba(255,255,255,0.3)_100%)] before:opacity-70 after:absolute after:inset-0 after:bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.6),transparent_60%)] after:opacity-0 hover:after:opacity-100 after:transition-opacity after:duration-500 hover:scale-[1.05] [box-shadow:0_2px_4px_rgba(255,255,255,0.3)_inset,0_8px_30px_rgba(0,0,0,0.15)] hover:[box-shadow:0_2px_8px_rgba(255,255,255,0.4)_inset,0_15px_40px_rgba(59,130,246,0.4)]"
+              >
+                <div className="flex items-center justify-center gap-2 mb-1 relative z-10">
+                  <BarChart3 className="w-4 h-4 drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]" />
+                  <span className="font-medium drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]">Estatísticas</span>
+                </div>
+                <div className="flex items-center justify-center gap-1 text-[10px] opacity-90 relative z-10">
+                  <span>Ver desempenho geral</span>
+                </div>
+              </button>
+            )}
+          </div>
+
+          {/* Divider */}
+          <div className="border-t border-gray-200 my-4" />
+
+          {/* Lista de Conteúdo Gerado */}
+          <div className="flex-1 min-h-0 overflow-y-auto pr-2 custom-scrollbar">
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-[#0891B2]" />
+              </div>
+            ) : generatedContent.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                <Sparkles className="w-12 h-12 mx-auto mb-3 text-gray-400" />
+                <p className="font-medium mb-1">Nenhum conteúdo gerado ainda</p>
+                <p className="text-sm">Clique em um dos botões acima para começar</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {generatedContent.map((content, index) => {
+                  const style = getContentStyle(content.type);
+                  const Icon = style.icon;
+
+                  return (
+                    <motion.div
+                      key={content.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      onClick={() => handleOpenContent(content)}
+                      className="flex items-center gap-4 p-4 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer group"
+                    >
+                      {/* Ícone */}
+                      <div className={`w-12 h-12 rounded-xl ${style.bgColor} flex items-center justify-center flex-shrink-0`}>
+                        <Icon className={`w-6 h-6 ${style.iconColor}`} />
+                      </div>
+
+                      {/* Informações */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-medium text-gray-900 truncate">
+                            {content.title}
+                          </h3>
+                          {/* Recovery Badge */}
+                          {content.isRecovery && (
+                            <Badge className="text-xs px-2 py-0.5 rounded-md bg-gradient-to-r from-orange-100 to-amber-100 text-orange-700 border border-orange-200 shrink-0 flex items-center gap-1">
+                              <TrendingUp className="w-3 h-3" />
+                              Recovery
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-500">
+                          {style.label} · {content.sourceCount} fontes · {formatTimeAgo(content.createdAt)}
+                        </p>
+                      </div>
+
+                      {/* Badge de dificuldade */}
+                      {content.difficulty && (() => {
+                        const DiffIcon = getDifficultyIcon(content.difficulty);
+                        return (
+                          <Badge className={`text-xs px-2.5 py-1 rounded-lg font-medium shadow-sm shrink-0 flex items-center gap-1 ${getDifficultyBadgeStyle(content.difficulty)}`}>
+                            <DiffIcon className="w-3 h-3" />
+                            {content.difficulty}
+                          </Badge>
+                        );
+                      })()}
+
+                      {/* Menu de ações */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                            }}
+                            className="p-2 hover:bg-gray-200 rounded-lg transition-opacity"
+                          >
+                            <MoreVertical className="w-5 h-5 text-gray-600" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
+                          align="end"
+                          className="w-48"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <DropdownMenuItem
+                            onSelect={(e) => {
+                              e.preventDefault();
+                              setRenamingContent({ id: content.id, currentName: content.title, type: content.type });
+                              setNewContentName(content.title);
+                            }}
+                          >
+                            <Edit className="w-4 h-4 mr-2" />
+                            Renomear
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onSelect={(e) => {
+                              e.preventDefault();
+                              handleDeleteContent(content);
+                            }}
+                            className="text-red-600 focus:text-red-600"
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Deletar
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -953,7 +985,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
             <div className="flex-1 min-h-0">
               {selectedMindMap && (
                 <MindMapViewer
-                  content={selectedMindMap.content_mermaid}
+                  content={selectedMindMap.content_markdown || selectedMindMap.content_mermaid}
                   title={selectedMindMap.title}
                 />
               )}

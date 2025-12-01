@@ -1,0 +1,191 @@
+src/components/AdminDashboard.tsx(5,1): error TS6133: 'Button' is declared but its value is never read.
+src/components/AdminDashboard.tsx(19,3): error TS6133: 'ChartTooltipContent' is declared but its value is never read.
+src/components/AdminDashboard.tsx(93,12): error TS2339: Property 'display_name' does not exist on type 'TokenUsageByUser'.
+src/components/AdminDashboard.tsx(94,12): error TS2339: Property 'user_email' does not exist on type 'TokenUsageByUser'.
+src/components/AdminDashboard.tsx(218,45): error TS2339: Property 'total_operations' does not exist on type 'TokenUsageSummary'.
+src/components/AdminDashboard.tsx(239,46): error TS2551: Property 'total_cost_brl' does not exist on type 'TokenUsageSummary'. Did you mean 'total_cost'?
+src/components/AdminDashboard.tsx(242,71): error TS2339: Property 'most_used_operation' does not exist on type 'TokenUsageSummary'.
+src/components/AdminDashboard.tsx(263,32): error TS2339: Property 'active_users' does not exist on type 'TokenUsageSummary'.
+src/components/AdminDashboard.tsx(266,63): error TS2339: Property 'avg_tokens_per_operation' does not exist on type 'TokenUsageSummary'.
+src/components/AdminDashboard.tsx(319,37): error TS7031: Binding element 'active' implicitly has an 'any' type.
+src/components/AdminDashboard.tsx(319,45): error TS7031: Binding element 'payload' implicitly has an 'any' type.
+src/components/AdminDashboard.tsx(440,76): error TS2339: Property 'display_name' does not exist on type 'TokenUsageByUser'.
+src/components/AdminDashboard.tsx(441,72): error TS2339: Property 'user_email' does not exist on type 'TokenUsageByUser'.
+src/components/AdminDashboard.tsx(448,47): error TS2551: Property 'total_cost_brl' does not exist on type 'TokenUsageByUser'. Did you mean 'total_cost'?
+src/components/AdminDashboard.tsx(452,35): error TS2339: Property 'operation_counts' does not exist on type 'TokenUsageByUser'.
+src/components/AdminDashboard.tsx(453,51): error TS2339: Property 'operation_counts' does not exist on type 'TokenUsageByUser'.
+src/components/AdminDashboard.tsx(519,72): error TS2551: Property 'total_input_tokens' does not exist on type 'TokenUsageByProject'. Did you mean 'total_tokens'?
+src/components/AdminDashboard.tsx(519,125): error TS2339: Property 'total_output_tokens' does not exist on type 'TokenUsageByProject'.
+src/components/AdminDashboard.tsx(523,64): error TS2551: Property 'total_cost_brl' does not exist on type 'TokenUsageByProject'. Did you mean 'total_cost'?
+src/components/AdminDashboard.tsx(527,52): error TS2339: Property 'operation_counts' does not exist on type 'TokenUsageByProject'.
+src/components/AdminDashboard.tsx(529,55): error TS2339: Property 'operation_counts' does not exist on type 'TokenUsageByProject'.
+src/components/Auth.tsx(141,43): error TS7006: Parameter 'checked' implicitly has an 'any' type.
+src/components/ChatPanel.tsx(18,10): error TS6133: 'currentCitedSources' is declared but its value is never read.
+src/components/ChatPanel.tsx(19,10): error TS6133: 'currentSuggestedTopics' is declared but its value is never read.
+src/components/ContentPanel.tsx(11,3): error TS6133: 'Settings' is declared but its value is never read.
+src/components/ContentPanel.tsx(32,45): error TS6133: 'deleteDoc' is declared but its value is never read.
+src/components/ContentPanel.tsx(403,27): error TS2339: Property 'warning' does not exist on type '{}'.
+src/components/ContentPanel.tsx(404,38): error TS2339: Property 'warning' does not exist on type '{}'.
+src/components/ContentPanel.tsx(405,39): error TS2339: Property 'warning' does not exist on type '{}'.
+src/components/ContentPanel.tsx(716,43): error TS7006: Parameter 'value' implicitly has an 'any' type.
+src/components/ContentPanel.tsx(839,37): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/components/ContentPanel.tsx(842,40): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/components/ContentPanel.tsx(853,40): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/components/ContentPanel.tsx(925,9): error TS2322: Type 'import("/Users/jbento1gmail.com/Documents/PROJETOS/WebQuizMedicina/WebQuizMedicina/src/hooks/useFlashcards").Flashcard[]' is not assignable to type 'Flashcard[]'.
+  Type 'import("/Users/jbento1gmail.com/Documents/PROJETOS/WebQuizMedicina/WebQuizMedicina/src/hooks/useFlashcards").Flashcard' is not assignable to type 'Flashcard'.
+    Types of property 'topico' are incompatible.
+      Type 'string | null' is not assignable to type 'string'.
+        Type 'null' is not assignable to type 'string'.
+src/components/ContentPanel.tsx(993,62): error TS7006: Parameter 'open' implicitly has an 'any' type.
+src/components/Dashboard.tsx(12,3): error TS6133: 'DialogHeader' is declared but its value is never read.
+src/components/Dashboard.tsx(69,25): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/components/Dashboard.tsx(80,25): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/components/Dashboard.tsx(91,25): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/components/Dashboard.tsx(147,9): error TS6133: 'user' is declared but its value is never read.
+src/components/Dashboard.tsx(291,26): error TS7006: Parameter 'open' implicitly has an 'any' type.
+src/components/Dashboard.tsx(368,69): error TS7006: Parameter 'open' implicitly has an 'any' type.
+src/components/DifficultiesPanel.tsx(90,9): error TS6133: 'generateQuiz' is declared but its value is never read.
+src/components/DifficultiesPanel.tsx(91,9): error TS6133: 'generateFlashcards' is declared but its value is never read.
+src/components/DifficultiesPanel.tsx(186,27): error TS2339: Property 'data' does not exist on type '(string & { unwrap: () => Promise<HttpsCallableResult<unknown>>; }) | (number & { unwrap: () => Promise<HttpsCallableResult<unknown>>; }) | { ...; }'.
+  Property 'data' does not exist on type 'string & { unwrap: () => Promise<HttpsCallableResult<unknown>>; }'.
+src/components/DifficultiesPanel.tsx(237,27): error TS2339: Property 'data' does not exist on type '(string & { unwrap: () => Promise<HttpsCallableResult<unknown>>; }) | (number & { unwrap: () => Promise<HttpsCallableResult<unknown>>; }) | { ...; }'.
+  Property 'data' does not exist on type 'string & { unwrap: () => Promise<HttpsCallableResult<unknown>>; }'.
+src/components/FlashcardSession.tsx(116,9): error TS2345: Argument of type 'number' is not assignable to parameter of type '"facil" | "medio" | "dificil"'.
+src/components/LanguageSettings.tsx(92,58): error TS7006: Parameter 'value' implicitly has an 'any' type.
+src/components/MobileProjectLayout.tsx(18,63): error TS6133: 'onBack' is declared but its value is never read.
+src/components/ProfileSettings.tsx(22,10): error TS6133: 'User' is declared but its value is never read.
+src/components/ProfileSettings.tsx(70,16): error TS2339: Property 'created_at' does not exist on type 'User'.
+src/components/ProfileSettings.tsx(71,26): error TS2339: Property 'created_at' does not exist on type 'User'.
+src/components/ProjectStats.tsx(1,13): error TS6133: 'TrendingUp' is declared but its value is never read.
+src/components/ProjectStats.tsx(49,18): error TS6133: 'loading' is declared but its value is never read.
+src/components/QuizSession.tsx(85,21): error TS6133: 'setShowTimer' is declared but its value is never read.
+src/components/QuizSession.tsx(165,9): error TS2345: Argument of type 'boolean' is not assignable to parameter of type 'string'.
+src/components/QuizSession.tsx(201,9): error TS2345: Argument of type 'boolean' is not assignable to parameter of type 'string'.
+src/components/RightPanel.tsx(1,25): error TS6133: 'Maximize' is declared but its value is never read.
+src/components/SourcesPanel.tsx(19,1): error TS6192: All imports in import declaration are unused.
+src/components/SourcesPanel.tsx(59,7): error TS6133: 'getFileIcon' is declared but its value is never read.
+src/components/SourcesPanel.tsx(68,7): error TS6133: 'getStatusBadge' is declared but its value is never read.
+src/components/SourcesPanel.tsx(96,7): error TS6133: 'truncateFileName' is declared but its value is never read.
+src/components/SourcesPanel.tsx(103,43): error TS18048: 'extension' is possibly 'undefined'.
+src/components/SourcesPanel.tsx(104,63): error TS18048: 'extension' is possibly 'undefined'.
+src/components/SourcesPanel.tsx(119,10): error TS6133: 'generatedCounts' is declared but its value is never read.
+src/components/SourcesPanel.tsx(459,41): error TS7006: Parameter 'checked' implicitly has an 'any' type.
+src/components/SourcesPanel.tsx(486,35): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/components/SourcesPanel.tsx(490,38): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/components/SourcesPanel.tsx(501,38): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/components/SourcesPanel.tsx(520,68): error TS7006: Parameter 'open' implicitly has an 'any' type.
+src/components/SourcesPanel.tsx(545,63): error TS7006: Parameter 'open' implicitly has an 'any' type.
+src/components/ThemeSettings.tsx(66,55): error TS7006: Parameter 'value' implicitly has an 'any' type.
+src/components/ui/accordion.tsx(4,37): error TS2307: Cannot find module '@radix-ui/react-accordion@1.2.3' or its corresponding type declarations.
+src/components/ui/accordion.tsx(5,33): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+src/components/ui/alert-dialog.tsx(4,39): error TS2307: Cannot find module '@radix-ui/react-alert-dialog@1.1.6' or its corresponding type declarations.
+src/components/ui/alert.tsx(2,40): error TS2307: Cannot find module 'class-variance-authority@0.7.1' or its corresponding type declarations.
+src/components/ui/aspect-ratio.tsx(3,39): error TS2307: Cannot find module '@radix-ui/react-aspect-ratio@1.1.2' or its corresponding type declarations.
+src/components/ui/avatar.tsx(4,34): error TS2307: Cannot find module '@radix-ui/react-avatar@1.1.3' or its corresponding type declarations.
+src/components/ui/badge.tsx(2,22): error TS2307: Cannot find module '@radix-ui/react-slot@1.1.2' or its corresponding type declarations.
+src/components/ui/badge.tsx(3,40): error TS2307: Cannot find module 'class-variance-authority@0.7.1' or its corresponding type declarations.
+src/components/ui/breadcrumb.tsx(2,22): error TS2307: Cannot find module '@radix-ui/react-slot@1.1.2' or its corresponding type declarations.
+src/components/ui/breadcrumb.tsx(3,46): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+src/components/ui/button.tsx(2,22): error TS2307: Cannot find module '@radix-ui/react-slot@1.1.2' or its corresponding type declarations.
+src/components/ui/button.tsx(3,40): error TS2307: Cannot find module 'class-variance-authority@0.7.1' or its corresponding type declarations.
+src/components/ui/calendar.tsx(4,43): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+src/components/ui/calendar.tsx(5,27): error TS2307: Cannot find module 'react-day-picker@8.10.1' or its corresponding type declarations.
+src/components/ui/calendar.tsx(63,22): error TS7031: Binding element 'className' implicitly has an 'any' type.
+src/components/ui/calendar.tsx(66,23): error TS7031: Binding element 'className' implicitly has an 'any' type.
+src/components/ui/carousel.tsx(6,8): error TS2307: Cannot find module 'embla-carousel-react@8.6.0' or its corresponding type declarations.
+src/components/ui/carousel.tsx(7,39): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+src/components/ui/chart.tsx(4,36): error TS2307: Cannot find module 'recharts@2.15.2' or its corresponding type declarations.
+src/components/ui/chart.tsx(182,23): error TS7006: Parameter 'item' implicitly has an 'any' type.
+src/components/ui/chart.tsx(182,29): error TS7006: Parameter 'index' implicitly has an 'any' type.
+src/components/ui/chart.tsx(278,21): error TS7006: Parameter 'item' implicitly has an 'any' type.
+src/components/ui/checkbox.tsx(4,36): error TS2307: Cannot find module '@radix-ui/react-checkbox@1.1.4' or its corresponding type declarations.
+src/components/ui/checkbox.tsx(5,27): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+src/components/ui/collapsible.tsx(3,39): error TS2307: Cannot find module '@radix-ui/react-collapsible@1.1.3' or its corresponding type declarations.
+src/components/ui/command.tsx(4,45): error TS2307: Cannot find module 'cmdk@1.1.1' or its corresponding type declarations.
+src/components/ui/command.tsx(5,28): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+src/components/ui/context-menu.tsx(4,39): error TS2307: Cannot find module '@radix-ui/react-context-menu@2.2.6' or its corresponding type declarations.
+src/components/ui/context-menu.tsx(5,57): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+src/components/ui/dialog.tsx(4,34): error TS2307: Cannot find module '@radix-ui/react-dialog@1.1.6' or its corresponding type declarations.
+src/components/ui/drawer.tsx(4,43): error TS2307: Cannot find module 'vaul@1.1.2' or its corresponding type declarations.
+src/components/ui/dropdown-menu.tsx(4,40): error TS2307: Cannot find module '@radix-ui/react-dropdown-menu@2.1.6' or its corresponding type declarations.
+src/components/ui/dropdown-menu.tsx(5,57): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+src/components/ui/form.tsx(4,33): error TS2307: Cannot find module '@radix-ui/react-label@2.1.2' or its corresponding type declarations.
+src/components/ui/form.tsx(5,22): error TS2307: Cannot find module '@radix-ui/react-slot@1.1.2' or its corresponding type declarations.
+src/components/ui/form.tsx(14,8): error TS2307: Cannot find module 'react-hook-form@7.55.0' or its corresponding type declarations.
+src/components/ui/hover-card.tsx(4,37): error TS2307: Cannot find module '@radix-ui/react-hover-card@1.1.6' or its corresponding type declarations.
+src/components/ui/input-otp.tsx(4,43): error TS2307: Cannot find module 'input-otp@1.4.2' or its corresponding type declarations.
+src/components/ui/input-otp.tsx(5,27): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+src/components/ui/input-otp.tsx(47,61): error TS2339: Property 'slots' does not exist on type '{}'.
+src/components/ui/label.tsx(4,33): error TS2307: Cannot find module '@radix-ui/react-label@2.1.2' or its corresponding type declarations.
+src/components/ui/menubar.tsx(4,35): error TS2307: Cannot find module '@radix-ui/react-menubar@1.1.6' or its corresponding type declarations.
+src/components/ui/menubar.tsx(5,57): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+src/components/ui/navigation-menu.tsx(2,42): error TS2307: Cannot find module '@radix-ui/react-navigation-menu@1.2.5' or its corresponding type declarations.
+src/components/ui/navigation-menu.tsx(3,21): error TS2307: Cannot find module 'class-variance-authority@0.7.1' or its corresponding type declarations.
+src/components/ui/navigation-menu.tsx(4,33): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+src/components/ui/pagination.tsx(6,8): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+src/components/ui/pagination.tsx(75,7): error TS2783: 'size' is specified more than once, so this usage will be overwritten.
+src/components/ui/pagination.tsx(92,7): error TS2783: 'size' is specified more than once, so this usage will be overwritten.
+src/components/ui/popover.tsx(4,35): error TS2307: Cannot find module '@radix-ui/react-popover@1.1.6' or its corresponding type declarations.
+src/components/ui/progress.tsx(4,36): error TS2307: Cannot find module '@radix-ui/react-progress@1.1.2' or its corresponding type declarations.
+src/components/ui/radio-group.tsx(4,38): error TS2307: Cannot find module '@radix-ui/react-radio-group@1.2.3' or its corresponding type declarations.
+src/components/ui/radio-group.tsx(5,28): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+src/components/ui/resizable.tsx(4,34): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+src/components/ui/resizable.tsx(5,37): error TS2307: Cannot find module 'react-resizable-panels@2.1.7' or its corresponding type declarations.
+src/components/ui/scroll-area.tsx(4,38): error TS2307: Cannot find module '@radix-ui/react-scroll-area@1.2.3' or its corresponding type declarations.
+src/components/ui/select.tsx(4,34): error TS2307: Cannot find module '@radix-ui/react-select@2.1.6' or its corresponding type declarations.
+src/components/ui/select.tsx(9,8): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+src/components/ui/separator.tsx(4,37): error TS2307: Cannot find module '@radix-ui/react-separator@1.1.2' or its corresponding type declarations.
+src/components/ui/sheet.tsx(4,33): error TS2307: Cannot find module '@radix-ui/react-dialog@1.1.6' or its corresponding type declarations.
+src/components/ui/sheet.tsx(5,23): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+src/components/ui/sidebar.tsx(4,22): error TS2307: Cannot find module '@radix-ui/react-slot@1.1.2' or its corresponding type declarations.
+src/components/ui/sidebar.tsx(5,35): error TS2307: Cannot find module 'class-variance-authority@0.7.1' or its corresponding type declarations.
+src/components/ui/sidebar.tsx(6,31): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+src/components/ui/sidebar.tsx(270,17): error TS7006: Parameter 'event' implicitly has an 'any' type.
+src/components/ui/slider.tsx(4,34): error TS2307: Cannot find module '@radix-ui/react-slider@1.2.3' or its corresponding type declarations.
+src/components/ui/sonner.tsx(3,26): error TS2307: Cannot find module 'next-themes@0.4.6' or its corresponding type declarations.
+src/components/ui/sonner.tsx(4,49): error TS2307: Cannot find module 'sonner@2.0.3' or its corresponding type declarations.
+src/components/ui/switch.tsx(4,34): error TS2307: Cannot find module '@radix-ui/react-switch@1.1.3' or its corresponding type declarations.
+src/components/ui/tabs.tsx(4,32): error TS2307: Cannot find module '@radix-ui/react-tabs@1.1.3' or its corresponding type declarations.
+src/components/ui/toggle-group.tsx(4,39): error TS2307: Cannot find module '@radix-ui/react-toggle-group@1.1.2' or its corresponding type declarations.
+src/components/ui/toggle-group.tsx(5,35): error TS2307: Cannot find module 'class-variance-authority@0.7.1' or its corresponding type declarations.
+src/components/ui/toggle.tsx(4,34): error TS2307: Cannot find module '@radix-ui/react-toggle@1.1.2' or its corresponding type declarations.
+src/components/ui/toggle.tsx(5,40): error TS2307: Cannot find module 'class-variance-authority@0.7.1' or its corresponding type declarations.
+src/components/ui/tooltip.tsx(4,35): error TS2307: Cannot find module '@radix-ui/react-tooltip@1.1.8' or its corresponding type declarations.
+src/hooks/useChat.ts(3,78): error TS6133: 'doc' is declared but its value is never read.
+src/hooks/useProgress.ts(58,5): error TS6133: 'nextReviewInterval' is declared but its value is never read.
+src/hooks/useProjectStats.ts(170,11): error TS2739: Type 'DocumentData' is missing the following properties from type '{ fácil: number; médio: number; difícil: number; }': fácil, médio, difícil
+src/hooks/useProjectStats.ts(174,11): error TS2739: Type 'DocumentData' is missing the following properties from type '{ fácil: number; médio: number; difícil: number; }': fácil, médio, difícil
+src/hooks/useProjectStats.ts(177,11): error TS2739: Type 'DocumentData' is missing the following properties from type '{ baixa: number; média: number; alta: number; }': baixa, média, alta
+src/hooks/useQuizPersistence.ts(1,20): error TS6133: 'useEffect' is declared but its value is never read.
+src/hooks/useQuizSession.tsx(47,21): error TS6133: 'setShowTimer' is declared but its value is never read.
+src/hooks/useQuizSession.tsx(126,9): error TS2345: Argument of type 'boolean' is not assignable to parameter of type 'string'.
+src/hooks/useSources.ts(17,28): error TS6133: 'getDownloadURL' is declared but its value is never read.
+src/lib/fileUtils.ts(9,17): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+src/lib/fileUtils.ts(17,17): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+src/lib/fileUtils.ts(61,43): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+src/lib/firebase.ts(8,25): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+src/lib/firebase.ts(9,29): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+src/lib/firebase.ts(10,28): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+src/lib/firebase.ts(11,32): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+src/lib/firebase.ts(12,36): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+src/lib/firebase.ts(13,24): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+src/lib/sanitize.ts(10,23): error TS2503: Cannot find namespace 'DOMPurify'.
+src/lib/sanitize.ts(33,22): error TS2503: Cannot find namespace 'DOMPurify'.
+src/lib/sanitize.ts(41,28): error TS2503: Cannot find namespace 'DOMPurify'.
+src/lib/sanitize.ts(62,3): error TS2322: Type 'TrustedHTML' is not assignable to type 'string'.
+src/lib/sanitize.ts(72,3): error TS2322: Type 'TrustedHTML' is not assignable to type 'string'.
+src/lib/sanitize.ts(82,3): error TS2322: Type 'TrustedHTML' is not assignable to type 'string'.
+src/lib/sentry.tsx(5,19): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+src/lib/sentry.tsx(5,43): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+src/lib/sentry.tsx(7,24): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+src/lib/sentry.tsx(21,32): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+src/lib/sentry.tsx(23,28): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+src/lib/sentry.tsx(25,25): error TS6133: 'hint' is declared but its value is never read.
+src/lib/sentry.tsx(27,25): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+src/main.tsx(13,15): error TS2322: Type '({ error, resetError }: { error: Error; resetError: () => void; }) => Element' is not assignable to type 'ReactElement<unknown, string | JSXElementConstructor<any>> | FallbackRender | undefined'.
+  Type '({ error, resetError }: { error: Error; resetError: () => void; }) => Element' is not assignable to type 'FallbackRender'.
+    Types of parameters '__0' and 'errorData' are incompatible.
+      Type '{ error: unknown; componentStack: string; eventId: string; resetError(): void; }' is not assignable to type '{ error: Error; resetError: () => void; }'.
+        Types of property 'error' are incompatible.
+          Type 'unknown' is not assignable to type 'Error'.
+src/tests/security.test.ts(4,38): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.

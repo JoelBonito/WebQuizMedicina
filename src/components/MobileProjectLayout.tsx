@@ -9,13 +9,14 @@ interface MobileProjectLayoutProps {
   projectId: string;
   projectName: string;
   onBack: () => void;
+  onViewStats?: () => void;
 }
 
 /**
  * Layout mobile otimizado para iPad/iPhone
  * Exibe Fontes, Estudo e Chat em tabs de tela inteira
  */
-export function MobileProjectLayout({ projectId, projectName, onBack }: MobileProjectLayoutProps) {
+export function MobileProjectLayout({ projectId, projectName, onBack, onViewStats }: MobileProjectLayoutProps) {
   const [activeTab, setActiveTab] = useState<string>('fontes');
   const [selectedSourceIds, setSelectedSourceIds] = useState<string[]>([]);
 
@@ -114,6 +115,7 @@ export function MobileProjectLayout({ projectId, projectName, onBack }: MobilePr
               <ContentPanel
                 projectId={projectId}
                 selectedSourceIds={selectedSourceIds}
+                onViewStats={onViewStats}
               />
             </div>
           )}

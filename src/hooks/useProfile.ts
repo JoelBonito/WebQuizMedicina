@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { db, storage } from '../lib/firebase';
+import { doc, setDoc, updateDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuth } from './useAuth';
 
 export interface Profile {
@@ -8,8 +10,8 @@ export interface Profile {
   avatar_url: string | null;
   response_language: string;
   role: string;
-  created_at: string;
-  updated_at: string;
+  created_at: any;
+  updated_at: any;
 }
 
 export function useProfile() {
@@ -18,50 +20,55 @@ export function useProfile() {
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
 
-  // Fetch profile
-  const fetchProfile = async () => {
+  // Subscribe to profile changes
+  useEffect(() => {
+    // ✅ Resetar quando não há usuário
     if (!user) {
       setProfile(null);
       setLoading(false);
       return;
     }
 
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
+    console.log('[useProfile] Setting up profile listener for:', user.uid);
+    setLoading(true);
 
-      if (error) {
-        // If profile doesn't exist, create it
-        if (error.code === 'PGRST116') {
-          const displayName = user.email?.split('@')[0] || 'Usuário';
-          const { data: newProfile, error: insertError } = await supabase
-            .from('profiles')
-            .insert({
-              id: user.id,
-              display_name: displayName,
-              response_language: 'pt',
-            })
-            .select()
-            .single();
+    const docRef = doc(db, 'user_profiles', user.uid);
 
-          if (insertError) throw insertError;
-          setProfile(newProfile);
-        } else {
-          throw error;
-        }
+    const unsubscribe = onSnapshot(docRef, async (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setProfile({ id: docSnap.id, ...data } as Profile);
+        // console.log('[useProfile] Profile updated:', data?.role);
       } else {
-        setProfile(data);
+        // Create profile if it doesn't exist
+        const displayName = user.email?.split('@')[0] || 'Usuário';
+        const newProfile = {
+          display_name: displayName,
+          response_language: 'pt',
+          role: 'user', // Default role
+          avatar_url: user.photoURL || null,
+          created_at: serverTimestamp(),
+          updated_at: serverTimestamp(),
+        };
+
+        try {
+          await setDoc(docRef, newProfile);
+          // onSnapshot will fire again with the new data
+        } catch (err) {
+          console.error('Error creating profile:', err);
+        }
       }
-    } catch (error) {
-      console.error('Error fetching profile:', error);
-    } finally {
       setLoading(false);
-    }
-  };
+    }, (error) => {
+      console.error('Error listening to profile:', error);
+      setLoading(false);
+    });
+
+    return () => {
+      console.log('[useProfile] Cleaning up profile listener');
+      unsubscribe();
+    };
+  }, [user?.uid]); // ✅ Dependência CORRETA: só user.uid!
 
   // Update profile
   const updateProfile = async (updates: Partial<Pick<Profile, 'display_name' | 'avatar_url' | 'response_language'>>) => {
@@ -69,16 +76,17 @@ export function useProfile() {
 
     try {
       setUpdating(true);
-      const { data, error } = await supabase
-        .from('profiles')
-        .update(updates)
-        .eq('id', user.id)
-        .select()
-        .single();
+      const docRef = doc(db, 'user_profiles', user.uid); // Fixed collection name to match useEffect
 
-      if (error) throw error;
-      setProfile(data);
-      return { data, error: null };
+      await updateDoc(docRef, {
+        ...updates,
+        updated_at: serverTimestamp()
+      });
+
+      // Optimistic update
+      setProfile(prev => prev ? { ...prev, ...updates, updated_at: new Date() } : null);
+
+      return { data: { ...profile, ...updates }, error: null };
     } catch (error: any) {
       console.error('Error updating profile:', error);
       return { data: null, error };
@@ -96,22 +104,11 @@ export function useProfile() {
 
       // Upload file to storage
       const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-      const filePath = `avatars/${fileName}`;
+      const fileName = `${user.uid}-${Date.now()}.${fileExt}`;
+      const storageRef = ref(storage, `avatars/${fileName}`);
 
-      const { error: uploadError } = await supabase.storage
-        .from('user-uploads')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false,
-        });
-
-      if (uploadError) throw uploadError;
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('user-uploads')
-        .getPublicUrl(filePath);
+      await uploadBytes(storageRef, file);
+      const publicUrl = await getDownloadURL(storageRef);
 
       // Update profile with avatar URL
       const result = await updateProfile({ avatar_url: publicUrl });
@@ -124,16 +121,12 @@ export function useProfile() {
     }
   };
 
-  useEffect(() => {
-    fetchProfile();
-  }, [user?.id]);
-
   return {
     profile,
     loading,
     updating,
     updateProfile,
     uploadAvatar,
-    refetch: fetchProfile,
+    refetch: () => { }, // No-op since we use real-time listener
   };
 }

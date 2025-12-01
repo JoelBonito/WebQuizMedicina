@@ -46,7 +46,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import { supabase } from "../lib/supabase";
+import { db, functions } from "../lib/firebase";
+import { collection, addDoc, updateDoc, doc, serverTimestamp } from "firebase/firestore";
+import { httpsCallable } from "firebase/functions";
 
 interface SourcesPanelProps {
   projectId: string | null;
@@ -95,7 +97,7 @@ const truncateFileName = (name: string, maxLength: number = 20): string => {
   if (name.length <= maxLength) return name;
 
   const parts = name.split('.');
-  const extension = parts.length > 1 ? parts.pop() : '';
+  const extension = parts.length > 1 ? parts.pop() || '' : '';
   const nameWithoutExt = parts.join('.');
 
   if (nameWithoutExt.length > maxLength - extension.length - 4) {
@@ -140,35 +142,51 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
     fetchCounts();
   }, [sources]);
 
-  // Initialize all sources as selected by default
+  // Sync selection with parent whenever it changes
+  useEffect(() => {
+    onSelectedSourcesChange?.(Array.from(selectedSources));
+  }, [selectedSources]);
+
+  // Initialize all sources as selected by default and update when new ready sources appear
   useEffect(() => {
     if (sources.length > 0) {
       const readySources = sources.filter(s => s.status === 'ready');
       const readyIds = readySources.map(s => s.id);
 
+      console.log('🔄 [SourcesPanel] Checking auto-selection:', {
+        totalSources: sources.length,
+        readySources: readySources.length,
+        currentSelection: Array.from(selectedSources)
+      });
+
       // Add any new ready sources to the selection (keep existing selections)
       setSelectedSources(prev => {
         const newSelected = new Set(prev);
-        readyIds.forEach(id => newSelected.add(id));
-        return newSelected;
-      });
+        let hasChanges = false;
 
-      // Notify parent of all selected sources
-      const allSelected = new Set(selectedSources);
-      readyIds.forEach(id => allSelected.add(id));
-      onSelectedSourcesChange?.(Array.from(allSelected));
+        readyIds.forEach(id => {
+          if (!newSelected.has(id)) {
+            console.log('➕ [SourcesPanel] Auto-selecting new source:', id);
+            newSelected.add(id);
+            hasChanges = true;
+          }
+        });
+
+        return hasChanges ? newSelected : prev;
+      });
     }
   }, [sources]);
 
   const handleSourceToggle = (sourceId: string, checked: boolean) => {
-    const newSelected = new Set(selectedSources);
-    if (checked) {
-      newSelected.add(sourceId);
-    } else {
-      newSelected.delete(sourceId);
-    }
-    setSelectedSources(newSelected);
-    onSelectedSourcesChange?.(Array.from(newSelected));
+    setSelectedSources(prev => {
+      const newSelected = new Set(prev);
+      if (checked) {
+        newSelected.add(sourceId);
+      } else {
+        newSelected.delete(sourceId);
+      }
+      return newSelected;
+    });
   };
 
   const handleFileInput = async (e: ChangeEvent<HTMLInputElement>) => {
@@ -229,6 +247,8 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
     }
   };
 
+
+
   const addSourcesSummaryToChat = async () => {
     if (!projectId || !user) return;
 
@@ -246,26 +266,17 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
       // Preparar dados para inserção
       const insertData = {
         project_id: projectId,
-        user_id: user.id,
+        user_id: user.uid,
         role: 'system',
         content: summaryMessage,
+        created_at: serverTimestamp(),
       };
 
       console.log('📝 Tentando inserir mensagem de sistema:', insertData);
       console.log('📝 User:', user);
 
       // Inserir mensagem de sistema no chat (usando estrutura correta: role + content)
-      const { data, error } = await supabase.from('chat_messages').insert(insertData).select();
-
-      if (error) {
-        console.error('❌ Supabase error inserting summary:', error);
-        console.error('❌ Error details:', JSON.stringify(error, null, 2));
-        console.error('❌ Error code:', error.code);
-        console.error('❌ Error message:', error.message);
-        throw error;
-      }
-
-      console.log('✅ Resumo das fontes adicionado ao chat:', data);
+      await addDoc(collection(db, 'chat_messages'), insertData);
 
       console.log('✅ Resumo das fontes adicionado ao chat');
     } catch (error) {
@@ -280,15 +291,20 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
     try {
       console.log(`🚀 Iniciando processamento de embeddings para ${uploadedSourceIds.length} arquivos`);
 
-      // Chamar a Edge Function para processar embeddings
-      const { data, error } = await supabase.functions.invoke('process-embeddings-queue', {
-        body: { max_items: 10 }
-      });
+      if (!projectId) {
+        throw new Error("Project ID is missing");
+      }
 
-      if (error) {
-        console.error('❌ Error processing embeddings:', error);
-        toast.error('Erro ao processar embeddings. Tente novamente.');
-        return;
+      // Chamar a Cloud Function para processar embeddings
+      const processEmbeddingsFn = httpsCallable(functions, 'process_embeddings_queue');
+      const result = await processEmbeddingsFn({
+        project_id: projectId,
+        max_items: 10
+      });
+      const data = result.data as any;
+
+      if (!data) {
+        throw new Error('No data returned from process_embeddings_queue');
       }
 
       console.log('✅ Embeddings processing result:', data);
@@ -336,12 +352,9 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
     if (!renamingSource || !newSourceName.trim()) return;
 
     try {
-      const { error } = await supabase
-        .from('sources')
-        .update({ name: newSourceName.trim() })
-        .eq('id', renamingSource.id);
-
-      if (error) throw error;
+      await updateDoc(doc(db, 'sources', renamingSource.id), {
+        name: newSourceName.trim()
+      });
 
       await refetch();
       toast.success("Nome alterado com sucesso");
@@ -413,7 +426,7 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
             <Button
               size="sm"
               onClick={processEmbeddings}
-              disabled={processingEmbeddings || sources.filter(s => s.status !== 'ready').length === 0}
+              disabled={processingEmbeddings || sources.filter(s => s.status !== 'ready' || s.embeddings_status === 'pending').length === 0}
               className="rounded-xl bg-gradient-to-r from-blue-900 to-blue-800 hover:from-blue-950 hover:to-blue-900 text-white shadow-lg hover:shadow-xl transition-all duration-300"
             >
               {processingEmbeddings ? (
@@ -436,8 +449,8 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
           </p>
         </div>
 
-      {/* Sources List - Com altura mínima 0 para permitir scroll correto */}
-      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
+        {/* Sources List - Com altura mínima 0 para permitir scroll correto */}
+        <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="w-8 h-8 animate-spin text-[#0891B2]" />
@@ -453,220 +466,220 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
           ) : (
             <div className="space-y-3 pr-2 pb-2">
               {sources.map((source, index) => (
-              <motion.div
-                key={source.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className="flex items-center gap-4 p-4 rounded-xl hover:bg-gray-50 transition-colors"
-              >
-                {/* Checkbox de seleção */}
-                {source.status === 'ready' && (
-                  <Checkbox
-                    checked={selectedSources.has(source.id)}
-                    onCheckedChange={(checked) => handleSourceToggle(source.id, checked as boolean)}
-                  />
-                )}
-
-                {/* Nome da fonte */}
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-medium text-gray-900 truncate">
-                    {source.name}
-                  </h3>
-                </div>
-
-                {/* Menu de ações */}
-                <div className="relative z-30 pointer-events-auto">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                        }}
-                        className="p-2 hover:bg-gray-200 rounded-lg transition-opacity"
-                      >
-                        <MoreVertical className="w-5 h-5 text-gray-600" />
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent
-                      align="end"
-                      className="w-48 z-[100] pointer-events-auto"
-                      onClick={(e) => e.stopPropagation()}
-                      sideOffset={5}
-                    >
-                      <DropdownMenuItem
-                        onSelect={(e) => {
-                          e.preventDefault();
-                          setRenamingSource({ id: source.id, currentName: source.name });
-                          setNewSourceName(source.name);
-                        }}
-                      >
-                        <Edit className="w-4 h-4 mr-2" />
-                        Renomear
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onSelect={(e) => {
-                          e.preventDefault();
-                          setDeletingSource({ id: source.id, name: source.name });
-                        }}
-                        className="text-red-600 focus:text-red-600"
-                      >
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        Deletar
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deletingSource !== null} onOpenChange={(open) => !open && setDeletingSource(null)}>
-        <AlertDialogContent className="rounded-3xl">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-xl font-semibold text-gray-900">
-              Excluir Fonte?
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-sm text-gray-600">
-              Tem certeza que deseja excluir "{deletingSource?.name}"? Esta ação não pode ser desfeita e todos os conteúdos gerados a partir desta fonte serão removidos.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="gap-3">
-            <AlertDialogCancel className="rounded-xl border-gray-300 hover:bg-gray-50 text-gray-700">
-              Cancelar
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteConfirm}
-              className="rounded-xl bg-red-500 hover:bg-red-600 text-white shadow-lg"
-            >
-              Excluir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Rename Dialog */}
-      <Dialog open={renamingSource !== null} onOpenChange={(open) => {
-        if (!open) {
-          setRenamingSource(null);
-          setNewSourceName('');
-        }
-      }}>
-        <DialogContent className="rounded-3xl sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-semibold text-gray-900">
-              Renomear Fonte
-            </DialogTitle>
-            <DialogDescription className="text-sm text-gray-600">
-              Digite o novo nome para "{renamingSource?.currentName}"
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <input
-              type="text"
-              value={newSourceName}
-              onChange={(e) => setNewSourceName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleRenameConfirm();
-                }
-              }}
-              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0891B2] focus:border-transparent"
-              placeholder="Novo nome"
-              autoFocus
-            />
-          </div>
-          <DialogFooter className="gap-3">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setRenamingSource(null);
-                setNewSourceName('');
-              }}
-              className="rounded-xl"
-            >
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleRenameConfirm}
-              disabled={!newSourceName.trim()}
-              className="rounded-xl bg-[#0891B2] hover:bg-[#0891B2]/90"
-            >
-              Salvar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Upload Success Modal */}
-      <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
-        <DialogContent className="rounded-3xl sm:max-w-md">
-          <DialogHeader>
-            <div className="flex items-center justify-center mb-4">
-              <div className="rounded-full bg-gradient-to-r from-[#0891B2] to-[#7CB342] p-3">
-                <CheckCircle2 className="w-8 h-8 text-white" />
-              </div>
-            </div>
-            <DialogTitle className="text-xl font-semibold text-gray-900 text-center">
-              Upload Concluído com Sucesso!
-            </DialogTitle>
-            <DialogDescription className="text-center text-gray-600">
-              {uploadedSourceIds.length === 1
-                ? "Seu arquivo foi enviado com sucesso."
-                : `${uploadedSourceIds.length} arquivos foram enviados com sucesso.`}
-              {" "}
-              Clique no botão abaixo para processar os arquivos e habilitar a busca semântica.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="sm:justify-center gap-3">
-            <Button
-              onClick={processEmbeddings}
-              disabled={processingEmbeddings}
-              className="rounded-xl bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white shadow-[0_8px_30px_rgb(0,0,0,0.15),inset_0_1px_0_rgba(255,255,255,0.4),inset_0_-1px_0_rgba(0,0,0,0.2)] hover:shadow-[0_15px_40px_rgba(8,145,178,0.4),inset_0_1px_0_rgba(255,255,255,0.5),inset_0_-1px_0_rgba(0,0,0,0.3)] transition-all duration-300 px-6 backdrop-blur-xl border-2 border-white/40 relative overflow-hidden before:absolute before:inset-0 before:bg-[linear-gradient(135deg,rgba(255,255,255,0.4)_0%,rgba(255,255,255,0)_30%,rgba(255,255,255,0)_70%,rgba(255,255,255,0.3)_100%)] before:opacity-70 after:absolute after:inset-0 after:bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.6),transparent_60%)] after:opacity-0 hover:after:opacity-100 after:transition-opacity after:duration-500 hover:scale-[1.05] [box-shadow:0_2px_4px_rgba(255,255,255,0.3)_inset,0_8px_30px_rgba(0,0,0,0.15)] hover:[box-shadow:0_2px_8px_rgba(255,255,255,0.4)_inset,0_15px_40px_rgba(8,145,178,0.4)]"
-            >
-              {processingEmbeddings ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin relative z-10" />
-                  <span className="relative z-10">Processando...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4 mr-2 relative z-10 drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]" />
-                  <span className="relative z-10 drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]">Processar Arquivos</span>
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Fullscreen Dialog */}
-      {!isFullscreenMode && (
-        <Dialog open={isFullscreen} onOpenChange={setIsFullscreen}>
-          <DialogContent className="!fixed !inset-0 !top-0 !left-0 !right-0 !bottom-0 !translate-x-0 !translate-y-0 !max-w-none !w-screen !h-screen !m-0 !rounded-none !p-0 overflow-hidden supports-[height:100dvh]:!h-dvh">
-            <div className="h-screen supports-[height:100dvh]:h-dvh w-full flex flex-col bg-gray-50">
-              <div className="flex items-center justify-between p-6 border-b bg-white">
-                <h2 className="text-2xl font-bold text-gray-900">Fontes</h2>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => setIsFullscreen(false)}
-                  className="h-8 w-8 p-0"
+                <motion.div
+                  key={source.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  className="flex items-center gap-4 p-4 rounded-xl hover:bg-gray-50 transition-colors"
                 >
-                  <X className="w-5 h-5" />
-                </Button>
-              </div>
-              <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 md:p-6 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-6">
-                <SourcesPanel projectId={projectId} onSelectedSourcesChange={onSelectedSourcesChange} isFullscreenMode={true} />
-              </div>
+                  {/* Checkbox de seleção */}
+                  {source.status === 'ready' && (
+                    <Checkbox
+                      checked={selectedSources.has(source.id)}
+                      onCheckedChange={(checked) => handleSourceToggle(source.id, checked as boolean)}
+                    />
+                  )}
+
+                  {/* Nome da fonte */}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-medium text-gray-900 truncate">
+                      {source.name}
+                    </h3>
+                  </div>
+
+                  {/* Menu de ações */}
+                  <div className="relative z-30 pointer-events-auto">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                          }}
+                          className="p-2 hover:bg-gray-200 rounded-lg transition-opacity"
+                        >
+                          <MoreVertical className="w-5 h-5 text-gray-600" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent
+                        align="end"
+                        className="w-48 z-[100] pointer-events-auto"
+                        onClick={(e) => e.stopPropagation()}
+                        sideOffset={5}
+                      >
+                        <DropdownMenuItem
+                          onSelect={(e) => {
+                            e.preventDefault();
+                            setRenamingSource({ id: source.id, currentName: source.name });
+                            setNewSourceName(source.name);
+                          }}
+                        >
+                          <Edit className="w-4 h-4 mr-2" />
+                          Renomear
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onSelect={(e) => {
+                            e.preventDefault();
+                            setDeletingSource({ id: source.id, name: source.name });
+                          }}
+                          className="text-red-600 focus:text-red-600"
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Deletar
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </motion.div>
+              ))}
             </div>
+          )}
+        </div>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={deletingSource !== null} onOpenChange={(open) => !open && setDeletingSource(null)}>
+          <AlertDialogContent className="rounded-3xl">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-xl font-semibold text-gray-900">
+                Excluir Fonte?
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-sm text-gray-600">
+                Tem certeza que deseja excluir "{deletingSource?.name}"? Esta ação não pode ser desfeita e todos os conteúdos gerados a partir desta fonte serão removidos.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="gap-3">
+              <AlertDialogCancel className="rounded-xl border-gray-300 hover:bg-gray-50 text-gray-700">
+                Cancelar
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteConfirm}
+                className="rounded-xl bg-red-500 hover:bg-red-600 text-white shadow-lg"
+              >
+                Excluir
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Rename Dialog */}
+        <Dialog open={renamingSource !== null} onOpenChange={(open) => {
+          if (!open) {
+            setRenamingSource(null);
+            setNewSourceName('');
+          }
+        }}>
+          <DialogContent className="rounded-3xl sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-semibold text-gray-900">
+                Renomear Fonte
+              </DialogTitle>
+              <DialogDescription className="text-sm text-gray-600">
+                Digite o novo nome para "{renamingSource?.currentName}"
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <input
+                type="text"
+                value={newSourceName}
+                onChange={(e) => setNewSourceName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleRenameConfirm();
+                  }
+                }}
+                className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0891B2] focus:border-transparent"
+                placeholder="Novo nome"
+                autoFocus
+              />
+            </div>
+            <DialogFooter className="gap-3">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setRenamingSource(null);
+                  setNewSourceName('');
+                }}
+                className="rounded-xl"
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleRenameConfirm}
+                disabled={!newSourceName.trim()}
+                className="rounded-xl bg-[#0891B2] hover:bg-[#0891B2]/90"
+              >
+                Salvar
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
-      )}
+
+        {/* Upload Success Modal */}
+        <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
+          <DialogContent className="rounded-3xl sm:max-w-md">
+            <DialogHeader>
+              <div className="flex items-center justify-center mb-4">
+                <div className="rounded-full bg-gradient-to-r from-[#0891B2] to-[#7CB342] p-3">
+                  <CheckCircle2 className="w-8 h-8 text-white" />
+                </div>
+              </div>
+              <DialogTitle className="text-xl font-semibold text-gray-900 text-center">
+                Upload Concluído com Sucesso!
+              </DialogTitle>
+              <DialogDescription className="text-center text-gray-600">
+                {uploadedSourceIds.length === 1
+                  ? "Seu arquivo foi enviado com sucesso."
+                  : `${uploadedSourceIds.length} arquivos foram enviados com sucesso.`}
+                {" "}
+                Clique no botão abaixo para processar os arquivos e habilitar a busca semântica.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="sm:justify-center gap-3">
+              <Button
+                onClick={processEmbeddings}
+                disabled={processingEmbeddings}
+                className="rounded-xl bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white shadow-[0_8px_30px_rgb(0,0,0,0.15),inset_0_1px_0_rgba(255,255,255,0.4),inset_0_-1px_0_rgba(0,0,0,0.2)] hover:shadow-[0_15px_40px_rgba(8,145,178,0.4),inset_0_1px_0_rgba(255,255,255,0.5),inset_0_-1px_0_rgba(0,0,0,0.3)] transition-all duration-300 px-6 backdrop-blur-xl border-2 border-white/40 relative overflow-hidden before:absolute before:inset-0 before:bg-[linear-gradient(135deg,rgba(255,255,255,0.4)_0%,rgba(255,255,255,0)_30%,rgba(255,255,255,0)_70%,rgba(255,255,255,0.3)_100%)] before:opacity-70 after:absolute after:inset-0 after:bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.6),transparent_60%)] after:opacity-0 hover:after:opacity-100 after:transition-opacity after:duration-500 hover:scale-[1.05] [box-shadow:0_2px_4px_rgba(255,255,255,0.3)_inset,0_8px_30px_rgba(0,0,0,0.15)] hover:[box-shadow:0_2px_8px_rgba(255,255,255,0.4)_inset,0_15px_40px_rgba(8,145,178,0.4)]"
+              >
+                {processingEmbeddings ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin relative z-10" />
+                    <span className="relative z-10">Processando...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 mr-2 relative z-10 drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]" />
+                    <span className="relative z-10 drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]">Processar Arquivos</span>
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Fullscreen Dialog */}
+        {!isFullscreenMode && (
+          <Dialog open={isFullscreen} onOpenChange={setIsFullscreen}>
+            <DialogContent className="!fixed !inset-0 !top-0 !left-0 !right-0 !bottom-0 !translate-x-0 !translate-y-0 !max-w-none !w-screen !h-screen !m-0 !rounded-none !p-0 overflow-hidden supports-[height:100dvh]:!h-dvh">
+              <div className="h-screen supports-[height:100dvh]:h-dvh w-full flex flex-col bg-gray-50">
+                <div className="flex items-center justify-between p-6 border-b bg-white">
+                  <h2 className="text-2xl font-bold text-gray-900">Fontes</h2>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setIsFullscreen(false)}
+                    className="h-8 w-8 p-0"
+                  >
+                    <X className="w-5 h-5" />
+                  </Button>
+                </div>
+                <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 md:p-6 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-6">
+                  <SourcesPanel projectId={projectId} onSelectedSourcesChange={onSelectedSourcesChange} isFullscreenMode={true} />
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
     </div>
   );

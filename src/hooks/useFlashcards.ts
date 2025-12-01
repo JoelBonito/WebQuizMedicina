@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../lib/supabase';
+import { db, functions } from '../lib/firebase';
+import { collection, query, where, orderBy, getDocs, onSnapshot } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
 import { useAuth } from './useAuth';
 import { CONTENT_REFRESH_EVENT } from '../lib/events';
 
@@ -13,11 +15,11 @@ export interface Flashcard {
   topico: string | null;
   dificuldade: string;
   content_type?: 'standard' | 'recovery';
-  created_at: string;
+  created_at: any;
 }
 
 export const useFlashcards = (projectId: string | null) => {
-  const { session } = useAuth();
+  const { user } = useAuth();
   const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -30,14 +32,15 @@ export const useFlashcards = (projectId: string | null) => {
 
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('flashcards')
-        .select('*')
-        .eq('project_id', projectId)
-        .order('created_at', { ascending: false });
+      const q = query(
+        collection(db, 'flashcards'),
+        where('project_id', '==', projectId),
+        orderBy('created_at', 'desc')
+      );
 
-      if (error) throw error;
-      setFlashcards(data || []);
+      const querySnapshot = await getDocs(q);
+      const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Flashcard));
+      setFlashcards(data);
     } catch (err) {
       console.error('Error fetching flashcards:', err);
     } finally {
@@ -46,46 +49,22 @@ export const useFlashcards = (projectId: string | null) => {
   }, [projectId]);
 
   useEffect(() => {
-    fetchFlashcards();
-  }, [fetchFlashcards]);
-
-  // Realtime subscription for instant updates when new flashcards are inserted
-  useEffect(() => {
     if (!projectId) return;
 
-    // Create a unique channel name based on project_id to avoid conflicts
-    const channelName = `flashcards_updates_${projectId}`;
+    const q = query(
+      collection(db, 'flashcards'),
+      where('project_id', '==', projectId),
+      orderBy('created_at', 'desc')
+    );
 
-    console.log(`[Realtime] Subscribing to channel: ${channelName}`);
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Flashcard));
+      setFlashcards(data);
+    });
 
-    const channel = supabase
-      .channel(channelName)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'flashcards',
-          filter: `project_id=eq.${projectId}`
-        },
-        (payload) => {
-          console.log(`[Realtime] New flashcard inserted:`, payload);
-          // Immediately refresh the flashcards list
-          fetchFlashcards();
-        }
-      )
-      .subscribe((status) => {
-        console.log(`[Realtime] Subscription status for ${channelName}:`, status);
-      });
+    return () => unsubscribe();
+  }, [projectId]);
 
-    // Cleanup: unsubscribe when component unmounts or projectId changes
-    return () => {
-      console.log(`[Realtime] Unsubscribing from channel: ${channelName}`);
-      supabase.removeChannel(channel);
-    };
-  }, [projectId, fetchFlashcards]);
-
-  // Local event listener (fallback for when Realtime fails)
   useEffect(() => {
     const handleRefresh = () => {
       console.log('[Events] Flashcards refresh triggered by local event');
@@ -104,50 +83,50 @@ export const useFlashcards = (projectId: string | null) => {
 
     try {
       setGenerating(true);
+      if (!user) throw new Error('Not authenticated');
 
-      if (!session) throw new Error('Not authenticated');
-
-      // Support both single sourceId (string) and multiple sourceIds (array)
       const source_ids = Array.isArray(sourceIds) ? sourceIds : (sourceIds ? [sourceIds] : undefined);
 
-      const response = await fetch(
-        `${supabase.supabaseUrl}/functions/v1/generate-flashcards`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({
-            source_ids,
-            project_id: projectId,
-            count,
-            ...(difficulty && { difficulty }),
-          }),
-        }
-      );
+      const generateFlashcardsFn = httpsCallable(functions, 'generate_flashcards');
+      const result = await generateFlashcardsFn({
+        source_ids,
+        project_id: projectId,
+        count,
+        difficulty
+      });
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        // Check for quota/rate limit errors
-        const errorMessage = result.error || '';
-        if (
-          response.status === 429 ||
-          errorMessage.includes('quota') ||
-          errorMessage.includes('RESOURCE_EXHAUSTED') ||
-          errorMessage.includes('rate limit')
-        ) {
-          throw new Error('Limite de uso da API atingido. Por favor, tente novamente mais tarde (aproximadamente em 1 minuto).');
-        }
-        throw new Error(result.error || 'Failed to generate flashcards');
-      }
-
-      // Refresh flashcards
-      await fetchFlashcards();
-      return result;
-    } catch (err) {
+      return result.data;
+    } catch (err: any) {
       console.error('Error generating flashcards:', err);
+      if (err.message && (err.message.includes('quota') || err.message.includes('resource-exhausted'))) {
+        throw new Error('Limite de uso da API atingido. Tente novamente em breve.');
+      }
+      throw err;
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const generateRecoveryFlashcards = async (difficulties?: any[], count: number = 10) => {
+    if (!projectId) throw new Error('Project required');
+
+    try {
+      setGenerating(true);
+      if (!user) throw new Error('Not authenticated');
+
+      const generateRecoveryFlashcardsFn = httpsCallable(functions, 'generate_recovery_flashcards');
+      const result = await generateRecoveryFlashcardsFn({
+        project_id: projectId,
+        difficulties,
+        count
+      });
+
+      return result.data;
+    } catch (err: any) {
+      console.error('Error generating recovery flashcards:', err);
+      if (err.message && (err.message.includes('quota') || err.message.includes('resource-exhausted'))) {
+        throw new Error('Limite de uso da API atingido. Tente novamente em breve.');
+      }
       throw err;
     } finally {
       setGenerating(false);
@@ -159,6 +138,7 @@ export const useFlashcards = (projectId: string | null) => {
     loading,
     generating,
     generateFlashcards,
+    generateRecoveryFlashcards,
     refetch: fetchFlashcards,
   };
 };

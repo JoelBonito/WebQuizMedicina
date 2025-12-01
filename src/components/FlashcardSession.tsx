@@ -13,7 +13,7 @@ interface Flashcard {
   id: string;
   frente: string;
   verso: string;
-  topico: string;
+  topico: string | null;
   dificuldade: string;
 }
 
@@ -31,7 +31,7 @@ type Rating = "facil" | "medio" | "dificil";
 interface CardProgress {
   flashcardId: string;
   rating: Rating;
-  topico: string;
+  topico: string | null;
 }
 
 // SM-2 Algorithm for spaced repetition
@@ -111,6 +111,7 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
 
     try {
       await saveFlashcardProgress(
+        projectId,
         currentCard.id,
         rating,
         sm2Result.interval,

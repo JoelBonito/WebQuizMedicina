@@ -1,203 +1,352 @@
 import { useEffect, useRef, useState } from 'react';
-import mermaid from 'mermaid';
-import { Button } from './ui/button';
-import { ZoomIn, ZoomOut, Maximize2, Download } from 'lucide-react';
-import { toast } from 'sonner';
+import { Transformer } from 'markmap-lib';
+import { Markmap } from 'markmap-view';
+import { Toolbar } from 'markmap-toolbar';
+import 'markmap-toolbar/dist/style.css';
+import { Loader2, Maximize2, Minimize2 } from 'lucide-react';
 
 interface MindMapViewerProps {
   content: string;
   title?: string;
 }
 
+const transformer = new Transformer();
+
 export function MindMapViewer({ content, title }: MindMapViewerProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [zoom, setZoom] = useState(1);
+  const svgRef = useRef<SVGSVGElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const [isRendering, setIsRendering] = useState(false);
-  const [renderError, setRenderError] = useState<string | null>(null);
+  const [markmapInstance, setMarkmapInstance] = useState<Markmap | null>(null);
+  const rootRef = useRef<any>(null);
 
-  // Initialize mermaid
-  useEffect(() => {
-    mermaid.initialize({
-      startOnLoad: false,
-      theme: 'base',
-      securityLevel: 'loose',
-      fontFamily: 'ui-sans-serif, system-ui, sans-serif',
-      flowchart: {
-        useMaxWidth: true,
-        htmlLabels: true,
-        curve: 'basis', // Linhas curvas mais bonitas
-        rankSpacing: 50,
-        nodeSpacing: 20,
-      },
+  // Convert Mermaid-like indented text to Markdown list (Legacy Support)
+  const convertMermaidToMarkdown = (text: string) => {
+    const lines = text.split('\n');
+    let markdown = '';
+
+    // Find minimum indentation level (ignoring 'mindmap' line and empty lines)
+    let minIndent = Infinity;
+    lines.forEach(line => {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed === 'mindmap') return;
+      const indentMatch = line.match(/^(\s*)/);
+      const spaces = indentMatch ? indentMatch[1].length : 0;
+      if (spaces < minIndent) minIndent = spaces;
     });
-  }, []);
 
-  // Conversor Inteligente: Texto Indentado -> Graph LR
-  const convertToGraph = (text: string) => {
-    const lines = text.replace(/\\n/g, '\n').split('\n');
-    const nodes: { id: string; label: string; level: number }[] = [];
-    const edges: string[] = [];
-    const stack: { id: string; level: number }[] = [];
-    
-    let nodeIdCounter = 0;
+    if (minIndent === Infinity) minIndent = 0;
 
     lines.forEach((line) => {
       const trimmed = line.trim();
       if (!trimmed || trimmed === 'mindmap') return;
 
-      // Detecta nível de indentação (2 espaços = 1 nível)
+      // Calculate indentation level
       const indentMatch = line.match(/^(\s*)/);
       const spaces = indentMatch ? indentMatch[1].length : 0;
-      const level = Math.floor(spaces / 2);
 
-      // Limpa o texto de caracteres do mermaid antigo
+      // Normalize indentation: subtract minIndent
+      const normalizedSpaces = Math.max(0, spaces - minIndent);
+      const indent = ' '.repeat(normalizedSpaces);
+
+      // Clean the label: remove quotes, parentheses, etc.
       let cleanLabel = trimmed
-        .replace(/^[\w\d_]+\s*[\(\[\{]+/, '') // Remove IDs antigos
-        .replace(/^[\(\[\{]+/, '')            // Remove formas (( ))
-        .replace(/[\)\]\}]+$/, '')            // Remove fechamento
-        .replace(/^"|"$/g, '')                // Remove aspas externas
-        .replace(/"/g, "'");                  // Escapa aspas internas
+        .replace(/^"|"$/g, '') // Remove surrounding quotes
+        .replace(/\\"/g, '"'); // Unescape internal quotes
 
-      const nodeId = `n${nodeIdCounter++}`;
-      
-      // Adiciona nó
-      nodes.push({ id: nodeId, label: cleanLabel, level });
+      markdown += `${indent}- ${cleanLabel}\n`;
+    });
 
-      // Lógica de Conexão (Pilha)
-      // Remove da pilha nós que são mais profundos ou do mesmo nível (irmãos anteriores)
-      while (stack.length > 0 && stack[stack.length - 1].level >= level) {
-        stack.pop();
+    return markdown;
+  };
+
+  const handleExpandAll = () => {
+    if (!markmapInstance || !rootRef.current) return;
+
+    const expand = (node: any) => {
+      if (node.payload) {
+        node.payload = { ...node.payload, fold: 0 };
       }
-
-      // Se sobrou alguém na pilha, é o pai
-      if (stack.length > 0) {
-        const parent = stack[stack.length - 1];
-        edges.push(`${parent.id} --> ${nodeId}`);
+      if (node.children) {
+        node.children.forEach(expand);
       }
+    };
 
-      // Adiciona atual na pilha para ser pai dos próximos
-      stack.push({ id: nodeId, level });
-    });
+    expand(rootRef.current);
+    markmapInstance.setData(rootRef.current);
+    markmapInstance.fit();
+  };
 
-    // Monta o diagrama final
-    // graph LR = Left to Right (melhor para mapas mentais)
-    // style = deixa visual mais limpo
-    let diagram = 'graph LR\n';
-    
-    // Define estilos globais
-    diagram += '  classDef default fill:#f9fafb,stroke:#0891b2,stroke-width:1px,color:#1f2937,rx:5,ry:5;\n';
-    diagram += '  classDef root fill:#0891b2,stroke:#0e7490,stroke-width:2px,color:white,font-weight:bold,font-size:16px;\n';
+  const handleCollapseAll = () => {
+    if (!markmapInstance || !rootRef.current) return;
 
-    // Adiciona nós
-    nodes.forEach((node, index) => {
-      // Nó raiz ganha destaque
-      const className = index === 0 ? ':::root' : ''; 
-      diagram += `  ${node.id}["${node.label}"]${className}\n`;
-    });
+    const collapse = (node: any) => {
+      // Don't collapse root (depth 0)
+      if (node.depth > 0 && node.payload) {
+        node.payload = { ...node.payload, fold: 1 };
+      }
+      if (node.children) {
+        node.children.forEach(collapse);
+      }
+    };
 
-    // Adiciona conexões
-    edges.forEach(edge => {
-      diagram += `  ${edge}\n`;
-    });
-
-    return diagram;
+    collapse(rootRef.current);
+    markmapInstance.setData(rootRef.current);
+    markmapInstance.fit();
   };
 
   useEffect(() => {
-    if (!content || !containerRef.current) return;
+    if (!content || !svgRef.current || !wrapperRef.current) return;
 
-    const renderDiagram = async () => {
+    let isCancelled = false;
+
+    const renderMindMap = async () => {
+      if (isCancelled) return;
+
+      // Double check dimensions before proceeding
+      if (!wrapperRef.current) return;
+      const { width, height } = wrapperRef.current.getBoundingClientRect();
+
+      if (width === 0 || height === 0) {
+        // If still 0, wait for next frame
+        requestAnimationFrame(renderMindMap);
+        return;
+      }
+
       setIsRendering(true);
-      setRenderError(null);
 
       try {
-        if (containerRef.current) {
-          containerRef.current.innerHTML = '';
+        // 1. Prepare Markdown Content
+        let markdown = content;
+        // Check if content is legacy mermaid-like syntax
+        if (content.trim().startsWith('mindmap')) {
+          markdown = convertMermaidToMarkdown(content);
         }
 
-        // 1. Converte a estrutura
-        const graphDefinition = convertToGraph(content);
-        console.log('Graph Diagram:', graphDefinition); // Debug
+        // 2. Transform Markdown to Markmap Data
+        const { root } = transformer.transform(markdown);
 
-        // 2. Renderiza
-        const id = `mermaid-${Date.now()}`;
-        const { svg } = await mermaid.render(id, graphDefinition);
+        // Helper to process nodes: add depth, collapse, and style
+        const processNode = (node: any, depth = 0) => {
+          node.depth = depth;
 
-        if (containerRef.current) {
-          containerRef.current.innerHTML = svg;
-          
-          const svgElement = containerRef.current.querySelector('svg');
-          if (svgElement) {
-            svgElement.style.maxWidth = '100%';
-            svgElement.style.height = 'auto';
-            // Garante visibilidade do texto
-            svgElement.style.backgroundColor = 'white'; 
+          // 1. Collapse by default
+          // Set fold = 1 for all nodes that have children
+          if (node.children && node.children.length > 0) {
+            node.payload = { ...node.payload, fold: 1 };
           }
+
+          // 2. Wrap content for styling (Pill/Tag look)
+          // We wrap the content in a span with specific classes
+          const colorClass = `depth-${Math.min(depth, 3)}`;
+          // Ensure we don't double-wrap if re-rendering (though we recreate root each time)
+          if (!node.content.startsWith('<span class="mm-pill')) {
+            node.content = `<span class="mm-pill ${colorClass}">${node.content}</span>`;
+          }
+
+          if (node.children) {
+            node.children.forEach((child: any) => processNode(child, depth + 1));
+          }
+          return node;
+        };
+
+        processNode(root);
+        rootRef.current = root; // Store processed root
+
+        // 3. Clear previous instance if exists
+        if (markmapInstance) {
+          markmapInstance.destroy();
+          svgRef.current!.innerHTML = '';
         }
-      } catch (error: any) {
-        console.error('Mermaid rendering error:', error);
-        setRenderError('Não foi possível visualizar o diagrama.');
-      } finally {
+
+        // Custom color function based on depth (for lines)
+        const colorFn = (node: any) => {
+          const depth = node.depth || 0;
+          if (depth === 0) return '#A78BFA'; // Purple (Root)
+          if (depth === 1) return '#4B5563'; // Gray (Level 1)
+          if (depth === 2) return '#34D399'; // Green (Level 2)
+          return '#60A5FA'; // Blue (Deeper levels)
+        };
+
+        // 4. Create new Markmap instance with options
+        // We use requestAnimationFrame to ensure the SVG is in the DOM and has dimensions
+        requestAnimationFrame(() => {
+          if (isCancelled || !svgRef.current) return;
+
+          const mm = Markmap.create(svgRef.current, {
+            autoFit: true,
+            fitRatio: 0.95,
+            duration: 500,
+            spacingVertical: 10, // Increased spacing
+            spacingHorizontal: 120, // Increased spacing
+            embedGlobalCSS: true,
+            zoom: true,
+            pan: true,
+            scrollForPan: true,
+            color: colorFn, // Apply custom coloring
+          }, root);
+
+          setMarkmapInstance(mm);
+
+          // 5. Add Toolbar
+          const existingToolbar = wrapperRef.current?.querySelector('.markmap-toolbar');
+          if (existingToolbar) {
+            existingToolbar.remove();
+          }
+
+          const { el } = Toolbar.create(mm);
+          el.style.position = 'absolute';
+          el.style.bottom = '1rem';
+          el.style.right = '1rem';
+          el.style.zIndex = '10';
+          el.classList.add('markmap-toolbar');
+          wrapperRef.current!.append(el);
+
+          setIsRendering(false);
+        });
+
+      } catch (error) {
+        console.error('Markmap rendering error:', error);
         setIsRendering(false);
       }
     };
 
-    renderDiagram();
+    // Initial check with a small delay to allow layout to settle
+    const timer = setTimeout(() => {
+      requestAnimationFrame(renderMindMap);
+    }, 100);
+
+    return () => {
+      isCancelled = true;
+      clearTimeout(timer);
+      if (markmapInstance) {
+        markmapInstance.destroy();
+      }
+      const existingToolbar = wrapperRef.current?.querySelector('.markmap-toolbar');
+      if (existingToolbar) {
+        existingToolbar.remove();
+      }
+    };
   }, [content]);
 
-  // ... (Mantenha as funções de zoom e o return do componente iguais ao original)
-  const handleZoomIn = () => setZoom((prev) => Math.min(prev + 0.2, 3));
-  const handleZoomOut = () => setZoom((prev) => Math.max(prev - 0.2, 0.5));
-  const handleResetZoom = () => setZoom(1);
-  const handleDownload = () => {
-    if (!containerRef.current) return;
-    const svgElement = containerRef.current.querySelector('svg');
-    if (!svgElement) return;
-    try {
-      const svgData = new XMLSerializer().serializeToString(svgElement);
-      const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${title || 'mapa-mental'}.svg`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      toast.success('Mapa baixado com sucesso!');
-    } catch (error) {
-      console.error('Download error:', error);
-      toast.error('Erro ao baixar');
-    }
-  };
-
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between p-4 border-b bg-white">
-        <div className="flex items-center gap-2">
-          <Button size="sm" variant="outline" onClick={handleZoomOut} disabled={zoom <= 0.5} className="rounded-lg"><ZoomOut className="w-4 h-4" /></Button>
-          <span className="text-sm font-medium text-gray-700 min-w-[60px] text-center">{Math.round(zoom * 100)}%</span>
-          <Button size="sm" variant="outline" onClick={handleZoomIn} disabled={zoom >= 3} className="rounded-lg"><ZoomIn className="w-4 h-4" /></Button>
-          <Button size="sm" variant="outline" onClick={handleResetZoom} className="rounded-lg"><Maximize2 className="w-4 h-4" /></Button>
+    <div className="flex flex-col h-full relative" ref={wrapperRef}>
+      {/* CSS for dark theme and touch optimization */}
+      <style>{`
+        .markmap-toolbar {
+          display: flex;
+          gap: 0.5rem;
+          background: rgba(30, 30, 30, 0.9);
+          backdrop-filter: blur(4px);
+          padding: 0.5rem;
+          border-radius: 0.75rem;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+          border: 1px solid rgba(255,255,255,0.1);
+        }
+        .markmap-toolbar .mm-toolbar-item {
+          width: 2.5rem;
+          height: 2.5rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 0.5rem;
+          cursor: pointer;
+          transition: all 0.2s;
+          color: #e5e7eb;
+        }
+        .markmap-toolbar .mm-toolbar-item:hover {
+          background-color: #374151;
+          color: #ffffff;
+        }
+        .markmap-toolbar .mm-toolbar-item:active {
+          background-color: #4b5563;
+        }
+        
+        /* Node Pills Styling */
+        .mm-pill {
+          display: inline-block;
+          padding: 6px 16px;
+          border-radius: 999px; /* Pill shape */
+          color: white;
+          font-weight: 500;
+          font-family: 'Inter', sans-serif;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+          max-width: 300px; /* Prevent overly wide nodes */
+          white-space: normal; /* Allow wrapping */
+          text-align: center;
+          line-height: 1.4;
+        }
+        
+        /* Depth Colors */
+        .mm-pill.depth-0 {
+          background-color: #8B5CF6; /* Violet-500 */
+          font-size: 18px;
+          font-weight: 700;
+          padding: 10px 24px;
+        }
+        .mm-pill.depth-1 {
+          background-color: #374151; /* Gray-700 */
+          font-size: 15px;
+          border: 1px solid #4B5563;
+        }
+        .mm-pill.depth-2 {
+          background-color: #10B981; /* Emerald-500 */
+          color: #ffffff;
+          font-size: 14px;
+        }
+        .mm-pill.depth-3 {
+          background-color: #3B82F6; /* Blue-500 */
+          font-size: 14px;
+        }
+
+        /* Dark Theme Overrides for SVG */
+        svg.markmap {
+          touch-action: none;
+          background-color: #1a1a1a; /* Dark background */
+        }
+        svg.markmap text {
+          fill: #f3f4f6 !important; /* Light text */
+          font-family: 'Inter', sans-serif;
+        }
+        svg.markmap circle {
+          stroke-width: 2px;
+        }
+        /* Hide the default circle/dot if we want just the pill? 
+           Markmap renders a circle at the node junction. 
+           We can keep it or hide it. Let's keep it for now as it shows connection points. 
+        */
+      `}</style>
+
+      {title && (
+        <div className="p-4 border-b border-gray-800 bg-[#1a1a1a] z-10 flex justify-between items-center shadow-sm">
+          <h3 className="font-semibold text-gray-200">{title}</h3>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleCollapseAll}
+              className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded-md transition-colors"
+              title="Colapsar Tudo"
+            >
+              <Minimize2 size={18} />
+            </button>
+            <button
+              onClick={handleExpandAll}
+              className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded-md transition-colors"
+              title="Expandir Tudo"
+            >
+              <Maximize2 size={18} />
+            </button>
+          </div>
         </div>
-        <Button size="sm" onClick={handleDownload} className="rounded-lg bg-[#0891B2] hover:bg-[#0891B2]/90"><Download className="w-4 h-4 mr-2" />Baixar SVG</Button>
-      </div>
-      <div className="flex-1 overflow-auto p-6 bg-gray-50">
+      )}
+
+      <div className="flex-1 overflow-hidden bg-[#1a1a1a] relative touch-none">
         {isRendering && (
-          <div className="flex items-center justify-center h-full">
-            <Loader2 className="w-8 h-8 animate-spin text-[#0891B2]" />
+          <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-20">
+            <Loader2 className="w-8 h-8 animate-spin text-[#A78BFA]" />
           </div>
         )}
-        {renderError && (
-          <div className="flex items-center justify-center h-full text-red-500">{renderError}</div>
-        )}
-        <div className="flex items-center justify-center min-h-full" style={{ transform: `scale(${zoom})`, transformOrigin: 'center center', transition: 'transform 0.2s ease-out' }}>
-          <div ref={containerRef} className="mermaid-container bg-white rounded-xl shadow-sm p-8" style={{ minWidth: '300px' }} />
-        </div>
+        <svg ref={svgRef} className="w-full h-full block markmap" />
       </div>
     </div>
   );
 }
-
-// Import necessário para o Loader se não tiver importado
-import { Loader2 } from 'lucide-react';

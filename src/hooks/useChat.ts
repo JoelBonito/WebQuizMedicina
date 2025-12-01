@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { db, functions } from '../lib/firebase';
+import { collection, query, where, orderBy, getDocs, onSnapshot, writeBatch } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
 import { useAuth } from './useAuth';
 
 // Database message format (new schema with role + content)
@@ -11,7 +13,7 @@ interface DbChatMessage {
   content: string;
   sources_cited: string[] | null;
   is_system?: boolean;
-  created_at: string;
+  created_at: any;
 }
 
 // Legacy format for UI compatibility
@@ -23,7 +25,7 @@ export interface ChatMessage {
   response: string;
   sources_cited: string[];
   is_system?: boolean;
-  created_at: string;
+  created_at: any;
 }
 
 export interface CitedSource {
@@ -97,118 +99,59 @@ function convertDbMessagesToUiFormat(dbMessages: DbChatMessage[]): ChatMessage[]
 }
 
 export const useChat = (projectId: string | null) => {
-  const { user, session } = useAuth();
+  const { user } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
 
   // Fetch chat history
   useEffect(() => {
-    if (!projectId || !user?.id) {
+    if (!projectId || !user?.uid) {
       setMessages([]);
       return;
     }
 
-    const fetchMessages = async () => {
-      try {
-        setLoading(true);
+    setLoading(true);
+    const q = query(
+      collection(db, 'chat_messages'),
+      where('project_id', '==', projectId),
+      where('user_id', '==', user.uid),
+      orderBy('created_at', 'asc')
+    );
 
-        const { data, error } = await supabase
-          .from('chat_messages')
-          .select('*')
-          .eq('project_id', projectId)
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: true });
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DbChatMessage));
+      const uiMessages = convertDbMessagesToUiFormat(data);
+      setMessages(uiMessages);
+      setLoading(false);
+    }, (error) => {
+      console.error('Error fetching messages:', error);
+      setLoading(false);
+    });
 
-        if (error) throw error;
-
-        // Convert from DB format (role+content) to UI format (message+response)
-        const uiMessages = convertDbMessagesToUiFormat(data || []);
-        setMessages(uiMessages);
-      } catch (err) {
-        console.error('Error fetching messages:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchMessages();
-
-    // Setup realtime subscription for chat messages
-    const channel = supabase
-      .channel(`chat_messages:${projectId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'chat_messages',
-          filter: `project_id=eq.${projectId}`,
-        },
-        (payload) => {
-          console.log('[useChat] Realtime update:', payload);
-
-          // Refetch all messages to maintain correct pairing
-          fetchMessages();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [projectId, user?.id]);
+    return () => unsubscribe();
+  }, [projectId, user?.uid]);
 
   const sendMessage = async (message: string): Promise<ChatResponse | null> => {
-    // More detailed error checking - VERCEL BUILD v2
-    if (!session) {
-      console.error('[useChat] Session is missing:', { session, user, projectId });
+    if (!user) {
       throw new Error('Sessão expirada. Por favor, faça login novamente.');
     }
 
     if (!projectId) {
-      console.error('[useChat] ProjectId is missing:', { session: !!session, user: !!user, projectId });
       throw new Error('Nenhum projeto selecionado. Por favor, selecione um projeto primeiro.');
     }
 
     try {
       setSending(true);
 
-      const response = await fetch(
-        `${supabase.supabaseUrl}/functions/v1/chat`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({ message, project_id: projectId }),
-        }
-      );
+      const chatFn = httpsCallable(functions, 'chat');
+      const result = await chatFn({
+        message,
+        project_id: projectId
+      });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to send message');
-      }
-
-      const data: ChatResponse = await response.json();
-
-      // Refresh messages to include the new one
-      const { data: newMessages } = await supabase
-        .from('chat_messages')
-        .select('*')
-        .eq('project_id', projectId)
-        .eq('user_id', user!.id)
-        .order('created_at', { ascending: true });
-
-      if (newMessages) {
-        // Convert from DB format to UI format
-        const uiMessages = convertDbMessagesToUiFormat(newMessages);
-        setMessages(uiMessages);
-      }
-
-      return data;
-    } catch (err) {
+      return result.data as ChatResponse;
+    } catch (err: any) {
       console.error('Error sending message:', err);
       throw err;
     } finally {
@@ -220,13 +163,20 @@ export const useChat = (projectId: string | null) => {
     if (!user || !projectId) return;
 
     try {
-      const { error } = await supabase
-        .from('chat_messages')
-        .delete()
-        .eq('project_id', projectId)
-        .eq('user_id', user.id);
+      const q = query(
+        collection(db, 'chat_messages'),
+        where('project_id', '==', projectId),
+        where('user_id', '==', user.uid)
+      );
 
-      if (error) throw error;
+      const snapshot = await getDocs(q);
+      const batch = writeBatch(db);
+
+      snapshot.docs.forEach((doc) => {
+        batch.delete(doc.ref);
+      });
+
+      await batch.commit();
       setMessages([]);
     } catch (err) {
       console.error('Error clearing chat history:', err);
@@ -242,4 +192,3 @@ export const useChat = (projectId: string | null) => {
     clearHistory,
   };
 };
-

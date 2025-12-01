@@ -9,7 +9,6 @@ import { useFlashcards } from "../hooks/useFlashcards";
 import { useSummaries } from "../hooks/useSummaries";
 import { toast } from "sonner";
 import { ScrollArea } from "./ui/scroll-area";
-import { supabase } from "../lib/supabase";
 import { triggerContentRefresh } from "../lib/events";
 
 interface DifficultiesPanelProps {
@@ -64,11 +63,10 @@ const renderStreakBadge = (consecutiveCorrect: number = 0) => {
     stars.push(
       <Star
         key={i}
-        className={`w-3 h-3 ${
-          i < consecutiveCorrect
-            ? "fill-yellow-400 text-yellow-400"
-            : "fill-gray-300 text-gray-300"
-        }`}
+        className={`w-3 h-3 ${i < consecutiveCorrect
+          ? "fill-yellow-400 text-yellow-400"
+          : "fill-gray-300 text-gray-300"
+          }`}
       />
     );
   }
@@ -87,8 +85,8 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
   const [generatingContent, setGeneratingContent] = useState(false);
 
   const { difficulties, loading, markAsResolved } = useDifficulties(projectId);
-  const { generateQuiz } = useQuestions(projectId);
-  const { generateFlashcards } = useFlashcards(projectId);
+  const { generateRecoveryQuiz } = useQuestions(projectId);
+  const { generateRecoveryFlashcards } = useFlashcards(projectId);
   const { generateFocusedSummary } = useSummaries(projectId);
 
   const activeDifficulties = difficulties.filter((d) => !d.resolvido);
@@ -148,6 +146,8 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
     }
   };
 
+
+
   // Phase 4C: Generate Recovery Quiz
   const handleGenerateRecoveryQuiz = async () => {
     if (topDifficulties.length === 0) {
@@ -161,16 +161,11 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
       const topicsText = topDifficulties.map((d) => d.topico).join(", ");
 
       const result = await toast.promise(
-        supabase.functions.invoke('generate-recovery-quiz', {
-          body: {
-            project_id: projectId,
-            count: 10,
-          },
-        }),
+        generateRecoveryQuiz(undefined, 10), // difficulties will be fetched by backend if undefined
         {
           loading: `🎯 Gerando Recovery Quiz sobre: ${topicsText}...`,
-          success: (data) => {
-            const metadata = data.data?.recovery_metadata;
+          success: (data: any) => {
+            const metadata = data?.recovery_metadata;
             const strategy = metadata?.strategy || 'focused';
             const focus = metadata?.focus_percentage || 100;
 
@@ -181,7 +176,8 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
       );
 
       // Mark session as recovery for title/badge display
-      const sessionId = result.data?.session_id;
+      const data = (result as any).data;
+      const sessionId = data?.session_id;
       if (sessionId) {
         const { markAsRecoverySession } = await import('../lib/recoverySessionTracker');
         markAsRecoverySession(sessionId);
@@ -212,16 +208,11 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
       const topicsText = topDifficulties.map((d) => d.topico).join(", ");
 
       const result = await toast.promise(
-        supabase.functions.invoke('generate-recovery-flashcards', {
-          body: {
-            project_id: projectId,
-            count: 20,
-          },
-        }),
+        generateRecoveryFlashcards(undefined, 20), // difficulties will be fetched by backend if undefined
         {
           loading: `🎯 Gerando Recovery Flashcards sobre: ${topicsText}...`,
-          success: (data) => {
-            const metadata = data.data?.recovery_metadata;
+          success: (data: any) => {
+            const metadata = data?.recovery_metadata;
             const strategy = metadata?.strategy || 'focused';
 
             return `✅ Recovery Flashcards gerados! Estratégia: ${strategy.toUpperCase()} (atomizado)`;
@@ -231,7 +222,8 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
       );
 
       // Mark session as recovery for title/badge display
-      const sessionId = result.data?.session_id;
+      const data = (result as any).data;
+      const sessionId = data?.session_id;
       if (sessionId) {
         const { markAsRecoverySession } = await import('../lib/recoverySessionTracker');
         markAsRecoverySession(sessionId);
@@ -251,11 +243,10 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
 
   if (!projectId) {
     return (
-      <div className={`flex flex-col ${
-        isFullscreenMode
-          ? "bg-gray-50/50 p-6"
-          : "bg-gray-50/50 rounded-3xl p-4 border border-gray-200 h-full"
-      }`}>
+      <div className={`flex flex-col ${isFullscreenMode
+        ? "bg-gray-50/50 p-6"
+        : "bg-gray-50/50 rounded-3xl p-4 border border-gray-200 h-full"
+        }`}>
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <TrendingUp className="w-12 h-12 mx-auto mb-4 text-gray-400" />
@@ -267,11 +258,10 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
   }
 
   return (
-    <div className={`flex flex-col ${
-      isFullscreenMode
-        ? "bg-gray-50/50 p-6"
-        : "bg-gray-50/50 rounded-3xl p-4 border border-gray-200 h-full"
-    }`}>
+    <div className={`flex flex-col ${isFullscreenMode
+      ? "bg-gray-50/50 p-6"
+      : "bg-gray-50/50 rounded-3xl p-4 border border-gray-200 h-full"
+      }`}>
       {/* Header */}
       <div className="glass-dark rounded-2xl p-4 mb-4 border border-gray-200">
         <div className="flex items-center justify-between mb-4">

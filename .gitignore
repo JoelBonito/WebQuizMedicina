@@ -32,3 +32,4 @@ yarn-error.log*
 
 # Supabase
 .supabase
+service-account.json

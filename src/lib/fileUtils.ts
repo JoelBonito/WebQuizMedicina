@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+// Removed Supabase import
 import * as pdfjsLib from 'pdfjs-dist';
 
 // Configure PDF.js worker
@@ -10,8 +10,11 @@ if (import.meta.env.PROD) {
   // Production: use local worker (relative to the build output)
   pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
 } else {
-  // Development: use CDN
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${PDFJS_VERSION}/build/pdf.worker.min.js`;
+  // Development: use local worker from node_modules
+  pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+    'pdfjs-dist/build/pdf.worker.min.mjs',
+    import.meta.url
+  ).href;
 }
 
 if (import.meta.env.DEV) {
@@ -132,29 +135,7 @@ export const extractTextFromTextFile = async (file: File): Promise<string> => {
   }
 };
 
-export const uploadFileToStorage = async (
-  file: File,
-  userId: string,
-  projectId: string
-): Promise<string> => {
-  const fileExt = file.name.split('.').pop();
-  const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-  const filePath = `${userId}/${projectId}/${fileName}`;
-
-  const { data, error } = await supabase.storage
-    .from('project-sources')
-    .upload(filePath, file, {
-      cacheControl: '3600',
-      upsert: false,
-    });
-
-  if (error) {
-    console.error('Upload error:', error);
-    throw new Error('Falha no upload do arquivo');
-  }
-
-  return data.path;
-};
+// uploadFileToStorage removed - use Firebase Storage directly in hooks
 
 export const getFileMetadata = async (file: File): Promise<FileMetadata> => {
   const metadata: FileMetadata = {

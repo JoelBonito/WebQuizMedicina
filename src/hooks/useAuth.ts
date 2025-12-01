@@ -1,89 +1,100 @@
-import { useState, useEffect } from 'react';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '../lib/supabase';
+import { useState, useEffect, useRef } from 'react';
+import {
+  User,
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut as firebaseSignOut,
+  GoogleAuthProvider,
+  signInWithPopup
+} from 'firebase/auth';
+import { auth } from '../lib/firebase';
 import { toast } from 'sonner';
 
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const unsubscribeRef = useRef<(() => void) | null>(null);
+
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setSession(session);
+    // Cleanup previous listener if exists (safety check)
+    if (unsubscribeRef.current) {
+      unsubscribeRef.current();
+    }
+
+    unsubscribeRef.current = onAuthStateChanged(auth, (currentUser) => {
+      setUser(prevUser => {
+        // Only update if uid changed to prevent unnecessary re-renders
+        if (prevUser?.uid === currentUser?.uid) return prevUser;
+        console.log('[useAuth] Auth state changed:', currentUser ? 'User logged in' : 'User logged out');
+        return currentUser;
+      });
       setLoading(false);
-    });
 
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('[useAuth] Auth state changed:', event);
-
-      setUser(session?.user ?? null);
-      setSession(session);
-
-      // Handle token expiration or sign out
-      if (event === 'SIGNED_OUT') {
-        console.log('[useAuth] User signed out, clearing state');
-        setUser(null);
-        setSession(null);
-        // Clear any stored data
+      if (!currentUser) {
         localStorage.removeItem('language');
       }
-
-      // Handle token refresh failures
-      if (event === 'TOKEN_REFRESHED') {
-        console.log('[useAuth] Token refreshed successfully');
-      }
-
-      // Handle user deleted
-      if (event === 'USER_DELETED') {
-        console.log('[useAuth] User deleted');
-        setUser(null);
-        setSession(null);
-      }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+        unsubscribeRef.current = null;
+      }
+    };
   }, []);
 
   const signUp = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
-    return { data, error };
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      return { data: { user: userCredential.user }, error: null };
+    } catch (error: any) {
+      return { data: null, error };
+    }
   };
 
   const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    return { data, error };
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      return { data: { user: userCredential.user }, error: null };
+    } catch (error: any) {
+      return { data: null, error };
+    }
   };
 
   const signInWithGoogle = async () => {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-    });
-    return { data, error };
+    try {
+      const provider = new GoogleAuthProvider();
+      const userCredential = await signInWithPopup(auth, provider);
+      return { data: { user: userCredential.user }, error: null };
+    } catch (error: any) {
+      return { data: null, error };
+    }
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (!error) {
+    try {
+      await firebaseSignOut(auth);
       toast.success('Logout realizado com sucesso');
+      return { error: null };
+    } catch (error: any) {
+      return { error };
     }
-    return { error };
   };
+
+  // Compatibility layer for Supabase session
+  // We cannot await here synchronously. 
+  // Consumers should use 'user' and 'user.getIdToken()' directly.
+  const session = user ? {
+    user,
+    // access_token is removed because we can't get it synchronously easily without an effect.
+    // If components break, we'll need to refactor them to use useAuth().user.getIdToken()
+  } : null;
 
   return {
     user,
-    session,
+    session, // Deprecated: prefer using 'user' directly
     loading,
     signUp,
     signIn,

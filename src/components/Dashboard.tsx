@@ -9,7 +9,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogHeader,
   DialogTitle,
   DialogFooter,
 } from "./ui/dialog";
@@ -26,7 +25,6 @@ import {
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { useProjects } from "../hooks/useProjects";
-import { useAuth } from "../hooks/useAuth";
 import { toast } from "sonner";
 
 interface DashboardProps {
@@ -41,6 +39,27 @@ interface ProjectCardProps {
   onDelete: (project: { id: string; name: string }) => void;
   onViewStats: (project: { id: string; name: string }) => void;
 }
+
+const formatDate = (date: any) => {
+  if (!date) return "Data desconhecida";
+
+  // Handle Firestore Timestamp
+  if (date && typeof date.toDate === 'function') {
+    return date.toDate().toLocaleDateString("pt-BR");
+  }
+
+  // Handle serialized Timestamp (seconds)
+  if (date && typeof date.seconds === 'number') {
+    return new Date(date.seconds * 1000).toLocaleDateString("pt-BR");
+  }
+
+  // Handle standard Date object or string
+  try {
+    return new Date(date).toLocaleDateString("pt-BR");
+  } catch (e) {
+    return "Data inválida";
+  }
+};
 
 const ProjectCard = ({ project, index, onSelect, onEdit, onDelete, onViewStats }: ProjectCardProps) => {
   const { stats } = useProjectStats(project.id);
@@ -102,7 +121,7 @@ const ProjectCard = ({ project, index, onSelect, onEdit, onDelete, onViewStats }
         <div className="flex-1" onClick={() => onSelect(project.id)}>
           <h3 className="text-lg font-semibold text-gray-900 mb-2">{project.name}</h3>
           <p className="text-sm text-gray-500 mb-4">
-            Criado em {new Date(project.created_at).toLocaleDateString("pt-BR")}
+            Criado em {formatDate(project.created_at)}
           </p>
 
           {/* Stats */}
@@ -144,7 +163,6 @@ const ProjectCard = ({ project, index, onSelect, onEdit, onDelete, onViewStats }
 };
 
 export function Dashboard({ onSelectSubject }: DashboardProps) {
-  const { user } = useAuth();
   const { projects, loading, createProject, updateProject, deleteProject } = useProjects();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<{ id: string; name: string } | null>(null);
@@ -286,118 +304,118 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
       </div>
 
       {/* Add/Edit Dialog */}
-        <Dialog
-          open={isAddDialogOpen || editingProject !== null}
-          onOpenChange={(open) => {
-            if (!open) {
-              setIsAddDialogOpen(false);
-              setEditingProject(null);
-              setFormData({ name: "" });
-            }
-          }}
-        >
-          <DialogContent className="sm:max-w-[500px] rounded-3xl">
-            <div className="flex items-center justify-between mb-2">
-              <DialogTitle className="text-xl font-semibold text-gray-900">
-                {editingProject ? "Editar Matéria" : "Criar Nova Matéria"}
-              </DialogTitle>
-              <button
-                onClick={() => {
-                  setIsAddDialogOpen(false);
-                  setEditingProject(null);
-                  setFormData({ name: "" });
+      <Dialog
+        open={isAddDialogOpen || editingProject !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setIsAddDialogOpen(false);
+            setEditingProject(null);
+            setFormData({ name: "" });
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-[500px] rounded-3xl">
+          <div className="flex items-center justify-between mb-2">
+            <DialogTitle className="text-xl font-semibold text-gray-900">
+              {editingProject ? "Editar Matéria" : "Criar Nova Matéria"}
+            </DialogTitle>
+            <button
+              onClick={() => {
+                setIsAddDialogOpen(false);
+                setEditingProject(null);
+                setFormData({ name: "" });
+              }}
+              className="text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <DialogDescription className="text-sm text-gray-500 sr-only">
+            {editingProject
+              ? "Atualize o nome da sua matéria de estudos."
+              : "Dê um nome descritivo para organizar seus estudos de medicina."}
+          </DialogDescription>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="name" className="text-sm font-medium text-gray-700">
+                Nome da Matéria
+              </Label>
+              <Input
+                id="name"
+                placeholder="Ex: Farmacologia Geral, Anatomia Cardíaca..."
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && formData.name.trim()) {
+                    editingProject ? handleEditProject() : handleAddProject();
+                  }
                 }}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
+                className="rounded-xl border-gray-300 focus:border-[#0891B2]"
+                autoFocus
+              />
             </div>
-            <DialogDescription className="text-sm text-gray-500 sr-only">
-              {editingProject
-                ? "Atualize o nome da sua matéria de estudos."
-                : "Dê um nome descritivo para organizar seus estudos de medicina."}
-            </DialogDescription>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="name" className="text-sm font-medium text-gray-700">
-                  Nome da Matéria
-                </Label>
-                <Input
-                  id="name"
-                  placeholder="Ex: Farmacologia Geral, Anatomia Cardíaca..."
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && formData.name.trim()) {
-                      editingProject ? handleEditProject() : handleAddProject();
-                    }
-                  }}
-                  className="rounded-xl border-gray-300 focus:border-[#0891B2]"
-                  autoFocus
-                />
-              </div>
-            </div>
-            <DialogFooter className="gap-3 pt-4">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setIsAddDialogOpen(false);
-                  setEditingProject(null);
-                  setFormData({ name: "" });
-                }}
-                className="rounded-xl border-gray-300 hover:bg-gray-50 text-gray-700"
-                disabled={submitting}
-              >
-                Cancelar
-              </Button>
-              <Button
-                onClick={editingProject ? handleEditProject : handleAddProject}
-                disabled={!formData.name.trim() || submitting}
-                className="rounded-xl bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white shadow-lg"
-              >
-                {submitting ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : null}
-                {editingProject ? "Salvar" : "Criar"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+          </div>
+          <DialogFooter className="gap-3 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsAddDialogOpen(false);
+                setEditingProject(null);
+                setFormData({ name: "" });
+              }}
+              className="rounded-xl border-gray-300 hover:bg-gray-50 text-gray-700"
+              disabled={submitting}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={editingProject ? handleEditProject : handleAddProject}
+              disabled={!formData.name.trim() || submitting}
+              className="rounded-xl bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white shadow-lg"
+            >
+              {submitting ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : null}
+              {editingProject ? "Salvar" : "Criar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-        {/* Delete Confirmation Dialog */}
-        <AlertDialog open={deletingProject !== null} onOpenChange={(open) => !open && setDeletingProject(null)}>
-          <AlertDialogContent className="rounded-3xl">
-            <AlertDialogHeader>
-              <AlertDialogTitle className="text-xl font-semibold text-gray-900">
-                Excluir Matéria?
-              </AlertDialogTitle>
-              <AlertDialogDescription className="text-sm text-gray-600">
-                Tem certeza que deseja excluir a matéria "{deletingProject?.name}"? Esta ação não pode ser desfeita.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter className="gap-3">
-              <AlertDialogCancel className="rounded-xl border-gray-300 hover:bg-gray-50 text-gray-700">
-                Cancelar
-              </AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleDeleteProject}
-                className="rounded-xl bg-red-500 hover:bg-red-600 text-white shadow-lg"
-              >
-                Excluir
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deletingProject !== null} onOpenChange={(open) => !open && setDeletingProject(null)}>
+        <AlertDialogContent className="rounded-3xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-xl font-semibold text-gray-900">
+              Excluir Matéria?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-sm text-gray-600">
+              Tem certeza que deseja excluir a matéria "{deletingProject?.name}"? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-3">
+            <AlertDialogCancel className="rounded-xl border-gray-300 hover:bg-gray-50 text-gray-700">
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteProject}
+              className="rounded-xl bg-red-500 hover:bg-red-600 text-white shadow-lg"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
-        {/* Project Stats Modal */}
-        {statsProject && (
-          <ProjectStats
-            projectId={statsProject.id}
-            projectName={statsProject.name}
-            open={true}
-            onClose={() => setStatsProject(null)}
-          />
-        )}
+      {/* Project Stats Modal */}
+      {statsProject && (
+        <ProjectStats
+          projectId={statsProject.id}
+          projectName={statsProject.name}
+          open={true}
+          onClose={() => setStatsProject(null)}
+        />
+      )}
     </div>
   );
 }

@@ -1,0 +1,116 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isProjectOwner(projectId) {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/projects/$(projectId)) &&
+        get(/databases/$(database)/documents/projects/$(projectId)).data.user_id == request.auth.uid;
+    }
+
+    // Projects
+    match /projects/{projectId} {
+      allow read: if isOwner(resource.data.user_id);
+      allow create: if isOwner(request.resource.data.user_id);
+      allow update, delete: if isOwner(resource.data.user_id);
+    }
+
+    // Sources
+    match /sources/{sourceId} {
+      allow read: if isOwner(resource.data.user_id) || isProjectOwner(resource.data.project_id);
+      allow create: if isProjectOwner(request.resource.data.project_id);
+      allow update, delete: if isProjectOwner(resource.data.project_id);
+    }
+
+    // Questions
+    match /questions/{questionId} {
+      allow read: if isOwner(resource.data.user_id) || isProjectOwner(resource.data.project_id);
+      allow create: if isProjectOwner(request.resource.data.project_id);
+      allow update, delete: if isProjectOwner(resource.data.project_id);
+    }
+
+    // Flashcards
+    match /flashcards/{flashcardId} {
+      allow read: if isOwner(resource.data.user_id) || isProjectOwner(resource.data.project_id);
+      allow create: if isProjectOwner(request.resource.data.project_id);
+      allow update, delete: if isProjectOwner(resource.data.project_id);
+    }
+
+    // Summaries
+    match /summaries/{summaryId} {
+      allow read: if isOwner(resource.data.user_id) || isProjectOwner(resource.data.project_id);
+      allow create: if isProjectOwner(request.resource.data.project_id);
+      allow update, delete: if isProjectOwner(resource.data.project_id);
+    }
+
+    // Progress
+    match /progress/{progressId} {
+      allow read: if isOwner(resource.data.user_id);
+      allow create: if isOwner(request.resource.data.user_id);
+      allow update, delete: if isOwner(resource.data.user_id);
+    }
+
+    // Difficulties
+    match /difficulties/{difficultyId} {
+      allow read: if isOwner(resource.data.user_id);
+      allow create: if isOwner(request.resource.data.user_id);
+      allow update, delete: if isOwner(resource.data.user_id);
+    }
+
+    // Chat Messages
+    match /chat_messages/{messageId} {
+      allow read: if isAuthenticated() && (
+        isOwner(resource.data.user_id) || 
+        isProjectOwner(resource.data.project_id)
+      );
+      allow create: if isAuthenticated() && isProjectOwner(request.resource.data.project_id);
+      allow update, delete: if isAuthenticated() && (
+        isOwner(resource.data.user_id) || 
+        isProjectOwner(resource.data.project_id)
+      );
+    }
+
+    // User Profiles
+    match /user_profiles/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // Token Usage
+    match /token_usage/{usageId} {
+      allow read: if isOwner(resource.data.userId);
+      // Create is handled by Cloud Functions (admin SDK), so no client write needed usually.
+      // But if client needs to write (unlikely), add rule. 
+      // For now, read-only for client is safer.
+    }
+
+    // Mindmaps
+    match /mindmaps/{mindmapId} {
+      allow read: if isAuthenticated() && (
+        isOwner(resource.data.user_id) || 
+        isProjectOwner(resource.data.project_id)
+      );
+      allow create: if isAuthenticated() && isProjectOwner(request.resource.data.project_id);
+      allow update, delete: if isAuthenticated() && (
+        isOwner(resource.data.user_id) || 
+        isProjectOwner(resource.data.project_id)
+      );
+    }
+
+    // Source Chunks (for RAG/embeddings)
+    match /source_chunks/{chunkId} {
+      allow read: if isAuthenticated();
+      // Chunks are created/managed by Cloud Functions
+      allow write: if false;
+    }
+  }
+}

@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { db } from '../lib/firebase';
+import { collection, query, where, orderBy, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { useAuth } from './useAuth';
 
 export interface Project {
   id: string;
   user_id: string;
   name: string;
-  created_at: string;
+  created_at: any;
 }
 
 export const useProjects = () => {
@@ -24,39 +25,43 @@ export const useProjects = () => {
 
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('projects')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const q = query(
+        collection(db, 'projects'),
+        where('user_id', '==', user.uid),
+        orderBy('created_at', 'desc')
+      );
 
-      if (error) throw error;
-      setProjects(data || []);
-    } catch (err) {
+      const querySnapshot = await getDocs(q);
+      const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Project));
+      setProjects(data);
+    } catch (err: any) {
       console.error('Error fetching projects:', err);
-      setError(err instanceof Error ? err.message : 'Erro ao buscar projetos');
+      setError(err.message || 'Erro ao buscar projetos');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.uid) return;
     fetchProjects();
-  }, [user?.id]);
+  }, [user?.uid]);
 
   const createProject = async (name: string) => {
     if (!user) throw new Error('User not authenticated');
 
     try {
-      const { data, error } = await supabase
-        .from('projects')
-        .insert([{ name, user_id: user.id }])
-        .select()
-        .single();
+      const newData = {
+        name,
+        user_id: user.uid,
+        created_at: serverTimestamp(),
+      };
 
-      if (error) throw error;
-      setProjects([data, ...projects]);
-      return data;
+      const docRef = await addDoc(collection(db, 'projects'), newData);
+      const createdProject = { id: docRef.id, ...newData, created_at: new Date() } as Project;
+
+      setProjects([createdProject, ...projects]);
+      return createdProject;
     } catch (err) {
       console.error('Error creating project:', err);
       throw err;
@@ -65,16 +70,11 @@ export const useProjects = () => {
 
   const updateProject = async (id: string, name: string) => {
     try {
-      const { data, error } = await supabase
-        .from('projects')
-        .update({ name })
-        .eq('id', id)
-        .select()
-        .single();
+      await updateDoc(doc(db, 'projects', id), { name });
 
-      if (error) throw error;
-      setProjects(projects.map((p) => (p.id === id ? data : p)));
-      return data;
+      const updatedProject = { ...projects.find(p => p.id === id)!, name };
+      setProjects(projects.map((p) => (p.id === id ? updatedProject : p)));
+      return updatedProject;
     } catch (err) {
       console.error('Error updating project:', err);
       throw err;
@@ -83,9 +83,7 @@ export const useProjects = () => {
 
   const deleteProject = async (id: string) => {
     try {
-      const { error } = await supabase.from('projects').delete().eq('id', id);
-
-      if (error) throw error;
+      await deleteDoc(doc(db, 'projects', id));
       setProjects(projects.filter((p) => p.id !== id));
     } catch (err) {
       console.error('Error deleting project:', err);

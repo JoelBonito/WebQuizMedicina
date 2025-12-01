@@ -1,11 +1,48 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
-import { Database } from '../lib/database.types';
+import { functions } from '../lib/firebase';
+import { httpsCallable } from 'firebase/functions';
 
-type TokenUsageByUser = Database['public']['Functions']['get_token_usage_by_user']['Returns'][0];
-type TokenUsageByProject = Database['public']['Functions']['get_token_usage_by_project']['Returns'][0];
-type DailyUsage = Database['public']['Functions']['get_daily_usage']['Returns'][0];
-type TokenUsageSummary = Database['public']['Functions']['get_token_usage_summary']['Returns'][0];
+// Define types based on expected return from Cloud Function
+export interface TokenUsageByUser {
+  user_id: string;
+  display_name?: string;
+  user_email?: string;
+  total_tokens: number;
+  total_cost: number;
+  total_cost_brl?: number;
+  operation_counts?: Record<string, number>;
+  last_active?: string | null;
+}
+
+export interface TokenUsageByProject {
+  project_id: string;
+  project_name?: string;
+  total_tokens: number;
+  total_input_tokens?: number;
+  total_output_tokens?: number;
+  total_cost: number;
+  total_cost_brl?: number;
+  operation_counts?: Record<string, number>;
+}
+
+export interface DailyUsage {
+  date: string;
+  total_tokens: number;
+  total_cost: number;
+  total_cost_brl?: number;
+  unique_users?: number;
+}
+
+export interface TokenUsageSummary {
+  total_tokens: number;
+  total_cost: number;
+  total_cost_brl?: number;
+  total_requests: number;
+  total_operations?: number;
+  active_users?: number;
+  avg_tokens_per_operation?: number;
+  most_used_operation?: string;
+}
 
 interface UseTokenUsageOptions {
   startDate?: Date;
@@ -29,111 +66,76 @@ export function useTokenUsage(options: UseTokenUsageOptions = {}) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
+  const callCloudFunction = async (action: string, params: any = {}) => {
+    try {
+      const getTokenUsageStatsFn = httpsCallable(functions, 'get_token_usage_stats');
+      const result = await getTokenUsageStatsFn({
+        action,
+        start_date: (params.start || startDate).toISOString(),
+        end_date: (params.end || endDate).toISOString(),
+        ...params
+      });
+      return { data: result.data as any, error: null };
+    } catch (err: any) {
+      console.error(`Error calling get_token_usage_stats (${action}):`, err);
+      return { data: null, error: err };
+    }
+  };
+
   // Fetch token usage by user
   const fetchUserUsage = async (start?: Date, end?: Date) => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const { data, error: rpcError } = await supabase.rpc('get_token_usage_by_user', {
-        start_date: (start || startDate).toISOString(),
-        end_date: (end || endDate).toISOString(),
-      });
-
-      if (rpcError) throw rpcError;
-      setUserUsage(data || []);
-      return { data, error: null };
-    } catch (err: any) {
-      console.error('Error fetching user usage:', err);
-      setError(err);
-      return { data: null, error: err };
-    } finally {
-      setLoading(false);
-    }
+    setLoading(true);
+    const { data, error } = await callCloudFunction('get_token_usage_by_user', { start, end });
+    if (!error) setUserUsage(data || []);
+    setError(error);
+    setLoading(false);
+    return { data, error };
   };
 
   // Fetch token usage by project for a specific user
   const fetchProjectUsage = async (targetUserId: string, start?: Date, end?: Date) => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const { data, error: rpcError } = await supabase.rpc('get_token_usage_by_project', {
-        target_user_id: targetUserId,
-        start_date: (start || startDate).toISOString(),
-        end_date: (end || endDate).toISOString(),
-      });
-
-      if (rpcError) throw rpcError;
-      setProjectUsage(data || []);
-      return { data, error: null };
-    } catch (err: any) {
-      console.error('Error fetching project usage:', err);
-      setError(err);
-      return { data: null, error: err };
-    } finally {
-      setLoading(false);
-    }
+    setLoading(true);
+    const { data, error } = await callCloudFunction('get_token_usage_by_project', { target_user_id: targetUserId, start, end });
+    if (!error) setProjectUsage(data || []);
+    setError(error);
+    setLoading(false);
+    return { data, error };
   };
 
   // Fetch daily usage for time series chart
   const fetchDailyUsage = async (start?: Date, end?: Date, targetUserId?: string) => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const { data, error: rpcError } = await supabase.rpc('get_daily_usage', {
-        start_date: (start || startDate).toISOString(),
-        end_date: (end || endDate).toISOString(),
-        target_user_id: targetUserId || null,
-      });
-
-      if (rpcError) throw rpcError;
-      setDailyUsage(data || []);
-      return { data, error: null };
-    } catch (err: any) {
-      console.error('Error fetching daily usage:', err);
-      setError(err);
-      return { data: null, error: err };
-    } finally {
-      setLoading(false);
-    }
+    setLoading(true);
+    const { data, error } = await callCloudFunction('get_daily_usage', { target_user_id: targetUserId, start, end });
+    if (!error) setDailyUsage(data || []);
+    setError(error);
+    setLoading(false);
+    return { data, error };
   };
 
   // Fetch summary statistics
   const fetchSummary = async (start?: Date, end?: Date) => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const { data, error: rpcError } = await supabase.rpc('get_token_usage_summary', {
-        start_date: (start || startDate).toISOString(),
-        end_date: (end || endDate).toISOString(),
-      });
-
-      if (rpcError) throw rpcError;
-      setSummary(data && data.length > 0 ? data[0] : null);
-      return { data: data && data.length > 0 ? data[0] : null, error: null };
-    } catch (err: any) {
-      console.error('Error fetching summary:', err);
-      setError(err);
-      return { data: null, error: err };
-    } finally {
-      setLoading(false);
-    }
+    setLoading(true);
+    const { data, error } = await callCloudFunction('get_token_usage_summary', { start, end });
+    if (!error) setSummary(data || null);
+    setError(error);
+    setLoading(false);
+    return { data, error };
   };
 
   // Fetch all data at once
   const fetchAll = async (start?: Date, end?: Date) => {
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      setError(null);
-
       const [userResult, dailyResult, summaryResult] = await Promise.all([
-        fetchUserUsage(start, end),
-        fetchDailyUsage(start, end),
-        fetchSummary(start, end),
+        callCloudFunction('get_token_usage_by_user', { start, end }),
+        callCloudFunction('get_daily_usage', { start, end }),
+        callCloudFunction('get_token_usage_summary', { start, end }),
       ]);
+
+      setUserUsage(userResult.data || []);
+      setDailyUsage(dailyResult.data || []);
+      setSummary(summaryResult.data || null);
 
       return {
         userUsage: userResult.data,
@@ -158,17 +160,12 @@ export function useTokenUsage(options: UseTokenUsageOptions = {}) {
   }, [startDate.toISOString(), endDate.toISOString(), userId]);
 
   return {
-    // Data
     userUsage,
     projectUsage,
     dailyUsage,
     summary,
-
-    // State
     loading,
     error,
-
-    // Methods
     fetchUserUsage,
     fetchProjectUsage,
     fetchDailyUsage,

@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../lib/supabase';
+import { db, functions } from '../lib/firebase';
+import { collection, query, where, orderBy, getDocs, onSnapshot } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
 import { useAuth } from './useAuth';
 import { CONTENT_REFRESH_EVENT } from '../lib/events';
 
@@ -17,11 +19,11 @@ export interface Question {
   topico: string | null;
   dificuldade: string;
   content_type?: 'standard' | 'recovery';
-  created_at: string;
+  created_at: any; // Firestore Timestamp or Date
 }
 
 export const useQuestions = (projectId: string | null) => {
-  const { session } = useAuth();
+  const { user } = useAuth();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -34,14 +36,15 @@ export const useQuestions = (projectId: string | null) => {
 
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('questions')
-        .select('*')
-        .eq('project_id', projectId)
-        .order('created_at', { ascending: false });
+      const q = query(
+        collection(db, 'questions'),
+        where('project_id', '==', projectId),
+        orderBy('created_at', 'desc')
+      );
 
-      if (error) throw error;
-      setQuestions(data || []);
+      const querySnapshot = await getDocs(q);
+      const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Question));
+      setQuestions(data);
     } catch (err) {
       console.error('Error fetching questions:', err);
     } finally {
@@ -49,47 +52,25 @@ export const useQuestions = (projectId: string | null) => {
     }
   }, [projectId]);
 
-  useEffect(() => {
-    fetchQuestions();
-  }, [fetchQuestions]);
-
-  // Realtime subscription for instant updates when new questions are inserted
+  // Realtime subscription
   useEffect(() => {
     if (!projectId) return;
 
-    // Create a unique channel name based on project_id to avoid conflicts
-    const channelName = `questions_updates_${projectId}`;
+    const q = query(
+      collection(db, 'questions'),
+      where('project_id', '==', projectId),
+      orderBy('created_at', 'desc')
+    );
 
-    console.log(`[Realtime] Subscribing to channel: ${channelName}`);
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Question));
+      setQuestions(data);
+    });
 
-    const channel = supabase
-      .channel(channelName)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'questions',
-          filter: `project_id=eq.${projectId}`
-        },
-        (payload) => {
-          console.log(`[Realtime] New question inserted:`, payload);
-          // Immediately refresh the questions list
-          fetchQuestions();
-        }
-      )
-      .subscribe((status) => {
-        console.log(`[Realtime] Subscription status for ${channelName}:`, status);
-      });
+    return () => unsubscribe();
+  }, [projectId]);
 
-    // Cleanup: unsubscribe when component unmounts or projectId changes
-    return () => {
-      console.log(`[Realtime] Unsubscribing from channel: ${channelName}`);
-      supabase.removeChannel(channel);
-    };
-  }, [projectId, fetchQuestions]);
-
-  // Local event listener (fallback for when Realtime fails)
+  // Local event listener
   useEffect(() => {
     const handleRefresh = () => {
       console.log('[Events] Questions refresh triggered by local event');
@@ -109,49 +90,57 @@ export const useQuestions = (projectId: string | null) => {
     try {
       setGenerating(true);
 
-      if (!session) throw new Error('Not authenticated');
+      if (!user) throw new Error('Not authenticated');
 
-      // Support both single sourceId (string) and multiple sourceIds (array)
       const source_ids = Array.isArray(sourceIds) ? sourceIds : (sourceIds ? [sourceIds] : undefined);
 
-      const response = await fetch(
-        `${supabase.supabaseUrl}/functions/v1/generate-quiz`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({
-            source_ids,
-            project_id: projectId,
-            count,
-            ...(difficulty && { difficulty }),
-          }),
-        }
-      );
+      const payload = {
+        source_ids,
+        project_id: projectId,
+        count,
+        difficulty: difficulty || 'misto'
+      };
+      console.log('📤 [useQuestions] Dados enviados para generate_quiz:', payload);
 
-      const result = await response.json();
+      const generateQuizFn = httpsCallable(functions, 'generate_quiz');
+      const result = await generateQuizFn(payload);
 
-      if (!response.ok) {
-        // Check for quota/rate limit errors
-        const errorMessage = result.error || '';
-        if (
-          response.status === 429 ||
-          errorMessage.includes('quota') ||
-          errorMessage.includes('RESOURCE_EXHAUSTED') ||
-          errorMessage.includes('rate limit')
-        ) {
-          throw new Error('Limite de uso da API atingido. Por favor, tente novamente mais tarde (aproximadamente em 1 minuto).');
-        }
-        throw new Error(result.error || 'Failed to generate quiz');
-      }
-
-      // Refresh questions
-      await fetchQuestions();
-      return result;
-    } catch (err) {
+      // No need to manually fetch if realtime listener is active, but keeping for consistency
+      // await fetchQuestions(); 
+      return result.data;
+    } catch (err: any) {
       console.error('Error generating quiz:', err);
+      // Map common errors if needed
+      if (err.message && (err.message.includes('quota') || err.message.includes('resource-exhausted'))) {
+        throw new Error('Limite de uso da API atingido. Tente novamente em breve.');
+      }
+      throw err;
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const generateRecoveryQuiz = async (difficulties?: any[], count: number = 10, difficulty?: 'fácil' | 'médio' | 'difícil') => {
+    if (!projectId) throw new Error('Project required');
+
+    try {
+      setGenerating(true);
+      if (!user) throw new Error('Not authenticated');
+
+      const generateRecoveryQuizFn = httpsCallable(functions, 'generate_recovery_quiz');
+      const result = await generateRecoveryQuizFn({
+        project_id: projectId,
+        difficulties,
+        count,
+        difficulty
+      });
+
+      return result.data;
+    } catch (err: any) {
+      console.error('Error generating recovery quiz:', err);
+      if (err.message && (err.message.includes('quota') || err.message.includes('resource-exhausted'))) {
+        throw new Error('Limite de uso da API atingido. Tente novamente em breve.');
+      }
       throw err;
     } finally {
       setGenerating(false);
@@ -163,6 +152,7 @@ export const useQuestions = (projectId: string | null) => {
     loading,
     generating,
     generateQuiz,
+    generateRecoveryQuiz,
     refetch: fetchQuestions,
   };
 };

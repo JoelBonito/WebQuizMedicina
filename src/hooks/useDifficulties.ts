@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { db, functions } from '../lib/firebase';
+import { collection, query, where, orderBy, getDocs, addDoc, updateDoc, doc, serverTimestamp, limit } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
 import { useAuth } from './useAuth';
 
 export interface Difficulty {
@@ -10,12 +12,11 @@ export interface Difficulty {
   tipo_origem: 'quiz' | 'flashcard' | 'chat';
   nivel: number;
   resolvido: boolean;
-  created_at: string;
-  updated_at?: string;
-  // Phase 4C: Auto-Resolution Fields
+  created_at: any;
+  updated_at?: any;
   consecutive_correct?: number;
-  last_attempt_at?: string;
-  auto_resolved_at?: string;
+  last_attempt_at?: any;
+  auto_resolved_at?: any;
 }
 
 export interface DifficultyStatistics {
@@ -39,15 +40,16 @@ export const useDifficulties = (projectId: string | null) => {
 
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('difficulties')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('project_id', projectId)
-        .order('nivel', { ascending: false });
+      const q = query(
+        collection(db, 'difficulties'),
+        where('user_id', '==', user.uid),
+        where('project_id', '==', projectId),
+        orderBy('nivel', 'desc')
+      );
 
-      if (error) throw error;
-      setDifficulties(data || []);
+      const querySnapshot = await getDocs(q);
+      const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Difficulty));
+      setDifficulties(data);
     } catch (err) {
       console.error('Error fetching difficulties:', err);
     } finally {
@@ -56,9 +58,9 @@ export const useDifficulties = (projectId: string | null) => {
   };
 
   useEffect(() => {
-    if (!user?.id || !projectId) return;
+    if (!user?.uid || !projectId) return;
     fetchDifficulties();
-  }, [user?.id, projectId]);
+  }, [user?.uid, projectId]);
 
   const addDifficulty = async (
     topico: string,
@@ -68,52 +70,55 @@ export const useDifficulties = (projectId: string | null) => {
 
     try {
       // Check if difficulty already exists
-      const { data: existing } = await supabase
-        .from('difficulties')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('project_id', projectId)
-        .eq('topico', topico)
-        .eq('resolvido', false)
-        .maybeSingle();
+      const q = query(
+        collection(db, 'difficulties'),
+        where('user_id', '==', user.uid),
+        where('project_id', '==', projectId),
+        where('topico', '==', topico),
+        where('resolvido', '==', false),
+        limit(1)
+      );
 
-      if (existing) {
+      const querySnapshot = await getDocs(q);
+      const existingDoc = querySnapshot.empty ? null : querySnapshot.docs[0];
+
+      if (existingDoc) {
         // Increment level
-        const { data, error } = await supabase
-          .from('difficulties')
-          .update({ nivel: existing.nivel + 1 })
-          .eq('id', existing.id)
-          .select()
-          .single();
+        const existingData = existingDoc.data() as Difficulty;
+        const newLevel = (existingData.nivel || 1) + 1;
 
-        if (error) throw error;
+        await updateDoc(doc(db, 'difficulties', existingDoc.id), {
+          nivel: newLevel,
+          updated_at: serverTimestamp()
+        });
+
+        const updatedData = { ...existingData, nivel: newLevel, updated_at: new Date() }; // Optimistic
 
         // Update local state
         setDifficulties(
-          difficulties.map((d) => (d.id === existing.id ? data : d))
+          difficulties.map((d) => (d.id === existingDoc.id ? updatedData : d))
         );
 
-        return data;
+        return updatedData;
       } else {
         // Create new difficulty
-        const { data, error } = await supabase
-          .from('difficulties')
-          .insert({
-            user_id: user.id,
-            project_id: projectId,
-            topico,
-            tipo_origem: tipoOrigem,
-            nivel: 1,
-          })
-          .select()
-          .single();
+        const newData = {
+          user_id: user.uid,
+          project_id: projectId,
+          topico,
+          tipo_origem: tipoOrigem,
+          nivel: 1,
+          resolvido: false,
+          created_at: serverTimestamp(),
+        };
 
-        if (error) throw error;
+        const docRef = await addDoc(collection(db, 'difficulties'), newData);
+        const createdData = { id: docRef.id, ...newData, created_at: new Date() } as Difficulty;
 
         // Add to local state
-        setDifficulties([data, ...difficulties]);
+        setDifficulties([createdData, ...difficulties]);
 
-        return data;
+        return createdData;
       }
     } catch (err) {
       console.error('Error adding difficulty:', err);
@@ -123,12 +128,10 @@ export const useDifficulties = (projectId: string | null) => {
 
   const markAsResolved = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('difficulties')
-        .update({ resolvido: true })
-        .eq('id', id);
-
-      if (error) throw error;
+      await updateDoc(doc(db, 'difficulties', id), {
+        resolvido: true,
+        updated_at: serverTimestamp()
+      });
 
       // Update local state
       setDifficulties(difficulties.map((d) =>
@@ -140,11 +143,11 @@ export const useDifficulties = (projectId: string | null) => {
     }
   };
 
-  const getTopDifficulties = (limit: number = 5) => {
+  const getTopDifficulties = (limitCount: number = 5) => {
     return difficulties
       .filter((d) => !d.resolvido)
       .sort((a, b) => b.nivel - a.nivel)
-      .slice(0, limit);
+      .slice(0, limitCount);
   };
 
   // Phase 4C: Get statistics via API
@@ -152,15 +155,13 @@ export const useDifficulties = (projectId: string | null) => {
     if (!user || !projectId) return null;
 
     try {
-      const { data, error } = await supabase.functions.invoke('manage-difficulties', {
-        body: {
-          action: 'statistics',
-          project_id: projectId,
-        },
+      const manageDifficultiesFn = httpsCallable(functions, 'manage_difficulties');
+      const result = await manageDifficultiesFn({
+        action: 'statistics',
+        project_id: projectId,
       });
 
-      if (error) throw error;
-      return data;
+      return result.data as DifficultyStatistics;
     } catch (err) {
       console.error('Error fetching difficulty statistics:', err);
       return null;
@@ -172,16 +173,15 @@ export const useDifficulties = (projectId: string | null) => {
     if (!user || !projectId) return null;
 
     try {
-      const { data, error } = await supabase.functions.invoke('manage-difficulties', {
-        body: {
-          action: 'check_auto_resolve',
-          project_id: projectId,
-          topic,
-          correct,
-        },
+      const manageDifficultiesFn = httpsCallable(functions, 'manage_difficulties');
+      const result = await manageDifficultiesFn({
+        action: 'check_auto_resolve',
+        project_id: projectId,
+        topic,
+        correct,
       });
 
-      if (error) throw error;
+      const data = result.data as any;
 
       // Refresh difficulties list if auto-resolved
       if (data?.auto_resolved) {
@@ -200,14 +200,13 @@ export const useDifficulties = (projectId: string | null) => {
     if (!user) return topic;
 
     try {
-      const { data, error } = await supabase.functions.invoke('manage-difficulties', {
-        body: {
-          action: 'normalize_topic',
-          topic,
-        },
+      const manageDifficultiesFn = httpsCallable(functions, 'manage_difficulties');
+      const result = await manageDifficultiesFn({
+        action: 'normalize_topic',
+        topic,
       });
 
-      if (error) throw error;
+      const data = result.data as any;
       return data?.normalized || topic;
     } catch (err) {
       console.error('Error normalizing topic:', err);
@@ -222,7 +221,6 @@ export const useDifficulties = (projectId: string | null) => {
     markAsResolved,
     getTopDifficulties,
     refetch: fetchDifficulties,
-    // Phase 4C functions
     getStatistics,
     checkAutoResolve,
     normalizeTopic,

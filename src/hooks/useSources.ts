@@ -1,8 +1,21 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { db, storage } from '../lib/firebase';
+import {
+  collection,
+  query,
+  where,
+  orderBy,
+  getDocs,
+  onSnapshot,
+  addDoc,
+  deleteDoc,
+  doc,
+  serverTimestamp,
+  getCountFromServer
+} from 'firebase/firestore';
+import { ref, uploadBytes, deleteObject } from 'firebase/storage';
 import { useAuth } from './useAuth';
 import {
-  uploadFileToStorage,
   getFileType,
   processFile,
   getFileMetadata,
@@ -14,11 +27,12 @@ export interface Source {
   project_id: string;
   name: string;
   type: string;
-  storage_path: string;
+  storage_path: string | null;
   extracted_content: string | null;
   metadata: FileMetadata | null;
   status: 'pending' | 'processing' | 'ready' | 'error';
-  created_at: string;
+  embeddings_status?: 'pending' | 'processing' | 'completed' | 'failed';
+  created_at: any;
 }
 
 export const useSources = (projectId: string | null) => {
@@ -37,81 +51,59 @@ export const useSources = (projectId: string | null) => {
 
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('sources')
-        .select('*')
-        .eq('project_id', projectId)
-        .order('created_at', { ascending: false });
+      const q = query(
+        collection(db, 'sources'),
+        where('project_id', '==', projectId),
+        orderBy('created_at', 'desc')
+      );
 
-      if (error) throw error;
-      setSources(data || []);
-    } catch (err) {
+      const querySnapshot = await getDocs(q);
+      const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Source));
+      setSources(data);
+    } catch (err: any) {
       console.error('Error fetching sources:', err);
-      setError(err instanceof Error ? err.message : 'Erro ao buscar fontes');
+      setError(err.message || 'Erro ao buscar fontes');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchSources();
+    if (!projectId) {
+      setSources([]);
+      setLoading(false);
+      return;
+    }
 
-    // Setup realtime subscription for sources updates
-    if (!projectId) return;
+    setLoading(true);
 
-    const channel = supabase
-      .channel(`sources:${projectId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'sources',
-          filter: `project_id=eq.${projectId}`,
-        },
-        (payload) => {
-          console.log('[useSources] Realtime update:', payload);
+    const q = query(
+      collection(db, 'sources'),
+      where('project_id', '==', projectId),
+      orderBy('created_at', 'desc')
+    );
 
-          if (payload.eventType === 'INSERT') {
-            const newSource = payload.new as Source;
-            console.log('[useSources] INSERT - New source:', { id: newSource.id, name: newSource.name, status: newSource.status });
-            setSources((prev) => {
-              const updated = [newSource, ...prev];
-              console.log('[useSources] After INSERT, total sources:', updated.length);
-              return updated;
-            });
-          } else if (payload.eventType === 'UPDATE') {
-            const updatedSource = payload.new as Source;
-            console.log('[useSources] UPDATE - Updated source:', {
-              id: updatedSource.id,
-              name: updatedSource.name,
-              oldStatus: payload.old?.status,
-              newStatus: updatedSource.status,
-              embeddings_status: updatedSource.embeddings_status
-            });
-            setSources((prev) => {
-              const updated = prev.map((s) => (s.id === updatedSource.id ? updatedSource : s));
-              console.log('[useSources] After UPDATE, sources:', updated.map(s => ({ id: s.id, status: s.status })));
-              return updated;
-            });
-          } else if (payload.eventType === 'DELETE') {
-            console.log('[useSources] DELETE - Deleted source ID:', payload.old?.id);
-            setSources((prev) => prev.filter((s) => s.id !== payload.old.id));
-          }
-        }
-      )
-      .subscribe();
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Source));
+        setSources(data);
+        setLoading(false);
+      },
+      (err) => {
+        console.error('Error in sources snapshot:', err);
+        setError(err.message);
+        setLoading(false);
+      }
+    );
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => unsubscribe();
   }, [projectId]);
 
   const uploadSource = async (file: File) => {
     if (!user || !projectId) throw new Error('User or project not found');
 
-    // Validate file size (50MB limit - Supabase default)
-    const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB in bytes
+    const MAX_FILE_SIZE = 50 * 1024 * 1024;
     if (file.size > MAX_FILE_SIZE) {
       const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
       const maxSizeMB = (MAX_FILE_SIZE / (1024 * 1024)).toFixed(0);
@@ -120,110 +112,76 @@ export const useSources = (projectId: string | null) => {
 
     try {
       setUploading(true);
+      const fileType = getFileType(file);
+      let storagePath: string | null = null;
+      let extractedContent: string | null = null;
 
-      // 1. Upload to storage
-      const storagePath = await uploadFileToStorage(file, user.id, projectId);
+      // OPTIMIZATION: Extract text in browser and skip storage for PDF/Text
+      if (['pdf', 'txt', 'md'].includes(fileType)) {
+        try {
+          console.log(`📄 Extracting text from ${file.name} in browser...`);
+          extractedContent = await processFile(file);
+
+          if (extractedContent) {
+            // Sanitize content
+            extractedContent = extractedContent.replace(/\u0000/g, '');
+            console.log(`✅ Text extracted successfully (${extractedContent.length} chars). Skipping storage upload.`);
+          }
+        } catch (extractError) {
+          console.error('❌ Text extraction failed:', extractError);
+          // NÃO fazer upload para storage - isso desperdiçaria espaço
+          // Em vez disso, vamos lançar o erro para o usuário tentar novamente
+          throw new Error(`Falha ao extrair texto: ${(extractError as Error).message}. Tente novamente ou use um arquivo menor.`);
+        }
+      }
+
+      // Only upload to storage if we didn't extract content (e.g. images/audio)
+      // OR if we want to keep the original file for some reason (not in this optimization plan)
+      if (!extractedContent) {
+        storagePath = `projects/${projectId}/${Date.now()}_${file.name}`;
+        const storageRef = ref(storage, storagePath);
+        await uploadBytes(storageRef, file);
+      }
 
       // 2. Get file metadata
       const metadata = await getFileMetadata(file);
-      const fileType = getFileType(file);
 
-      // 3. Create source record with 'processing' status
-      const { data: source, error: insertError } = await supabase
-        .from('sources')
-        .insert([
-          {
-            project_id: projectId,
-            name: file.name,
-            type: fileType,
-            storage_path: storagePath,
-            metadata,
-            status: 'processing',
-            embeddings_status: 'pending', // Initialize embeddings status as pending
-          },
-        ])
-        .select()
-        .single();
+      // 3. Create source record
+      const sourceData = {
+        project_id: projectId,
+        user_id: user.uid,
+        name: file.name,
+        type: fileType,
+        storage_path: storagePath, // Will be null for optimized files
+        metadata,
+        status: extractedContent ? 'ready' : 'processing', // Ready if we have content
+        embeddings_status: 'pending' as const,
+        extracted_content: extractedContent,
+        created_at: serverTimestamp(),
+      };
 
-      if (insertError) throw insertError;
+      const docRef = await addDoc(collection(db, 'sources'), sourceData);
 
-      // Add to state immediately
-      setSources(prevSources => [source, ...prevSources]);
-
-      // 4. Process file (extract content if possible)
-      try {
-        const extractedContent = await processFile(file);
-
-        // Log for debugging
-        if (import.meta.env.DEV && extractedContent) {
-          console.log('Extracted content length:', extractedContent.length);
-          console.log('First 100 chars:', extractedContent.substring(0, 100));
-
-          // Check for null bytes
-          const nullByteCount = (extractedContent.match(/\u0000/g) || []).length;
-          if (nullByteCount > 0) {
-            console.error('⚠️ NULL BYTES FOUND:', nullByteCount);
-          }
+      // Optimistic update
+      const newSource: Source = {
+        id: docRef.id,
+        ...sourceData,
+        created_at: new Date(),
+        status: sourceData.status as any
+      };
+      setSources(prev => {
+        if (prev.some(s => s.id === newSource.id)) {
+          return prev;
         }
+        return [newSource, ...prev];
+      });
 
-        // FINAL SAFETY CHECK: Remove any null bytes that might have slipped through
-        const safeContent = extractedContent ? extractedContent.replace(/\u0000/g, '') : extractedContent;
+      // If we uploaded to storage (no extracted content), we might need server-side processing
+      // But for now, our server functions expect 'extracted_content' or process it via other means.
+      // If it's audio/image, it stays 'processing' until we implement that pipeline.
 
-        // Verify no null bytes remain
-        if (safeContent && safeContent.includes('\u0000')) {
-          console.error('❌ NULL BYTES STILL PRESENT AFTER FINAL CHECK!');
-          throw new Error('Texto contém caracteres inválidos que não podem ser processados');
-        }
+      return { id: docRef.id, ...sourceData, status: sourceData.status as any };
 
-        // 5. Update source with extracted content
-        // Keep embeddings_status as 'pending' so it can be processed
-        const { data: updatedSource, error: updateError } = await supabase
-          .from('sources')
-          .update({
-            extracted_content: safeContent,
-            status: 'ready',
-            embeddings_status: 'pending', // Keep as pending for embeddings processing
-          })
-          .eq('id', source.id)
-          .select()
-          .single();
-
-        if (updateError) {
-          console.error('Supabase update error:', {
-            code: updateError.code,
-            message: updateError.message,
-            details: updateError.details,
-            hint: updateError.hint,
-          });
-          throw updateError;
-        }
-
-        // Update in state
-        setSources(prevSources => prevSources.map((s) => (s.id === source.id ? updatedSource : s)));
-      } catch (processError) {
-        console.error('Error processing file:', processError);
-
-        // Mark as error with message
-        const { data: updatedSource } = await supabase
-          .from('sources')
-          .update({
-            status: 'error',
-            embeddings_status: 'failed', // Mark embeddings as failed too
-            // Store error message in metadata if possible
-          })
-          .eq('id', source.id)
-          .select()
-          .single();
-
-        if (updatedSource) {
-          setSources(prevSources => prevSources.map((s) => (s.id === source.id ? updatedSource : s)));
-        }
-
-        // Re-throw to show toast error
-        throw processError;
-      }
-
-      return source;
     } catch (err) {
       console.error('Error uploading source:', err);
       throw err;
@@ -234,25 +192,19 @@ export const useSources = (projectId: string | null) => {
 
   const deleteSource = async (id: string) => {
     try {
-      // Get source from current state
       const source = sources.find((s) => s.id === id);
       if (!source) throw new Error('Source not found');
 
-      // Delete from database first
-      const { error } = await supabase.from('sources').delete().eq('id', id);
+      // Delete from Firestore
+      await deleteDoc(doc(db, 'sources', id));
 
-      if (error) throw error;
+      // Delete from Storage
+      if (source.storage_path) {
+        const storageRef = ref(storage, source.storage_path);
+        deleteObject(storageRef).catch(err => console.error('Storage delete error (ignored):', err));
+      }
 
-      // Delete from storage (non-blocking)
-      supabase.storage
-        .from('project-sources')
-        .remove([source.storage_path])
-        .then(({ error: storageError }) => {
-          if (storageError) console.error('Storage delete error:', storageError);
-        });
-
-      // Update state immediately
-      setSources(prevSources => prevSources.filter((s) => s.id !== id));
+      setSources(prev => prev.filter((s) => s.id !== id));
     } catch (err) {
       console.error('Error deleting source:', err);
       throw err;
@@ -261,16 +213,20 @@ export const useSources = (projectId: string | null) => {
 
   const getGeneratedCounts = async (sourceId: string) => {
     try {
-      const [questionsResult, flashcardsResult, summariesResult] = await Promise.all([
-        supabase.from('questions').select('id', { count: 'exact' }).eq('source_id', sourceId),
-        supabase.from('flashcards').select('id', { count: 'exact' }).eq('source_id', sourceId),
-        supabase.from('summaries').select('id', { count: 'exact' }).match({ source_ids: [sourceId] }),
+      const questionsQuery = query(collection(db, 'questions'), where('source_id', '==', sourceId));
+      const flashcardsQuery = query(collection(db, 'flashcards'), where('source_id', '==', sourceId));
+      const summariesQuery = query(collection(db, 'summaries'), where('source_ids', 'array-contains', sourceId));
+
+      const [questionsSnap, flashcardsSnap, summariesSnap] = await Promise.all([
+        getCountFromServer(questionsQuery),
+        getCountFromServer(flashcardsQuery),
+        getCountFromServer(summariesQuery)
       ]);
 
       return {
-        quiz: questionsResult.count || 0,
-        flashcards: flashcardsResult.count || 0,
-        summaries: summariesResult.count || 0,
+        quiz: questionsSnap.data().count,
+        flashcards: flashcardsSnap.data().count,
+        summaries: summariesSnap.data().count,
       };
     } catch (err) {
       console.error('Error getting generated counts:', err);

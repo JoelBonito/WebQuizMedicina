@@ -130,15 +130,13 @@ export default function App() {
             <>
               <Navbar
                 onBackClick={handleBackToDashboard}
-                projectName={projectName}
-                projectId={selectedProjectId}
-                onViewStats={() => setShowStats(true)}
                 onAdminClick={handleAdminClick}
               />
               <MobileProjectLayout
                 projectId={selectedProjectId!}
                 projectName={projectName}
                 onBack={handleBackToDashboard}
+                onViewStats={() => setShowStats(true)}
               />
             </>
           ) : (
@@ -147,8 +145,6 @@ export default function App() {
               <Navbar
                 onBackClick={handleBackToDashboard}
                 projectName={projectName}
-                projectId={selectedProjectId}
-                onViewStats={() => setShowStats(true)}
                 onAdminClick={handleAdminClick}
               />
 
@@ -166,6 +162,7 @@ export default function App() {
                       <ContentPanel
                         projectId={selectedProjectId}
                         selectedSourceIds={selectedSourceIds}
+                        onViewStats={() => setShowStats(true)}
                       />
                     }
                     rightPanel={

@@ -1,16 +1,18 @@
 import { useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { db } from '../lib/firebase';
+import { collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useAuth } from './useAuth';
 
 export interface ProgressEntry {
   id: string;
   user_id: string;
+  project_id: string;
   question_id: string | null;
   flashcard_id: string | null;
   acertou: boolean | null;
   clicou_nao_sei: boolean;
   tempo_resposta: number | null;
-  created_at: string;
+  created_at: any;
 }
 
 export const useProgress = () => {
@@ -18,6 +20,7 @@ export const useProgress = () => {
   const [saving, setSaving] = useState(false);
 
   const saveQuizProgress = async (
+    projectId: string,
     questionId: string,
     acertou: boolean,
     clicouNaoSei: boolean,
@@ -28,20 +31,18 @@ export const useProgress = () => {
     try {
       setSaving(true);
 
-      const { data, error } = await supabase
-        .from('progress')
-        .insert({
-          user_id: user.id,
-          question_id: questionId,
-          acertou,
-          clicou_nao_sei: clicouNaoSei,
-          tempo_resposta: tempoResposta || null,
-        })
-        .select()
-        .single();
+      const newData = {
+        user_id: user.uid,
+        project_id: projectId,
+        question_id: questionId,
+        acertou,
+        clicou_nao_sei: clicouNaoSei,
+        tempo_resposta: tempoResposta || null,
+        created_at: serverTimestamp(),
+      };
 
-      if (error) throw error;
-      return data;
+      const docRef = await addDoc(collection(db, 'progress'), newData);
+      return { id: docRef.id, ...newData, created_at: new Date() };
     } catch (err) {
       console.error('Error saving progress:', err);
       throw err;
@@ -51,6 +52,7 @@ export const useProgress = () => {
   };
 
   const saveFlashcardProgress = async (
+    projectId: string,
     flashcardId: string,
     rating: 'facil' | 'medio' | 'dificil',
     nextReviewInterval: number,
@@ -61,27 +63,21 @@ export const useProgress = () => {
     try {
       setSaving(true);
 
-      // For flashcards, we treat ratings differently:
-      // - facil: acertou = true, clicou_nao_sei = false
-      // - medio: acertou = null, clicou_nao_sei = false
-      // - dificil: acertou = false, clicou_nao_sei = true
       const acertou = rating === 'facil' ? true : rating === 'dificil' ? false : null;
       const clicouNaoSei = rating === 'dificil';
 
-      const { data, error } = await supabase
-        .from('progress')
-        .insert({
-          user_id: user.id,
-          flashcard_id: flashcardId,
-          acertou,
-          clicou_nao_sei: clicouNaoSei,
-          tempo_resposta: tempoResposta || null,
-        })
-        .select()
-        .single();
+      const newData = {
+        user_id: user.uid,
+        project_id: projectId,
+        flashcard_id: flashcardId,
+        acertou,
+        clicou_nao_sei: clicouNaoSei,
+        tempo_resposta: tempoResposta || null,
+        created_at: serverTimestamp(),
+      };
 
-      if (error) throw error;
-      return data;
+      const docRef = await addDoc(collection(db, 'progress'), newData);
+      return { id: docRef.id, ...newData, created_at: new Date() };
     } catch (err) {
       console.error('Error saving flashcard progress:', err);
       throw err;
@@ -94,26 +90,17 @@ export const useProgress = () => {
     if (!user) throw new Error('User not authenticated');
 
     try {
-      // Get all questions for this project
-      const { data: questions } = await supabase
-        .from('questions')
-        .select('id')
-        .eq('project_id', projectId);
+      // Now we can query progress by project_id directly!
+      const qProgress = query(
+        collection(db, 'progress'),
+        where('user_id', '==', user.uid),
+        where('project_id', '==', projectId)
+      );
+      const progressSnap = await getDocs(qProgress);
 
-      if (!questions || questions.length === 0) {
-        return { total: 0, corretas: 0, erradas: 0, naoSei: 0 };
-      }
+      const progressData = progressSnap.docs.map(doc => doc.data() as ProgressEntry);
 
-      const questionIds = questions.map((q) => q.id);
-
-      // Get progress for these questions
-      const { data: progressData } = await supabase
-        .from('progress')
-        .select('*')
-        .eq('user_id', user.id)
-        .in('question_id', questionIds);
-
-      if (!progressData) {
+      if (progressData.length === 0) {
         return { total: 0, corretas: 0, erradas: 0, naoSei: 0 };
       }
 

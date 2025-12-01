@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useProfile } from '../hooks/useProfile';
 import { useTokenUsage, formatCostBRL, formatTokens, getOperationLabel } from '../hooks/useTokenUsage';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
@@ -280,7 +280,7 @@ export function AdminDashboard() {
               <CardDescription>Evolução do uso de tokens ao longo do tempo</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="h-80">
+              <div style={{ width: '100%', height: 300 }}>
                 <ChartContainer
                   config={{
                     total_tokens: {
@@ -402,6 +402,7 @@ export function AdminDashboard() {
                     <TableHead>Usuário</TableHead>
                     <TableHead className="text-right">Total Tokens</TableHead>
                     <TableHead className="text-right">Custo (BRL)</TableHead>
+                    <TableHead className="text-center">Último Acesso</TableHead>
                     <TableHead className="text-center">Operações</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -417,9 +418,8 @@ export function AdminDashboard() {
                     </TableRow>
                   )}
                   {filteredUserUsage.map((user) => (
-                    <>
+                    <React.Fragment key={user.user_id}>
                       <TableRow
-                        key={user.user_id}
                         className="cursor-pointer hover:bg-blue-50/50 transition-all duration-200 border-l-4 border-l-transparent hover:border-l-[#0891B2]"
                         onClick={() => handleUserExpand(user.user_id)}
                       >
@@ -445,7 +445,7 @@ export function AdminDashboard() {
                           {formatTokens(user.total_tokens)}
                         </TableCell>
                         <TableCell className="text-right font-semibold text-green-700">
-                          {formatCostBRL(user.total_cost_brl)}
+                          {formatCostBRL(user.total_cost_brl || 0)}
                         </TableCell>
                         <TableCell className="text-center">
                           <div className="flex flex-wrap gap-1 justify-center">
@@ -495,59 +495,59 @@ export function AdminDashboard() {
                               )}
 
                               {!loadingProjects && projectUsage.length > 0 && (
-                              <Table>
-                                <TableHeader>
-                                  <TableRow>
-                                    <TableHead>Projeto</TableHead>
-                                    <TableHead className="text-right">Tokens</TableHead>
-                                    <TableHead className="text-right">Custo</TableHead>
-                                    <TableHead className="text-center">Operações</TableHead>
-                                  </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                  {projectUsage.map((project) => (
-                                    <TableRow key={project.project_id} className="hover:bg-white/60">
-                                      <TableCell className="text-sm font-medium text-gray-900">
-                                        <div className="flex items-center gap-2">
-                                          <FolderKanban className="w-4 h-4 text-gray-400" />
-                                          {project.project_name}
-                                        </div>
-                                      </TableCell>
-                                      <TableCell className="text-right text-sm font-semibold text-gray-900">
-                                        {formatTokens(project.total_tokens)}
-                                        <p className="text-xs text-gray-500 font-normal">
-                                          Input: {formatTokens(project.total_input_tokens)} | Output: {formatTokens(project.total_output_tokens)}
-                                        </p>
-                                      </TableCell>
-                                      <TableCell className="text-right text-sm font-semibold text-green-700">
-                                        {formatCostBRL(project.total_cost_brl)}
-                                      </TableCell>
-                                      <TableCell className="text-center">
-                                        <div className="flex flex-wrap gap-1 justify-center">
-                                          {project.operation_counts &&
-                                            Object.entries(
-                                              project.operation_counts as Record<string, number>
-                                            ).map(([op, count]) => (
-                                              <Badge
-                                                key={op}
-                                                variant="outline"
-                                                className="text-xs bg-[#7CB342]/10 text-[#7CB342] border-[#7CB342]/20 font-medium"
-                                              >
-                                                {getOperationLabel(op)}: {count}
-                                              </Badge>
-                                            ))}
-                                        </div>
-                                      </TableCell>
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow>
+                                      <TableHead>Projeto</TableHead>
+                                      <TableHead className="text-right">Tokens</TableHead>
+                                      <TableHead className="text-right">Custo</TableHead>
+                                      <TableHead className="text-center">Operações</TableHead>
                                     </TableRow>
-                                  ))}
-                                </TableBody>
-                              </Table>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {projectUsage.map((project) => (
+                                      <TableRow key={project.project_id} className="hover:bg-white/60">
+                                        <TableCell className="text-sm font-medium text-gray-900">
+                                          <div className="flex items-center gap-2">
+                                            <FolderKanban className="w-4 h-4 text-gray-400" />
+                                            {project.project_name}
+                                          </div>
+                                        </TableCell>
+                                        <TableCell className="text-right text-sm font-semibold text-gray-900">
+                                          {formatTokens(project.total_tokens)}
+                                          <p className="text-xs text-gray-500 font-normal">
+                                            Input: {formatTokens(project.total_input_tokens || 0)} | Output: {formatTokens(project.total_output_tokens || 0)}
+                                          </p>
+                                        </TableCell>
+                                        <TableCell className="text-right text-sm font-semibold text-green-700">
+                                          {formatCostBRL(project.total_cost_brl || 0)}
+                                        </TableCell>
+                                        <TableCell className="text-center">
+                                          <div className="flex flex-wrap gap-1 justify-center">
+                                            {project.operation_counts &&
+                                              Object.entries(
+                                                project.operation_counts as Record<string, number>
+                                              ).map(([op, count]) => (
+                                                <Badge
+                                                  key={op}
+                                                  variant="outline"
+                                                  className="text-xs bg-[#7CB342]/10 text-[#7CB342] border-[#7CB342]/20 font-medium"
+                                                >
+                                                  {getOperationLabel(op)}: {count}
+                                                </Badge>
+                                              ))}
+                                          </div>
+                                        </TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </TableBody>
+                                </Table>
                               )}
                             </div>
                           </TableCell>
                         </TableRow>
                       )}
-                    </>
+                    </React.Fragment>
                   ))}
                 </TableBody>
               </Table>

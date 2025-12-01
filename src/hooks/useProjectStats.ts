@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { db } from '../lib/firebase';
+import { collection, query, where, getDocs, getCountFromServer } from 'firebase/firestore';
 
 export interface ProjectStats {
   // Fontes
@@ -37,7 +38,10 @@ export interface ProjectStats {
   };
 }
 
+import { useAuth } from './useAuth';
+
 export const useProjectStats = (projectId: string | null) => {
+  const { user } = useAuth();
   const [stats, setStats] = useState<ProjectStats>({
     totalSources: 0,
     readySources: 0,
@@ -55,7 +59,7 @@ export const useProjectStats = (projectId: string | null) => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!projectId) {
+    if (!projectId || !user) {
       setStats({
         totalSources: 0,
         readySources: 0,
@@ -78,26 +82,29 @@ export const useProjectStats = (projectId: string | null) => {
         setLoading(true);
 
         // Buscar fontes
-        const { data: sources } = await supabase
-          .from('sources')
-          .select('status')
-          .eq('project_id', projectId);
+        const qSources = query(
+          collection(db, 'sources'),
+          where('project_id', '==', projectId)
+        );
+        const sourcesSnap = await getDocs(qSources);
+        const totalSources = sourcesSnap.size;
+        const readySources = sourcesSnap.docs.filter(d => d.data().status === 'ready').length;
 
-        const totalSources = sources?.length || 0;
-        const readySources = sources?.filter(s => s.status === 'ready').length || 0;
+        // Buscar questões
+        const qQuestions = query(
+          collection(db, 'questions'),
+          where('project_id', '==', projectId)
+        );
+        const questionsSnap = await getDocs(qQuestions);
+        // Store IDs to filter progress later
+        const questions = questionsSnap.docs.map(d => ({ ...d.data(), id: d.id } as any));
+        const questionIds = new Set(questions.map((q: any) => q.id));
 
-        // Buscar questões e agrupar por session_id
-        const { data: questions } = await supabase
-          .from('questions')
-          .select('session_id, dificuldade')
-          .eq('project_id', projectId);
-
-        const sessionsSet = new Set(questions?.map(q => q.session_id).filter(Boolean));
+        const sessionsSet = new Set(questions.map(q => q.session_id).filter(Boolean));
         const totalQuizzes = sessionsSet.size;
-        const totalQuestions = questions?.length || 0;
+        const totalQuestions = questions.length;
 
-        // Agrupar por dificuldade
-        const quizzesByDifficulty = questions?.reduce(
+        const quizzesByDifficulty = questions.reduce<{ fácil: number; médio: number; difícil: number; }>(
           (acc, q) => {
             const diff = q.dificuldade?.toLowerCase();
             if (diff === 'fácil') acc.fácil++;
@@ -106,27 +113,35 @@ export const useProjectStats = (projectId: string | null) => {
             return acc;
           },
           { fácil: 0, médio: 0, difícil: 0 }
-        ) || { fácil: 0, médio: 0, difícil: 0 };
+        );
 
-        // Buscar tentativas de quiz para calcular % de acerto
-        const { data: attempts } = await supabase
-          .from('quiz_attempts')
-          .select('correct')
-          .eq('project_id', projectId);
+        // Buscar progresso (substituindo quiz_attempts)
+        // Fetch all user progress and filter by project questions (legacy data missing project_id)
+        const qProgress = query(
+          collection(db, 'progress'),
+          where('user_id', '==', user.uid)
+        );
+        const progressSnap = await getDocs(qProgress);
+        const allProgress = progressSnap.docs.map(d => d.data());
 
-        const totalQuizAttempts = attempts?.length || 0;
-        const correctAttempts = attempts?.filter(a => a.correct).length || 0;
+        // Filter progress for this project's questions
+        const progress = allProgress.filter(p => p.question_id && questionIds.has(p.question_id));
+
+        const totalQuizAttempts = progress.length;
+        const correctAttempts = progress.filter(p => p.acertou === true).length;
         const quizAccuracy = totalQuizAttempts > 0 ? Math.round((correctAttempts / totalQuizAttempts) * 100) : 0;
 
         // Buscar flashcards
-        const { data: flashcards } = await supabase
-          .from('flashcards')
-          .select('session_id, dificuldade')
-          .eq('project_id', projectId);
+        const qFlashcards = query(
+          collection(db, 'flashcards'),
+          where('project_id', '==', projectId)
+        );
+        const flashcardsSnap = await getDocs(qFlashcards);
+        const flashcards = flashcardsSnap.docs.map(d => d.data());
 
-        const totalFlashcards = flashcards?.length || 0;
+        const totalFlashcards = flashcards.length;
 
-        const flashcardsByDifficulty = flashcards?.reduce(
+        const flashcardsByDifficulty = flashcards.reduce<{ fácil: number; médio: number; difícil: number; }>(
           (acc, f) => {
             const diff = f.dificuldade?.toLowerCase();
             if (diff === 'fácil') acc.fácil++;
@@ -135,34 +150,51 @@ export const useProjectStats = (projectId: string | null) => {
             return acc;
           },
           { fácil: 0, médio: 0, difícil: 0 }
-        ) || { fácil: 0, médio: 0, difícil: 0 };
+        );
 
         // Buscar resumos
-        const { data: summaries } = await supabase
-          .from('summaries')
-          .select('id')
-          .eq('project_id', projectId);
-
-        const totalSummaries = summaries?.length || 0;
+        const qSummaries = query(
+          collection(db, 'summaries'),
+          where('project_id', '==', projectId)
+        );
+        const summariesSnap = await getCountFromServer(qSummaries);
+        const totalSummaries = summariesSnap.data().count;
 
         // Buscar dificuldades
-        const { data: difficulties } = await supabase
-          .from('difficulties')
-          .select('severity')
-          .eq('project_id', projectId);
+        // Add user_id filter to comply with security rules
+        const qDifficulties = query(
+          collection(db, 'difficulties'),
+          where('project_id', '==', projectId),
+          where('user_id', '==', user.uid)
+        );
+        const difficultiesSnap = await getDocs(qDifficulties);
+        const difficulties = difficultiesSnap.docs.map(d => d.data());
 
-        const totalDifficulties = difficulties?.length || 0;
+        const totalDifficulties = difficulties.length;
 
-        const difficultiesByLevel = difficulties?.reduce(
+        const difficultiesByLevel = difficulties.reduce<{ baixa: number; média: number; alta: number; }>(
           (acc, d) => {
-            const level = d.severity?.toLowerCase();
-            if (level === 'baixa') acc.baixa++;
-            else if (level === 'média') acc.média++;
-            else if (level === 'alta') acc.alta++;
+            // Map 'nivel' (number 1-10) to categories
+            // 1-3: Baixa
+            // 4-7: Média
+            // 8-10: Alta
+            const nivel = typeof d.nivel === 'number' ? d.nivel : 0;
+
+            if (nivel >= 1 && nivel <= 3) acc.baixa++;
+            else if (nivel >= 4 && nivel <= 7) acc.média++;
+            else if (nivel >= 8) acc.alta++;
+            // Fallback for legacy 'severity' string if exists
+            else if (d.severity) {
+              const level = d.severity.toLowerCase();
+              if (level === 'baixa') acc.baixa++;
+              else if (level === 'média') acc.média++;
+              else if (level === 'alta') acc.alta++;
+            }
+
             return acc;
           },
           { baixa: 0, média: 0, alta: 0 }
-        ) || { baixa: 0, média: 0, alta: 0 };
+        );
 
         setStats({
           totalSources,
@@ -186,7 +218,7 @@ export const useProjectStats = (projectId: string | null) => {
     };
 
     fetchStats();
-  }, [projectId]);
+  }, [projectId, user]);
 
   return { stats, loading };
 };
