@@ -95,7 +95,7 @@ export const useSummaries = (projectId: string | null) => {
 
       requestBody.project_id = projectId;
 
-      const generateSummaryFn = httpsCallable(functions, 'generate_summary');
+      const generateSummaryFn = httpsCallable(functions, 'generate_summary', { timeout: 540000 });
       const result = await generateSummaryFn(requestBody);
 
       return result.data;

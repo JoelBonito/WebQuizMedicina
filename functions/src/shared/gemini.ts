@@ -57,9 +57,9 @@ export async function callGeminiWithUsage(
         return {
             text,
             usage: {
-                inputTokens: usage.promptTokenCount,
-                outputTokens: usage.candidatesTokenCount,
-                totalTokens: usage.totalTokenCount,
+                inputTokens: usage.promptTokenCount || 0,
+                outputTokens: usage.candidatesTokenCount || 0,
+                totalTokens: usage.totalTokenCount || 0,
                 cachedTokens: 0 // Placeholder as caching API differs
             }
         };

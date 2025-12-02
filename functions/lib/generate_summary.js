@@ -40,7 +40,10 @@ const generateSummarySchema = zod_1.z.object({
     source_ids: zod_1.z.array(zod_1.z.string().min(1)).min(1),
     project_id: zod_1.z.string().min(1),
 });
-exports.generate_summary = functions.https.onCall(async (data, context) => {
+exports.generate_summary = functions.runWith({
+    timeoutSeconds: 540,
+    memory: "1GB",
+}).https.onCall(async (data, context) => {
     // 1. Auth Check
     if (!context.auth) {
         throw new functions.https.HttpsError("unauthenticated", "User must be authenticated");
@@ -72,86 +75,93 @@ exports.generate_summary = functions.https.onCall(async (data, context) => {
         }
         // 4. Generate Summary
         const prompt = `
-Você é um professor médico EXPERIENTE e DIDÁTICO criando um "Resumo Mestre" completo do material fornecido.
+Você é um professor médico SÊNIOR e MENTOR ACADÊMICO de elite.
+Sua tarefa é criar o "RESUMO DEFINITIVO" (Master Summary) a partir do material fornecido.
 
-SEU OBJETIVO: Criar um resumo ABRANGENTE e DETALHADO que sirva como fonte única de estudo para o aluno. Não faça resumos superficiais.
+🚨 INSTRUÇÃO CRÍTICA DE ABRANGÊNCIA:
+O usuário relatou que resumos anteriores ignoraram quase metade do conteúdo. ISSO É INACEITÁVEL.
+Você deve agir como um auditor rigoroso:
+1. Primeiro, LEIA TODO O CONTEÚDO fornecido.
+2. Liste mentalmente TODOS os tópicos, subtópicos e conceitos apresentados em TODAS as fontes.
+3. Se o material tem 10 tópicos, seu resumo DEVE ter 10 seções principais. Não agrupe excessivamente a ponto de perder detalhes.
+4. Identifique a origem de cada tópico (ex: "Do material sobre Cardiologia...").
 
 CONTEÚDO BASE:
 ${combinedContent}
 
 ---
 
-ESTRUTURA DO RESUMO (HTML):
+ESTRUTURA OBRIGATÓRIA DO RESUMO (HTML):
 
 <div class="master-summary">
   <div class="summary-header">
     <h1>📚 Resumo Mestre Completo</h1>
-    <p class="subtitle">Síntese detalhada de todo o material de estudo</p>
+    <p class="subtitle">Análise profunda e exaustiva de todo o material de estudo</p>
   </div>
 
   <!-- INTRODUÇÃO GERAL -->
   <section class="intro-section">
     <h2>Visão Geral</h2>
-    <p>[Parágrafo introdutório contextualizando o tema geral do material]</p>
+    <p>[Parágrafo introdutório integrando os temas abordados nas fontes]</p>
   </section>
 
-  <!-- PARA CADA TÓPICO PRINCIPAL IDENTIFICADO NO CONTEÚDO -->
-  <!-- Você deve identificar os grandes temas e criar uma seção completa para CADA UM -->
-  <section class="main-topic">
+  <!-- PARA CADA TÓPICO ENCONTRADO (SEM EXCEÇÃO) -->
+  <!-- Crie uma section separada para cada grande tema identificado -->
+  <section class="topic-section">
     <div class="topic-header">
       <h2>[Nome do Tópico Principal]</h2>
+      <span class="topic-source">Fonte: [Nome do arquivo ou contexto]</span>
     </div>
 
-    <div class="explanation">
-      <h3>🔍 Explicação Detalhada</h3>
-      <p>[Explicação aprofundada do conceito. Não seja raso. Use 2-3 parágrafos se necessário.]</p>
-      <p>[Desenvolva o raciocínio, explique o "porquê" e o "como".]</p>
+    <div class="deep-dive">
+      <h3>🔍 Análise Aprofundada</h3>
+      <p>[Explicação detalhada, nível acadêmico/profissional. Mínimo 3 parágrafos robustos.]</p>
+      <p>[Não seja superficial. Explique fisiopatologia, mecanismos, "porquês" e nuances.]</p>
+      <p>[Use termos técnicos corretos, mas explique-os de forma didática.]</p>
+    </div>
+
+    <!-- Se houver classificações, critérios ou listas no texto original, inclua aqui -->
+    <div class="structured-content">
+       <h3>📋 Classificações e Critérios</h3>
+       <ul>
+         <li><strong>[Item]:</strong> [Descrição detalhada]</li>
+       </ul>
     </div>
 
     <div class="analogy">
       <h3>💡 Analogia ou Exemplo Prático</h3>
-      <p>[Uma analogia didática ou exemplo do cotidiano para tornar o conceito memorável]</p>
+      <p>[Uma analogia didática ou caso clínico curto para ilustrar o conceito]</p>
     </div>
 
-    <div class="key-points">
-      <h3>📌 Pontos-Chave para Memorizar</h3>
+    <div class="clinical-pearls">
+      <h3>💎 Pérolas Clínicas & Prática</h3>
       <ul>
-        <li><strong>[Conceito Chave]:</strong> [Explicação]</li>
-        <li><strong>[Critério/Valor]:</strong> [Explicação]</li>
-        <li>... (Liste todos os pontos cruciais deste tópico)</li>
+        <li><strong>[Sinal/Sintoma]:</strong> [O que buscar no exame físico]</li>
+        <li><strong>[Alerta]:</strong> [Red flags ou erros comuns]</li>
+        <li><strong>[Conduta]:</strong> [Pontos chave sobre manejo/diagnóstico citados no texto]</li>
       </ul>
-    </div>
-
-    <div class="clinical-application">
-      <h3>🏥 Aplicação Clínica / Relevância</h3>
-      <p>[Como isso se aplica na prática médica? Por que é importante saber isso?]</p>
     </div>
   </section>
 
   <!-- CONCLUSÃO -->
   <section class="conclusion-section">
-    <h2>🚀 Conclusão e Próximos Passos</h2>
-    <p>[Síntese final integrando os tópicos]</p>
+    <h2>🚀 Síntese Final</h2>
+    <p>[Conclusão integradora]</p>
   </section>
 </div>
 
----
+REGRAS DE OURO:
+1. **TOLERÂNCIA ZERO PARA OMISSÕES:** Se está no texto, deve estar no resumo. Varra o texto do início ao fim.
+2. **PROFUNDIDADE:** Explicações de 1 parágrafo são proibidas para tópicos principais. Desenvolva o raciocínio.
+3. **FIDELIDADE:** Mantenha a terminologia técnica correta.
+4. **FORMATO:** HTML limpo, use as classes CSS indicadas.
+5. **IDIOMA:** Português do Brasil.
 
-REGRAS CRÍTICAS DE QUALIDADE:
-
-1.  **PROFUNDIDADE:** Não faça apenas tópicos soltos. Escreva parágrafos explicativos completos. O aluno precisa LER e ENTENDER, não apenas ver uma lista de palavras.
-2.  **ABRANGÊNCIA:** Cubra TODO o conteúdo fornecido. Se houver 5 temas diferentes nos textos base, crie 5 seções completas de "main-topic".
-3.  **DIDÁTICA:** Use linguagem clara, mas tecnicamente precisa. Explique termos complexos.
-4.  **FORMATO:**
-    *   Use tags HTML semânticas conforme o modelo acima.
-    *   Use classes CSS (explanation, analogy, key-points, clinical-application) para manter a estrutura.
-    *   Use **negrito** para destacar termos importantes.
-5.  **IDIOMA:** Português do Brasil.
-
-SAÍDA: Apenas o código HTML do corpo do resumo.
+Gere o HTML agora.
     `;
         // ✅ Seleção automática e inteligente
         const selector = (0, modelSelector_1.getModelSelector)();
+        // SWITCH BACK TO GENERAL MODEL (FLASH)
         const modelName = await selector.selectBestModel('general');
         console.log(`🤖 Using model: ${modelName} for summary generation`);
         let result;
@@ -173,10 +183,12 @@ SAÍDA: Apenas o código HTML do corpo do resumo.
         // 5. Save Summary
         const summaryData = {
             project_id,
+            user_id: context.auth.uid,
             titulo: `Resumo Gerado em ${new Date().toLocaleDateString('pt-BR')}`,
             conteudo_html: result.text,
             created_at: admin.firestore.FieldValue.serverTimestamp(),
-            type: 'general' // Added type for consistency
+            type: 'general',
+            source_ids: source_ids // Save the source IDs
         };
         const docRef = await db.collection("summaries").add(summaryData);
         const savedDoc = await docRef.get();

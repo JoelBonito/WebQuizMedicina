@@ -42,6 +42,35 @@ export interface ChatResponse {
 }
 
 /**
+ * Helper to safely convert Firestore timestamp to ISO string
+ */
+function getSafeDate(timestamp: any): string {
+  if (!timestamp) return new Date().toISOString();
+
+  // Handle Firestore Timestamp
+  if (timestamp.toDate && typeof timestamp.toDate === 'function') {
+    return timestamp.toDate().toISOString();
+  }
+
+  // Handle seconds/nanoseconds object if not a class instance
+  if (timestamp.seconds !== undefined && timestamp.nanoseconds !== undefined) {
+    return new Date(timestamp.seconds * 1000).toISOString();
+  }
+
+  // Handle Date objects
+  if (timestamp instanceof Date) {
+    return timestamp.toISOString();
+  }
+
+  // Handle strings/numbers
+  try {
+    return new Date(timestamp).toISOString();
+  } catch (e) {
+    return new Date().toISOString();
+  }
+}
+
+/**
  * Converts database messages (role + content) to UI format (message + response)
  * Groups pairs of user/assistant messages into single ChatMessage objects
  */
@@ -61,7 +90,7 @@ function convertDbMessagesToUiFormat(dbMessages: DbChatMessage[]): ChatMessage[]
         response: current.content,
         sources_cited: [],
         is_system: true,
-        created_at: current.created_at,
+        created_at: getSafeDate(current.created_at),
       });
     } else if (current.role === 'user') {
       // Find the next assistant message
@@ -76,7 +105,7 @@ function convertDbMessagesToUiFormat(dbMessages: DbChatMessage[]): ChatMessage[]
           message: current.content,
           response: assistantMsg.content,
           sources_cited: assistantMsg.sources_cited || [],
-          created_at: current.created_at,
+          created_at: getSafeDate(current.created_at),
         });
         i++; // Skip the assistant message since we already processed it
       } else {
@@ -88,7 +117,7 @@ function convertDbMessagesToUiFormat(dbMessages: DbChatMessage[]): ChatMessage[]
           message: current.content,
           response: 'Aguardando resposta...',
           sources_cited: [],
-          created_at: current.created_at,
+          created_at: getSafeDate(current.created_at),
         });
       }
     }

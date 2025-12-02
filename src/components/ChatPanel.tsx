@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect } from "react";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { Send, Sparkles, FileText, Loader2, Trash2, AlertCircle, Bot, User, Lightbulb } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
@@ -139,11 +141,10 @@ export function ChatPanel({ projectId, isFullscreenMode = false }: ChatPanelProp
   }
 
   return (
-    <div className={`flex flex-col ${
-      isFullscreenMode
-        ? "bg-gray-50/50 p-6"
-        : "bg-gray-50/50 rounded-3xl p-4 border border-gray-200 h-full"
-    }`}>
+    <div className={`flex flex-col ${isFullscreenMode
+      ? "bg-gray-50/50 p-6"
+      : "bg-gray-50/50 rounded-3xl p-4 border border-gray-200 h-full"
+      }`}>
       {/* Header */}
       <div className="glass-dark rounded-2xl p-4 mb-4 border border-gray-200 flex-shrink-0">
         <div className="flex items-center justify-between mb-2">
@@ -215,10 +216,12 @@ export function ChatPanel({ projectId, isFullscreenMode = false }: ChatPanelProp
                             <div className="max-w-[90%] glass rounded-2xl p-4 bg-gradient-to-br from-blue-50 via-[#F0F9FF] to-[#F1F8E9] border-2 border-[#0891B2] shadow-lg">
                               <div className="flex items-start gap-3">
                                 <Sparkles className="w-5 h-5 text-[#0891B2] mt-0.5 flex-shrink-0" />
-                                <div className="flex-1 chat-message">
-                                  <p className="whitespace-pre-wrap">
+                                <div className="flex-1 chat-message prose prose-sm max-w-none prose-p:leading-relaxed prose-pre:bg-gray-100 prose-pre:p-2 prose-pre:rounded-lg prose-headings:font-semibold prose-a:text-blue-600">
+                                  <ReactMarkdown
+                                    remarkPlugins={[remarkGfm]}
+                                  >
                                     {message.response}
-                                  </p>
+                                  </ReactMarkdown>
                                 </div>
                               </div>
                             </div>
@@ -259,9 +262,13 @@ export function ChatPanel({ projectId, isFullscreenMode = false }: ChatPanelProp
                                 <div className="flex items-start gap-2 mb-2">
                                   <Bot className="w-4 h-4 text-[#0891B2] mt-0.5" />
                                   <div className="flex-1">
-                                    <p className="chat-message whitespace-pre-wrap mb-3">
-                                      {message.response}
-                                    </p>
+                                    <div className="chat-message mb-3 prose prose-sm max-w-none prose-p:leading-relaxed prose-pre:bg-gray-100 prose-pre:p-2 prose-pre:rounded-lg prose-headings:font-semibold prose-a:text-blue-600">
+                                      <ReactMarkdown
+                                        remarkPlugins={[remarkGfm]}
+                                      >
+                                        {message.response}
+                                      </ReactMarkdown>
+                                    </div>
                                     {message.sources_cited && message.sources_cited.length > 0 && (
                                       <div className="flex flex-wrap gap-2 mb-2">
                                         {message.sources_cited.map((sourceId, idx) => {
