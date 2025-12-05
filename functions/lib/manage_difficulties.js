@@ -34,10 +34,12 @@ if (!admin.apps.length) {
 }
 const db = admin.firestore();
 const manageDifficultiesSchema = zod_1.z.object({
-    action: zod_1.z.enum(["add", "resolve", "list"]),
-    project_id: zod_1.z.string().uuid(),
+    action: zod_1.z.enum(["add", "resolve", "list", "check_auto_resolve", "statistics", "normalize_topic"]),
+    project_id: zod_1.z.string().uuid().optional(),
     topico: zod_1.z.string().optional(),
+    topic: zod_1.z.string().optional(),
     difficulty_id: zod_1.z.string().uuid().optional(),
+    correct: zod_1.z.boolean().optional(), // Para check_auto_resolve
 });
 exports.manage_difficulties = functions.https.onCall(async (data, context) => {
     var _a;
@@ -112,6 +114,114 @@ exports.manage_difficulties = functions.https.onCall(async (data, context) => {
             const difficulties = snapshot.docs.map(doc => (Object.assign({ id: doc.id }, doc.data())));
             return { success: true, difficulties };
         }
+        else if (action === "check_auto_resolve") {
+            // Nova ação para verificar e auto-resolver dificuldades após 3 acertos
+            const topic = topico || data.topic;
+            const correct = data.correct;
+            if (!topic) {
+                throw new functions.https.HttpsError("invalid-argument", "Topic is required for 'check_auto_resolve' action");
+            }
+            if (correct === undefined) {
+                throw new functions.https.HttpsError("invalid-argument", "Correct flag is required for 'check_auto_resolve' action");
+            }
+            if (!project_id) {
+                throw new functions.https.HttpsError("invalid-argument", "Project ID is required for 'check_auto_resolve' action");
+            }
+            // Normalizar tópico
+            const normalizedTopic = normalizeTopic(topic);
+            // Buscar dificuldade não resolvida
+            const difficultyQuery = await difficultiesCollection
+                .where("user_id", "==", userId)
+                .where("project_id", "==", project_id)
+                .where("topico", "==", normalizedTopic)
+                .where("resolvido", "==", false)
+                .limit(1)
+                .get();
+            if (difficultyQuery.empty) {
+                return { auto_resolved: false, consecutive_correct: 0 };
+            }
+            const difficultyDoc = difficultyQuery.docs[0];
+            const difficulty = difficultyDoc.data();
+            if (correct) {
+                // Incrementar acertos consecutivos
+                const consecutiveCorrect = (difficulty.consecutive_correct || 0) + 1;
+                if (consecutiveCorrect >= 3) {
+                    // ✅ Auto-resolver após 3 acertos!
+                    await difficultyDoc.ref.update({
+                        resolvido: true,
+                        consecutive_correct: consecutiveCorrect,
+                        auto_resolved_at: admin.firestore.FieldValue.serverTimestamp(),
+                        updated_at: admin.firestore.FieldValue.serverTimestamp(),
+                    });
+                    return {
+                        auto_resolved: true,
+                        consecutive_correct: consecutiveCorrect,
+                        topic: normalizedTopic,
+                    };
+                }
+                else {
+                    // Salvar progresso
+                    await difficultyDoc.ref.update({
+                        consecutive_correct: consecutiveCorrect,
+                        last_attempt_at: admin.firestore.FieldValue.serverTimestamp(),
+                        updated_at: admin.firestore.FieldValue.serverTimestamp(),
+                    });
+                    return {
+                        auto_resolved: false,
+                        consecutive_correct: consecutiveCorrect,
+                    };
+                }
+            }
+            else {
+                // Resetar contagem ao errar
+                await difficultyDoc.ref.update({
+                    consecutive_correct: 0,
+                    last_attempt_at: admin.firestore.FieldValue.serverTimestamp(),
+                    updated_at: admin.firestore.FieldValue.serverTimestamp(),
+                });
+                return {
+                    auto_resolved: false,
+                    consecutive_correct: 0,
+                };
+            }
+        }
+        else if (action === "statistics") {
+            // Nova ação para obter estatísticas
+            if (!project_id) {
+                throw new functions.https.HttpsError("invalid-argument", "Project ID is required for 'statistics' action");
+            }
+            const snapshot = await difficultiesCollection
+                .where("project_id", "==", project_id)
+                .where("user_id", "==", userId)
+                .get();
+            const total = snapshot.size;
+            const resolved = snapshot.docs.filter(doc => doc.data().resolvido).length;
+            const autoResolved = snapshot.docs.filter(doc => doc.data().auto_resolved_at).length;
+            const streaks = snapshot.docs
+                .filter(doc => !doc.data().resolvido)
+                .map(doc => doc.data().consecutive_correct || 0);
+            const averageStreak = streaks.length > 0
+                ? streaks.reduce((sum, val) => sum + val, 0) / streaks.length
+                : 0;
+            return {
+                total,
+                resolved,
+                unresolved: total - resolved,
+                autoResolved,
+                averageStreak: Math.round(averageStreak * 100) / 100,
+            };
+        }
+        else if (action === "normalize_topic") {
+            // Nova ação para normalizar nome de tópico
+            const topic = topico || data.topic;
+            if (!topic) {
+                throw new functions.https.HttpsError("invalid-argument", "Topic is required for 'normalize_topic' action");
+            }
+            return {
+                normalized: normalizeTopic(topic),
+                original: topic,
+            };
+        }
         throw new functions.https.HttpsError("invalid-argument", "Invalid action");
     }
     catch (error) {
@@ -119,4 +229,12 @@ exports.manage_difficulties = functions.https.onCall(async (data, context) => {
         throw new functions.https.HttpsError("internal", error.message);
     }
 });
+// Helper function para normalizar tópicos
+function normalizeTopic(topic) {
+    return topic
+        .toLowerCase()
+        .trim()
+        .replace(/\s+/g, ' ') // Normalizar espaços múltiplos
+        .replace(/[^\w\sáàâãéèêíïóôõöúçñ]/gi, ''); // Remover caracteres especiais
+}
 //# sourceMappingURL=manage_difficulties.js.map

@@ -1,4 +1,4 @@
-import { ArrowLeft, LogOut, User, Languages, Palette, BookOpen, Shield } from "lucide-react";
+import { ArrowLeft, LogOut, User, BookOpen, Shield } from "lucide-react";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { Button } from "./ui/button";
 import { useAuth } from "../hooks/useAuth";
@@ -13,8 +13,6 @@ import {
 } from "./ui/dropdown-menu";
 import { Logo } from "./Logo";
 import { ProfileSettings } from "./ProfileSettings";
-import { LanguageSettings } from "./LanguageSettings";
-import { ThemeSettings } from "./ThemeSettings";
 import { useState } from "react";
 
 interface NavbarProps {
@@ -27,8 +25,6 @@ export function Navbar({ onBackClick, projectName, onAdminClick }: NavbarProps) 
   const { user, signOut } = useAuth();
   const { profile } = useProfile();
   const [profileOpen, setProfileOpen] = useState(false);
-  const [languageOpen, setLanguageOpen] = useState(false);
-  const [themeOpen, setThemeOpen] = useState(false);
 
   // Debug: log profile data
   // console.log('[Navbar] Profile data:', profile);
@@ -124,14 +120,6 @@ export function Navbar({ onBackClick, projectName, onAdminClick }: NavbarProps) 
                   <User className="w-4 h-4 mr-2 text-gray-600" />
                   <span className="text-gray-700">Perfil</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setLanguageOpen(true)} className="cursor-pointer rounded-lg">
-                  <Languages className="w-4 h-4 mr-2 text-gray-600" />
-                  <span className="text-gray-700">Idioma de Resposta</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setThemeOpen(true)} className="cursor-pointer rounded-lg">
-                  <Palette className="w-4 h-4 mr-2 text-gray-600" />
-                  <span className="text-gray-700">Aparência</span>
-                </DropdownMenuItem>
 
                 {/* Admin Button - Only visible for admins */}
                 {isAdmin && onAdminClick && (
@@ -159,10 +147,8 @@ export function Navbar({ onBackClick, projectName, onAdminClick }: NavbarProps) 
         </div>
       </div>
 
-      {/* Settings Dialogs */}
+      {/* Settings Dialog */}
       <ProfileSettings open={profileOpen} onOpenChange={setProfileOpen} />
-      <LanguageSettings open={languageOpen} onOpenChange={setLanguageOpen} />
-      <ThemeSettings open={themeOpen} onOpenChange={setThemeOpen} />
     </nav>
   );
 }

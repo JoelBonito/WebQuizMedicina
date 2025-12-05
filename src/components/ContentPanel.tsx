@@ -19,7 +19,10 @@ import {
   Zap,
   Lightbulb,
   Network,
-  BarChart3
+  BarChart3,
+  ToggleLeft,
+  ToggleRight
+
 } from "lucide-react";
 import { motion } from "motion/react";
 import { useQuestions } from "../hooks/useQuestions";
@@ -27,6 +30,7 @@ import { useFlashcards } from "../hooks/useFlashcards";
 import { useSummaries } from "../hooks/useSummaries";
 import { useDifficulties } from "../hooks/useDifficulties";
 import { useMindMaps } from "../hooks/useMindMaps";
+import { useUserPreferences } from "../hooks/useUserPreferences";
 
 import { db } from "../lib/firebase";
 import { collection, query, where, getDocs, updateDoc, doc, writeBatch } from "firebase/firestore";
@@ -195,6 +199,8 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
   // Rename dialog state
   const [renamingContent, setRenamingContent] = useState<{ id: string; currentName: string; type: string } | null>(null);
   const [newContentName, setNewContentName] = useState<string>('');
+  const { preferences, updateAutoRemove } = useUserPreferences();
+
 
   // Store custom names for quiz/flashcards (visualization only) - persist in localStorage
   const [customNames, setCustomNames] = useState<Record<string, string>>({});
@@ -933,6 +939,8 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
               )}
               <SummaryViewer
                 html={selectedSummary?.conteudo_html || ""}
+                summaryId={selectedSummary?.id || ""}
+                projectId={projectId || ""}
                 onAskChat={handleAskChat}
               />
             </div>
@@ -1000,14 +1008,43 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
           <div className="h-screen supports-[height:100dvh]:h-dvh w-full flex flex-col bg-gray-50">
             <div className="flex items-center justify-between p-6 border-b bg-white">
               <h2 className="text-2xl font-bold text-gray-900">Análise das Dificuldades</h2>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => setDifficultiesOpen(false)}
-                className="h-8 w-8 p-0"
-              >
-                <X className="w-5 h-5" />
-              </Button>
+              <div className="flex items-center gap-3">
+                {/* Toggle Auto-Remove */}
+                <button
+                  onClick={() => {
+                    const newValue = !preferences.autoRemoveDifficulties;
+                    updateAutoRemove(newValue);
+                    toast.success(
+                      newValue
+                        ? 'Remoção automática ativada (3 acertos consecutivos)'
+                        : 'Remoção automática desativada'
+                    );
+                  }}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${preferences.autoRemoveDifficulties
+                    ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  title={preferences.autoRemoveDifficulties ? 'Desativar remoção automática' : 'Ativar remoção automática'}
+                >
+                  {preferences.autoRemoveDifficulties ? (
+                    <ToggleRight className="w-5 h-5" />
+                  ) : (
+                    <ToggleLeft className="w-5 h-5" />
+                  )}
+                  <span className="text-sm font-medium">
+                    Auto-remoção {preferences.autoRemoveDifficulties ? 'ON' : 'OFF'}
+                  </span>
+                </button>
+
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setDifficultiesOpen(false)}
+                  className="h-8 w-8 p-0"
+                >
+                  <X className="w-5 h-5" />
+                </Button>
+              </div>
             </div>
             <DialogTitle className="sr-only">Análise das Dificuldades</DialogTitle>
             <DialogDescription className="sr-only">
@@ -1094,6 +1131,9 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Achievement Badge de Teste */}
+
     </>
   );
 }

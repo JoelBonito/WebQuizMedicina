@@ -19,6 +19,8 @@ const Auth = lazy(() => import("./components/Auth").then(module => ({ default: m
 const ProjectStats = lazy(() => import("./components/ProjectStats").then(module => ({ default: module.ProjectStats })));
 const AdminDashboard = lazy(() => import("./components/AdminDashboard").then(module => ({ default: module.AdminDashboard })));
 
+
+
 // Loading fallback component
 const LoadingFallback = () => (
   <div className="min-h-screen bg-white flex items-center justify-center">
@@ -79,6 +81,7 @@ export default function App() {
           <Suspense fallback={<LoadingFallback />}>
             <Auth />
           </Suspense>
+
           <Toaster />
         </LanguageProvider>
       </ThemeProvider>

@@ -6,7 +6,7 @@ const genAI = new GoogleGenerativeAI(API_KEY);
 export const SAFE_OUTPUT_LIMIT = 8192;
 
 export async function callGeminiWithUsage(
-    prompt: string,
+    prompt: string | Array<string | any>,
     modelName: string = "gemini-2.5-flash",
     maxOutputTokens: number = SAFE_OUTPUT_LIMIT,
     jsonMode: boolean = false,
@@ -70,48 +70,71 @@ export async function callGeminiWithUsage(
 }
 
 export function parseJsonFromResponse(text: string): any {
+    // Helper to attempt parsing
+    const tryParse = (str: string) => {
+        try {
+            return JSON.parse(str);
+        } catch (e) {
+            return null;
+        }
+    };
+
     // 1. Try parsing raw text first
-    try {
-        return JSON.parse(text);
-    } catch (e) {
-        // Continue to cleaning strategies
-    }
+    let result = tryParse(text);
+    if (result) return result;
 
     // 2. Try cleaning markdown code blocks
-    try {
-        let cleanText = text.replace(/```json\s*/gi, "").replace(/```\s*$/g, "").trim();
-        // Also handle just ``` at start if json tag was missing
-        cleanText = cleanText.replace(/^```\s*/, "");
-        return JSON.parse(cleanText);
-    } catch (e) {
-        // Continue to substring extraction
-    }
+    let cleanText = text.replace(/```json\s*/gi, "").replace(/```\s*$/g, "").trim();
+    cleanText = cleanText.replace(/^```\s*/, "");
+    result = tryParse(cleanText);
+    if (result) return result;
 
     // 3. Try finding the first '{' and last '}' (or '[' and ']')
-    try {
-        const firstOpenBrace = text.indexOf('{');
-        const firstOpenBracket = text.indexOf('[');
-        let start = -1;
-        let end = -1;
+    const firstOpenBrace = text.indexOf('{');
+    const firstOpenBracket = text.indexOf('[');
+    let start = -1;
+    let end = -1;
 
-        // Determine if we are looking for an object or array
-        if (firstOpenBrace !== -1 && (firstOpenBracket === -1 || firstOpenBrace < firstOpenBracket)) {
-            start = firstOpenBrace;
-            end = text.lastIndexOf('}');
-        } else if (firstOpenBracket !== -1) {
-            start = firstOpenBracket;
-            end = text.lastIndexOf(']');
-        }
-
-        if (start !== -1 && end !== -1 && end > start) {
-            const jsonSubstring = text.substring(start, end + 1);
-            return JSON.parse(jsonSubstring);
-        }
-    } catch (e) {
-        // Ignore
+    // Determine if we are looking for an object or array
+    if (firstOpenBrace !== -1 && (firstOpenBracket === -1 || firstOpenBrace < firstOpenBracket)) {
+        start = firstOpenBrace;
+        end = text.lastIndexOf('}');
+    } else if (firstOpenBracket !== -1) {
+        start = firstOpenBracket;
+        end = text.lastIndexOf(']');
     }
 
-    console.error("Failed to parse JSON from Gemini response:", text);
+    if (start !== -1 && end !== -1 && end > start) {
+        const jsonSubstring = text.substring(start, end + 1);
+        result = tryParse(jsonSubstring);
+        if (result) return result;
+
+        // 4. Try cleaning trailing commas (common AI error) on the substring
+        // Remove comma before closing brace/bracket: , } -> } and , ] -> ]
+        const noTrailingCommas = jsonSubstring.replace(/,\s*([\]}])/g, '$1');
+        result = tryParse(noTrailingCommas);
+        if (result) return result;
+    }
+
+    // 5. Try cleaning trailing commas on the main cleanText if substring failed or wasn't tried
+    const noTrailingCommasText = cleanText.replace(/,\s*([\]}])/g, '$1');
+    result = tryParse(noTrailingCommasText);
+    if (result) return result;
+
+    // If all attempts fail, log the error and text
+    console.error("Failed to parse JSON from Gemini response. Text length:", text.length);
+    // Log start and end of text to help debug without flooding huge logs if possible, 
+    // or log everything if needed (Firebase log truncation might hide the middle).
+    console.error("Original Text Start:", text.substring(0, 500));
+    console.error("Original Text End:", text.substring(text.length - 500));
+
+    // Attempt to log specific parse error from the cleanest attempt
+    try {
+        JSON.parse(cleanText);
+    } catch (e: any) {
+        console.error("Specific Parse Error:", e.message);
+    }
+
     throw new Error("Invalid JSON response from AI");
 }
 

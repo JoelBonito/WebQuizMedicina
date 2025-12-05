@@ -2,7 +2,7 @@ import { useState } from "react";
 import { motion } from "motion/react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
-import { AlertTriangle, CheckCircle, Sparkles, TrendingUp, BookOpen, MessageSquare, Brain, Loader2, Star, Target } from "lucide-react";
+import { AlertTriangle, CheckCircle, Sparkles, TrendingUp, BookOpen, MessageSquare, Brain, Loader2, Target } from "lucide-react";
 import { useDifficulties } from "../hooks/useDifficulties";
 import { useQuestions } from "../hooks/useQuestions";
 import { useFlashcards } from "../hooks/useFlashcards";
@@ -54,32 +54,10 @@ const getLevelBadgeColor = (level: number) => {
   return "bg-yellow-50 text-yellow-700";
 };
 
-// Phase 4C: Render streak progress (⭐⭐☆)
-const renderStreakBadge = (consecutiveCorrect: number = 0) => {
-  const threshold = 3;
-  const stars = [];
+import { StarProgress } from "./StarProgress";
 
-  for (let i = 0; i < threshold; i++) {
-    stars.push(
-      <Star
-        key={i}
-        className={`w-3 h-3 ${i < consecutiveCorrect
-          ? "fill-yellow-400 text-yellow-400"
-          : "fill-gray-300 text-gray-300"
-          }`}
-      />
-    );
-  }
+// Remove renderStreakBadge helper as we now use StarProgress component
 
-  return (
-    <div className="flex items-center gap-1">
-      {stars}
-      <span className="text-xs text-gray-600 ml-1">
-        {consecutiveCorrect}/{threshold}
-      </span>
-    </div>
-  );
-};
 
 export function DifficultiesPanel({ projectId, isFullscreenMode = false }: DifficultiesPanelProps) {
   const [generatingContent, setGeneratingContent] = useState(false);
@@ -415,17 +393,7 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
                           </Badge>
                         </div>
 
-                        {/* Phase 4C: Streak Progress Badge */}
-                        {(difficulty.consecutive_correct ?? 0) > 0 && (
-                          <div className="mb-2">
-                            <div className="inline-flex items-center gap-2 bg-yellow-50 border border-yellow-200 rounded-lg px-2 py-1">
-                              {renderStreakBadge(difficulty.consecutive_correct)}
-                              <span className="text-xs text-yellow-700 font-medium">
-                                Progresso de Auto-Resolução
-                              </span>
-                            </div>
-                          </div>
-                        )}
+
 
                         {/* Level Bar */}
                         <div className="flex items-center gap-2 mb-2">
@@ -452,15 +420,22 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
                         </p>
                       </div>
 
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleMarkAsResolved(difficulty.id, difficulty.topico)}
-                        className="rounded-lg border-green-300 text-green-700 hover:bg-green-50 ml-4"
-                      >
-                        <CheckCircle className="w-4 h-4 mr-1" />
-                        Resolver
-                      </Button>
+                      <div className="flex flex-col items-end gap-3 ml-4">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleMarkAsResolved(difficulty.id, difficulty.topico)}
+                          className="rounded-lg border-green-300 text-green-700 hover:bg-green-50 w-full"
+                        >
+                          <CheckCircle className="w-4 h-4 mr-1" />
+                          Resolver
+                        </Button>
+
+                        {/* Star Progress Inline */}
+                        <StarProgress
+                          consecutiveCorrect={difficulty.consecutive_correct || 0}
+                        />
+                      </div>
                     </div>
                   </motion.div>
                 ))}
@@ -491,15 +466,22 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
                             <Badge variant="outline" className="text-xs text-green-700">
                               Era nível {difficulty.nivel}
                             </Badge>
-                            {/* Phase 4C: Auto-Resolved Badge */}
-                            {difficulty.auto_resolved_at && (
-                              <Badge className="text-xs bg-yellow-100 text-yellow-800 border-yellow-300">
-                                <Star className="w-3 h-3 mr-1 fill-yellow-500 text-yellow-500" />
-                                Auto-Resolvido
+                            {/* Badge Inline se Auto-Resolvido */}
+                            {difficulty.auto_resolved_at ? (
+                              <div className="w-full">
+                                <StarProgress
+                                  consecutiveCorrect={3}
+                                  showBadge={true}
+                                />
+                              </div>
+                            ) : (
+                              <Badge className="text-xs bg-gray-100 text-gray-600 border-gray-200 mt-2">
+                                <CheckCircle className="w-3 h-3 mr-1" />
+                                Resolvido manualmente
                               </Badge>
                             )}
                           </div>
-                          <span className="text-xs text-gray-500">
+                          <span className="text-xs text-gray-500 whitespace-nowrap ml-4">
                             {new Date(difficulty.updated_at || difficulty.created_at).toLocaleDateString("pt-BR", {
                               day: "2-digit",
                               month: "short",

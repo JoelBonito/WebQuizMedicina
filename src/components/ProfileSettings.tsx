@@ -19,8 +19,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import { User, Mail, Calendar, Loader2, Upload, Languages } from "lucide-react";
+import { User, Mail, Calendar, Loader2, Upload, Languages, Palette, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { Switch } from "./ui/switch";
+import { useTheme } from "../contexts/ThemeContext";
+import { useUserPreferences } from "../hooks/useUserPreferences";
 
 interface ProfileSettingsProps {
   open: boolean;
@@ -43,6 +46,8 @@ const LANGUAGES = [
 export function ProfileSettings({ open, onOpenChange }: ProfileSettingsProps) {
   const { user } = useAuth();
   const { profile, loading, updating, updateProfile, uploadAvatar } = useProfile();
+  const { theme, setTheme } = useTheme();
+  const { preferences, updateAutoRemove } = useUserPreferences();
   const [displayName, setDisplayName] = useState("");
   const [responseLanguage, setResponseLanguage] = useState("pt");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -243,6 +248,54 @@ export function ProfileSettings({ open, onOpenChange }: ProfileSettingsProps) {
                     Idioma salvo: {LANGUAGES.find(l => l.value === profile.response_language)?.label || 'Português'}
                   </p>
                 )}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="theme" className="text-gray-700 font-medium flex items-center gap-2">
+                <Palette className="w-4 h-4" />
+                Aparência
+              </Label>
+              <Select value={theme} onValueChange={(value) => setTheme(value as any)}>
+                <SelectTrigger id="theme" className="rounded-lg bg-white border-gray-200 text-gray-900">
+                  <SelectValue placeholder="Selecione um tema" />
+                </SelectTrigger>
+                <SelectContent className="bg-white rounded-lg border-gray-200">
+                  <SelectItem value="light" className="text-gray-900 focus:bg-gray-100 cursor-pointer">
+                    ☀️ Modo Claro
+                  </SelectItem>
+                  <SelectItem value="dark" className="text-gray-900 focus:bg-gray-100 cursor-pointer">
+                    🌙 Modo Escuro
+                  </SelectItem>
+                  <SelectItem value="system" className="text-gray-900 focus:bg-gray-100 cursor-pointer">
+                    💻 Sistema
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-gray-500">
+                Escolha como a interface será exibida
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="autoRemove" className="text-gray-700 font-medium flex items-center gap-2">
+                <Sparkles className="w-4 h-4" />
+                Auto-remoção de Dificuldades
+              </Label>
+              <div className="flex items-center justify-between glass rounded-lg p-3 border border-gray-200">
+                <div className="flex-1">
+                  <p className="text-sm text-gray-700 font-medium">
+                    Remover automaticamente ao dominar
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Remove tópicos da lista de dificuldades após dominá-los
+                  </p>
+                </div>
+                <Switch
+                  id="autoRemove"
+                  checked={preferences.autoRemoveDifficulties}
+                  onCheckedChange={updateAutoRemove}
+                />
               </div>
             </div>
 

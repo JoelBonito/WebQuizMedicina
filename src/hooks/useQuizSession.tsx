@@ -46,9 +46,13 @@ export function useQuizSession(
   const [elapsedTime, setElapsedTime] = useState(0);
   const [showTimer, setShowTimer] = useState(true);
   const [hasLoadedProgress, setHasLoadedProgress] = useState(false);
+  const [achievementBadge, setAchievementBadge] = useState<{
+    topic: string;
+    consecutiveCorrect: number;
+  } | null>(null);
 
   const { saveQuizProgress } = useProgress();
-  const { addDifficulty } = useDifficulties(projectId);
+  const { addDifficulty, checkAutoResolve } = useDifficulties(projectId);
   const { loadProgress, saveProgress, clearProgress } = useQuizPersistence(projectId);
 
   const currentQuestion = questions[currentIndex];
@@ -128,6 +132,30 @@ export function useQuizSession(
         tempoResposta
       );
 
+      // ✨ Check auto-resolve para acertos e erros
+      if (currentQuestion.topico) {
+        const result = await checkAutoResolve(currentQuestion.topico, correct);
+
+        // Mostrar progressão independente de resolver ou não
+        if (result && correct) {
+          const progress = result.consecutive_correct || 0;
+
+          if (result.auto_resolved) {
+            // 🎉 Badge de conquista!
+            setAchievementBadge({
+              topic: currentQuestion.topico,
+              consecutiveCorrect: progress,
+            });
+          } else if (progress > 0) {
+            // Mostrar progresso parcial
+            toast.info(`Progresso: ${progress}/3 acertos sobre "${currentQuestion.topico}"`, {
+              description: `Mais ${3 - progress} acerto(s) para remover das dificuldades!`,
+              duration: 3000,
+            });
+          }
+        }
+      }
+
       // If wrong, add to difficulties
       if (!correct && currentQuestion.topico) {
         await addDifficulty(currentQuestion.topico, "quiz");
@@ -135,7 +163,7 @@ export function useQuizSession(
     } catch (error) {
       console.error("Error saving answer:", error);
     }
-  }, [state, currentQuestion, startTime, answers, saveQuizProgress, addDifficulty]);
+  }, [state, currentQuestion, startTime, answers, saveQuizProgress, addDifficulty, checkAutoResolve]);
 
   const handleNaoSei = useCallback(async () => {
     if (state !== "question") return;
@@ -165,8 +193,9 @@ export function useQuizSession(
         tempoResposta
       );
 
-      // Add to difficulties
+      // ✨ Reset streak ao clicar "Não Sei"
       if (currentQuestion.topico) {
+        await checkAutoResolve(currentQuestion.topico, false);
         await addDifficulty(currentQuestion.topico, "quiz");
         toast.info(
           `Tópico "${currentQuestion.topico}" adicionado às dificuldades`
@@ -175,7 +204,7 @@ export function useQuizSession(
     } catch (error) {
       console.error("Error saving 'não sei':", error);
     }
-  }, [state, currentQuestion, startTime, answers, saveQuizProgress, addDifficulty]);
+  }, [state, currentQuestion, startTime, answers, saveQuizProgress, addDifficulty, projectId, checkAutoResolve]);
 
   const handleNext = useCallback(() => {
     if (currentIndex < questions.length - 1) {
@@ -230,6 +259,7 @@ export function useQuizSession(
     showTimer,
     currentQuestion,
     progress,
+    achievementBadge,
 
     // Actions
     handleAnswer,
@@ -237,6 +267,7 @@ export function useQuizSession(
     handleNext,
     handleClose,
     handleRetry,
+    closeAchievementBadge: () => setAchievementBadge(null),
 
     // Computed
     stats: getStats(),

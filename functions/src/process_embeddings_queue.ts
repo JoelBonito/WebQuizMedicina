@@ -3,8 +3,10 @@ import * as admin from "firebase-admin";
 import { z } from "zod";
 import { validateRequest } from "./shared/validation";
 import { chunkText, generateEmbeddings } from "./shared/embeddings";
+
 import { logTokenUsage } from "./shared/token_usage";
 import { getModelSelector } from "./shared/modelSelector";
+import { callGeminiWithUsage } from "./shared/gemini";
 
 // Initialize Firebase Admin if not already initialized
 if (!admin.apps.length) {
@@ -12,6 +14,7 @@ if (!admin.apps.length) {
 }
 
 const db = admin.firestore();
+const storage = admin.storage();
 
 const processEmbeddingsSchema = z.object({
     source_id: z.string().optional(), // Firestore IDs não são UUIDs estritos
@@ -19,7 +22,10 @@ const processEmbeddingsSchema = z.object({
     max_items: z.number().optional(),
 });
 
-export const process_embeddings_queue = functions.https.onCall(async (data, context) => {
+export const process_embeddings_queue = functions.runWith({
+    timeoutSeconds: 540,
+    memory: '2GB'
+}).https.onCall(async (data, context) => {
     // 1. Auth Check
     if (!context.auth) {
         throw new functions.https.HttpsError("unauthenticated", "User must be authenticated");
@@ -73,14 +79,68 @@ export const process_embeddings_queue = functions.https.onCall(async (data, cont
             const sourceId = item.ref.id;
 
             if (!sourceData.extracted_content) {
-                console.warn(`⚠️ Source ${sourceId} has no extracted content. Skipping.`);
-                batch.update(item.ref, {
-                    status: "error",
-                    error_message: "No extracted content found",
-                    processed_at: admin.firestore.FieldValue.serverTimestamp()
-                });
-                processedCount++;
-                continue;
+                // Check if it's a supported media type (Image or Audio)
+                const isImage = ['jpg', 'jpeg', 'png'].includes(sourceData.type) || sourceData.metadata?.mimeType?.startsWith('image/');
+                const isAudio = ['mp3', 'wav', 'm4a'].includes(sourceData.type) || sourceData.metadata?.mimeType?.startsWith('audio/');
+
+                if (sourceData.storage_path && (isImage || isAudio)) {
+                    try {
+                        console.log(`🖼️ Extracting content from file for source ${sourceId}...`);
+                        const bucket = storage.bucket();
+                        const file = bucket.file(sourceData.storage_path);
+                        const [buffer] = await file.download();
+                        const base64Data = buffer.toString('base64');
+                        const mimeType = sourceData.type || 'image/jpeg';
+
+                        const prompt = "Transcreva todo o texto visível nesta imagem (ou áudio) com alta fidelidade, **incluindo anotações manuscritas (letra de mão)**. Mantenha a formatação e estrutura original das anotações. Se houver diagramas, descreva-os brevemente.";
+
+                        const result = await callGeminiWithUsage(
+                            [
+                                prompt,
+                                {
+                                    inlineData: {
+                                        data: base64Data,
+                                        mimeType: mimeType
+                                    }
+                                }
+                            ],
+                            "gemini-1.5-flash" // Modelo multimodal rápido
+                        );
+
+                        if (!result.text) {
+                            throw new Error("Gemini returned empty text for this file.");
+                        }
+
+                        sourceData.extracted_content = result.text;
+
+                        // Salvar o conteúdo extraído imediatamente
+                        await item.ref.update({
+                            extracted_content: result.text,
+                            status: 'processing' // Ensure status is processing while we continue
+                        });
+
+                        console.log(`✅ Content extracted for source ${sourceId} (${result.text.length} chars)`);
+
+                    } catch (extractError: any) {
+                        console.error(`❌ Error extracting content for source ${sourceId}:`, extractError);
+                        batch.update(item.ref, {
+                            status: "error",
+                            error_message: "Failed to extract content: " + extractError.message,
+                            processed_at: admin.firestore.FieldValue.serverTimestamp()
+                        });
+                        processedCount++;
+                        continue;
+                    }
+                } else {
+                    console.warn(`⚠️ Source ${sourceId} has no extracted content and is not a supported media type. Skipping.`);
+                    batch.update(item.ref, {
+                        status: "error",
+                        error_message: "No extracted content found",
+                        processed_at: admin.firestore.FieldValue.serverTimestamp()
+                    });
+                    processedCount++;
+                    continue;
+                }
             }
 
             try {

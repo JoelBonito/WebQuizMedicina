@@ -85,6 +85,12 @@ service cloud.firestore {
       allow read, write: if isOwner(userId);
     }
 
+    // Users Collection (Preferences, Settings)
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+
     // Token Usage
     match /token_usage/{usageId} {
       allow read: if isOwner(resource.data.userId);
@@ -111,6 +117,19 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       // Chunks are created/managed by Cloud Functions
       allow write: if false;
+    }
+
+    // Summary Highlights
+    match /summary_highlights/{highlightId} {
+      allow read: if isAuthenticated() && (
+        isOwner(resource.data.user_id) || 
+        isProjectOwner(resource.data.project_id)
+      );
+      allow create: if isAuthenticated() && isProjectOwner(request.resource.data.project_id);
+      allow update, delete: if isAuthenticated() && (
+        isOwner(resource.data.user_id) || 
+        isProjectOwner(resource.data.project_id)
+      );
     }
   }
 }

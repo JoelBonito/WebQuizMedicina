@@ -18,6 +18,7 @@ import { Question } from "../hooks/useQuestions";
 import { useProgress } from "../hooks/useProgress";
 import { useDifficulties } from "../hooks/useDifficulties";
 import { useQuizPersistence } from "../hooks/useQuizPersistence";
+import { useUserPreferences } from "../hooks/useUserPreferences";
 import { toast } from "sonner";
 
 interface QuizSessionProps {
@@ -86,8 +87,10 @@ export function QuizSession({
   const [hasLoadedProgress, setHasLoadedProgress] = useState(false);
 
   const { saveQuizProgress } = useProgress();
-  const { addDifficulty } = useDifficulties(projectId);
+  const { addDifficulty, checkAutoResolve } = useDifficulties(projectId);
   const { loadProgress, saveProgress, clearProgress } = useQuizPersistence(projectId);
+  const { preferences } = useUserPreferences();
+
 
   const currentQuestion = questions[currentIndex];
   const progress = ((currentIndex + 1) / questions.length) * 100;
@@ -161,11 +164,36 @@ export function QuizSession({
     try {
       // Save progress
       await saveQuizProgress(
+        projectId,
         currentQuestion.id,
         correct,
         false,
         tempoResposta
       );
+
+      // ✨ Check auto-resolve para acertos e erros (se ativado)
+      if (currentQuestion.topico && preferences.autoRemoveDifficulties) {
+        const result = await checkAutoResolve(currentQuestion.topico, correct);
+
+        // Mostrar progressão independente de resolver ou não
+        if (result && correct) {
+          const progress = result.consecutive_correct || 0;
+
+          if (result.auto_resolved) {
+            // 🎉 Feedback de conquista via Toast
+            toast.success(`Parabéns! O tópico "${currentQuestion.topico}" foi dominado e removido das dificuldades!`, {
+              icon: <Trophy className="w-5 h-5 text-yellow-500" />,
+              duration: 4000,
+            });
+          } else if (progress > 0) {
+            // Mostrar progresso parcial
+            toast.info(`Progresso: ${progress}/3 acertos sobre "${currentQuestion.topico}"`, {
+              description: `Mais ${3 - progress} acerto(s) para remover das dificuldades!`,
+              duration: 3000,
+            });
+          }
+        }
+      }
 
       // If wrong, add to difficulties
       if (!correct && currentQuestion.topico) {
@@ -197,19 +225,26 @@ export function QuizSession({
     try {
       // Save progress with "não sei"
       await saveQuizProgress(
+        projectId,
         currentQuestion.id,
         false,
         true,
         tempoResposta
       );
 
-      // Add to difficulties
+      // ✨ Reset streak ao clicar "Não Sei" (se auto-remove estiver ativado)
+      if (currentQuestion.topico && preferences.autoRemoveDifficulties) {
+        await checkAutoResolve(currentQuestion.topico, false);
+      }
+
       if (currentQuestion.topico) {
+
         await addDifficulty(currentQuestion.topico, "quiz");
         toast.info(
           `Tópico "${currentQuestion.topico}" adicionado às dificuldades`
         );
       }
+
     } catch (error) {
       console.error("Error saving 'não sei':", error);
     }
@@ -429,13 +464,12 @@ export function QuizSession({
                     </h3>
                     {currentQuestion.dificuldade && (
                       <Badge
-                        className={`rounded-lg ${
-                          currentQuestion.dificuldade === "fácil"
-                            ? "bg-green-50 text-green-700 border-green-200"
-                            : currentQuestion.dificuldade === "médio"
+                        className={`rounded-lg ${currentQuestion.dificuldade === "fácil"
+                          ? "bg-green-50 text-green-700 border-green-200"
+                          : currentQuestion.dificuldade === "médio"
                             ? "bg-yellow-50 text-yellow-700 border-yellow-200"
                             : "bg-red-50 text-red-700 border-red-200"
-                        }`}
+                          }`}
                       >
                         {currentQuestion.dificuldade}
                       </Badge>
@@ -634,6 +668,9 @@ export function QuizSession({
           )}
         </AnimatePresence>
       </DialogContent>
+
+      {/* Achievement Badge */}
+
     </Dialog>
   );
 }
