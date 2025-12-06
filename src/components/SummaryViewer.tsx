@@ -268,17 +268,17 @@ export function SummaryViewer({ html, summaryId, projectId, onAskChat, onHighlig
   return (
     <div className="relative h-full flex flex-col" ref={contentRef}>
       {/* Zoom Controls */}
-      <div className="absolute top-4 right-4 z-40 flex items-center gap-2 bg-white/95 backdrop-blur-sm rounded-xl p-2 border-2 border-gray-200 shadow-lg">
+      <div className="absolute top-4 right-4 z-40 flex items-center gap-2 bg-background/95 backdrop-blur-sm rounded-xl p-2 border-2 border-border shadow-lg">
         <Button
           size="sm"
           variant="ghost"
           onClick={handleZoomOut}
           disabled={zoomLevel <= 50}
-          className="h-8 w-8 p-0 text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+          className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground hover:bg-muted"
         >
           <ZoomOut className="w-4 h-4" />
         </Button>
-        <span className="text-xs font-medium text-gray-900 px-2 min-w-[3rem] text-center">
+        <span className="text-xs font-medium text-foreground px-2 min-w-[3rem] text-center">
           {zoomLevel}%
         </span>
         <Button
@@ -286,7 +286,7 @@ export function SummaryViewer({ html, summaryId, projectId, onAskChat, onHighlig
           variant="ghost"
           onClick={handleZoomIn}
           disabled={zoomLevel >= 200}
-          className="h-8 w-8 p-0 text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+          className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground hover:bg-muted"
         >
           <ZoomIn className="w-4 h-4" />
         </Button>
@@ -314,7 +314,7 @@ export function SummaryViewer({ html, summaryId, projectId, onAskChat, onHighlig
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ duration: 0.15 }}
-            className="summary-popover absolute z-50 glass-dark rounded-xl shadow-2xl border-2 border-[#BAE6FD] p-2 flex flex-col gap-2"
+            className="summary-popover absolute z-50 glass-dark rounded-xl shadow-2xl border-2 border-primary/30 p-2 flex flex-col gap-2"
             style={{
               top: `${popoverPosition.top}px`,
               left: `${popoverPosition.left}px`,
@@ -326,7 +326,7 @@ export function SummaryViewer({ html, summaryId, projectId, onAskChat, onHighlig
                 <Button
                   size="sm"
                   onClick={handleAskChat}
-                  className="rounded-lg bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white shadow-lg text-xs"
+                  className="rounded-lg bg-gradient-to-r from-primary to-accent hover:from-primary hover:to-accent text-white shadow-lg text-xs"
                 >
                   <MessageSquare className="w-3 h-3 mr-1" />
                   Perguntar ao Chat
@@ -339,7 +339,7 @@ export function SummaryViewer({ html, summaryId, projectId, onAskChat, onHighlig
                 onMouseDown={(e) => e.preventDefault()}
                 onTouchStart={(e) => e.preventDefault()}
                 onClick={() => setShowColorPicker(!showColorPicker)}
-                className="rounded-lg border-[#BAE6FD] bg-white text-gray-900 hover:bg-gray-100 text-xs font-medium"
+                className="rounded-lg border-primary/30 bg-background text-foreground hover:bg-muted text-xs font-medium"
               >
                 <Palette className="w-3 h-3 mr-1" />
                 Marcar Texto
@@ -350,7 +350,7 @@ export function SummaryViewer({ html, summaryId, projectId, onAskChat, onHighlig
                   size="sm"
                   variant="outline"
                   onClick={handleHighlight}
-                  className="rounded-lg border-yellow-300 bg-yellow-50 text-yellow-700 hover:bg-yellow-100 text-xs"
+                  className="rounded-lg border-yellow-300 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-950 text-yellow-700 dark:text-yellow-400 hover:bg-yellow-100 dark:hover:bg-yellow-900 text-xs"
                 >
                   <Star className="w-3 h-3 mr-1" />
                   Importante

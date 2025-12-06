@@ -16,7 +16,7 @@ const badgeVariants = cva(
         destructive:
           "bg-gradient-to-br from-destructive/80 to-destructive/90 text-white border border-white/30 [a&]:hover:from-destructive/90 [a&]:hover:to-destructive focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/20 before:to-transparent before:opacity-0 [a&]:hover:before:opacity-100 before:transition-opacity before:duration-300",
         outline:
-          "text-foreground bg-white/40 backdrop-blur-xl border border-gray-200/50 [a&]:hover:bg-white/60 [a&]:hover:text-accent-foreground dark:bg-input/20 dark:border-input/40 dark:[a&]:hover:bg-input/30 before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/30 before:to-transparent before:opacity-0 [a&]:hover:before:opacity-100 before:transition-opacity before:duration-300",
+          "text-foreground bg-card/40 backdrop-blur-xl border border-border/50 [a&]:hover:bg-card/60 [a&]:hover:text-accent-foreground dark:bg-input/20 dark:border-input/40 dark:[a&]:hover:bg-input/30 before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/30 before:to-transparent before:opacity-0 [a&]:hover:before:opacity-100 before:transition-opacity before:duration-300",
       },
     },
     defaultVariants: {

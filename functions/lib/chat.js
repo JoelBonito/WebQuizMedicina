@@ -24,26 +24,33 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.chat = void 0;
-const functions = __importStar(require("firebase-functions"));
+const https_1 = require("firebase-functions/v2/https");
 const admin = __importStar(require("firebase-admin"));
 const validation_1 = require("./shared/validation");
 const gemini_1 = require("./shared/gemini");
 const token_usage_1 = require("./shared/token_usage");
 const modelSelector_1 = require("./shared/modelSelector");
+const language_helper_1 = require("./shared/language_helper");
 // Initialize Firebase Admin if not already initialized
 if (!admin.apps.length) {
     admin.initializeApp();
 }
 const db = admin.firestore();
-exports.chat = functions.https.onCall(async (data, context) => {
+exports.chat = (0, https_1.onCall)({
+    timeoutSeconds: 120,
+    memory: "512MiB",
+    region: "us-central1"
+}, async (request) => {
     // 1. Auth Check
-    if (!context.auth) {
-        throw new functions.https.HttpsError("unauthenticated", "User must be authenticated");
+    if (!request.auth) {
+        throw new https_1.HttpsError("unauthenticated", "User must be authenticated");
     }
-    const userId = context.auth.uid;
+    const userId = request.auth.uid;
     try {
-        // 2. Validation
-        const { message, project_id } = (0, validation_1.validateRequest)(data, validation_1.chatSchema);
+        // 2. Get user's language preference
+        const language = await (0, language_helper_1.getLanguageFromRequest)(request.data, db, userId);
+        // 3. Validation
+        const { message, project_id } = (0, validation_1.validateRequest)(request.data, validation_1.chatSchema);
         // 3. Save User Message
         await db.collection("chat_messages").add({
             project_id,
@@ -76,6 +83,7 @@ exports.chat = functions.https.onCall(async (data, context) => {
         // 5. Call AI
         const systemPrompt = `
 Você é um assistente tutor de medicina.
+${(0, language_helper_1.getLanguageInstruction)(language)}
 Use o CONTEÚDO ABAIXO para responder à pergunta do aluno.
 Se a resposta não estiver no conteúdo, diga que não encontrou a informação nas fontes fornecidas, mas tente ajudar com seu conhecimento geral (deixando claro a distinção).
 
@@ -125,7 +133,7 @@ ${contextText}
     }
     catch (error) {
         console.error("Error in chat function:", error);
-        throw new functions.https.HttpsError("internal", error.message);
+        throw new https_1.HttpsError("internal", error.message || "Failed to process chat message");
     }
 });
 //# sourceMappingURL=chat.js.map

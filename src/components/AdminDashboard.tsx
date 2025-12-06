@@ -134,14 +134,14 @@ export function AdminDashboard() {
               <Shield className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-              <p className="text-gray-600">Monitoramento de consumo de tokens</p>
+              <h1 className="text-3xl font-bold text-foreground">Admin Dashboard</h1>
+              <p className="text-muted-foreground">Monitoramento de consumo de tokens</p>
             </div>
           </div>
         </div>
 
         {/* Date Filters */}
-        <Card className="mb-6 glass border-gray-200">
+        <Card className="mb-6 glass border-border">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <Calendar className="w-5 h-5 text-[#0891B2]" />
@@ -151,7 +151,7 @@ export function AdminDashboard() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="startDate" className="text-sm font-medium text-gray-700">
+                <Label htmlFor="startDate" className="text-sm font-medium text-muted-foreground">
                   Data Inicial
                 </Label>
                 <Input
@@ -163,7 +163,7 @@ export function AdminDashboard() {
                 />
               </div>
               <div>
-                <Label htmlFor="endDate" className="text-sm font-medium text-gray-700">
+                <Label htmlFor="endDate" className="text-sm font-medium text-muted-foreground">
                   Data Final
                 </Label>
                 <Input
@@ -199,9 +199,9 @@ export function AdminDashboard() {
         {!loading && summary && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             {/* Total Tokens */}
-            <Card className="glass-hover border-gray-200 transition-all duration-300">
+            <Card className="glass-hover border-border transition-all duration-300">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-gray-600">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
                   Total de Tokens (Mês Atual)
                 </CardTitle>
               </CardHeader>
@@ -211,7 +211,7 @@ export function AdminDashboard() {
                     <TrendingUp className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <p className="text-3xl font-bold text-gray-900">
+                    <p className="text-3xl font-bold text-foreground">
                       {formatTokens(summary.total_tokens || 0)}
                     </p>
                     <p className="text-xs text-gray-500 mt-1">
@@ -223,9 +223,9 @@ export function AdminDashboard() {
             </Card>
 
             {/* Total Cost */}
-            <Card className="glass-hover border-gray-200 transition-all duration-300">
+            <Card className="glass-hover border-border transition-all duration-300">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-gray-600">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
                   Custo Total (BRL)
                 </CardTitle>
               </CardHeader>
@@ -235,7 +235,7 @@ export function AdminDashboard() {
                     <DollarSign className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <p className="text-3xl font-bold text-gray-900">
+                    <p className="text-3xl font-bold text-foreground">
                       {formatCostBRL(summary.total_cost_brl || 0)}
                     </p>
                     <p className="text-xs text-gray-500 mt-1">
@@ -247,9 +247,9 @@ export function AdminDashboard() {
             </Card>
 
             {/* Active Users */}
-            <Card className="glass-hover border-gray-200 transition-all duration-300">
+            <Card className="glass-hover border-border transition-all duration-300">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-gray-600">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
                   Usuários Ativos
                 </CardTitle>
               </CardHeader>
@@ -259,7 +259,7 @@ export function AdminDashboard() {
                     <Users className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <p className="text-3xl font-bold text-gray-900">
+                    <p className="text-3xl font-bold text-foreground">
                       {summary.active_users || 0}
                     </p>
                     <p className="text-xs text-gray-500 mt-1">
@@ -274,7 +274,7 @@ export function AdminDashboard() {
 
         {/* Daily Usage Chart */}
         {!loading && dailyUsage.length > 0 && (
-          <Card className="mb-8 glass border-gray-200">
+          <Card className="mb-8 glass border-border">
             <CardHeader>
               <CardTitle className="text-lg">Consumo Diário (Últimos 30 Dias)</CardTitle>
               <CardDescription>Evolução do uso de tokens ao longo do tempo</CardDescription>
@@ -320,18 +320,18 @@ export function AdminDashboard() {
                           if (!active || !payload || payload.length === 0) return null;
                           const data = payload[0].payload;
                           return (
-                            <div className="glass-dark rounded-xl p-3 border border-gray-200 shadow-xl">
-                              <p className="text-sm font-semibold text-gray-900 mb-2">
+                            <div className="glass-dark rounded-xl p-3 border border-border shadow-xl">
+                              <p className="text-sm font-semibold text-foreground mb-2">
                                 {new Date(data.date).toLocaleDateString('pt-BR')}
                               </p>
                               <div className="space-y-1">
-                                <p className="text-xs text-gray-700">
+                                <p className="text-xs text-muted-foreground">
                                   <span className="font-medium">Tokens:</span> {formatTokens(data.total_tokens)}
                                 </p>
-                                <p className="text-xs text-gray-700">
+                                <p className="text-xs text-muted-foreground">
                                   <span className="font-medium">Custo:</span> {formatCostBRL(data.total_cost_brl)}
                                 </p>
-                                <p className="text-xs text-gray-700">
+                                <p className="text-xs text-muted-foreground">
                                   <span className="font-medium">Usuários:</span> {data.unique_users}
                                 </p>
                               </div>
@@ -367,7 +367,7 @@ export function AdminDashboard() {
 
         {/* Users Table */}
         {!loading && userUsage.length > 0 && (
-          <Card className="glass border-gray-200">
+          <Card className="glass border-border">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Users className="w-5 h-5 text-[#0891B2]" />
@@ -437,11 +437,11 @@ export function AdminDashboard() {
                         </TableCell>
                         <TableCell>
                           <div>
-                            <p className="font-medium text-gray-900">{user.display_name}</p>
+                            <p className="font-medium text-foreground">{user.display_name}</p>
                             <p className="text-xs text-gray-500">{user.user_email}</p>
                           </div>
                         </TableCell>
-                        <TableCell className="text-right font-semibold text-gray-900">
+                        <TableCell className="text-right font-semibold text-foreground">
                           {formatTokens(user.total_tokens)}
                         </TableCell>
                         <TableCell className="text-right font-semibold text-green-700">
@@ -471,7 +471,7 @@ export function AdminDashboard() {
                           <TableCell colSpan={5} className="bg-gradient-to-r from-blue-50/30 to-green-50/30 p-0 border-l-4 border-l-[#0891B2]">
                             <div className="p-6">
                               <div className="flex items-center justify-between mb-4">
-                                <h4 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                                <h4 className="text-base font-bold text-foreground flex items-center gap-2">
                                   <FolderKanban className="w-5 h-5 text-[#0891B2]" />
                                   Consumo por Projeto / Matéria
                                 </h4>
@@ -506,14 +506,14 @@ export function AdminDashboard() {
                                   </TableHeader>
                                   <TableBody>
                                     {projectUsage.map((project) => (
-                                      <TableRow key={project.project_id} className="hover:bg-white/60">
-                                        <TableCell className="text-sm font-medium text-gray-900">
+                                      <TableRow key={project.project_id} className="hover:bg-background/60">
+                                        <TableCell className="text-sm font-medium text-foreground">
                                           <div className="flex items-center gap-2">
                                             <FolderKanban className="w-4 h-4 text-gray-400" />
                                             {project.project_name}
                                           </div>
                                         </TableCell>
-                                        <TableCell className="text-right text-sm font-semibold text-gray-900">
+                                        <TableCell className="text-right text-sm font-semibold text-foreground">
                                           {formatTokens(project.total_tokens)}
                                           <p className="text-xs text-gray-500 font-normal">
                                             Input: {formatTokens(project.total_input_tokens || 0)} | Output: {formatTokens(project.total_output_tokens || 0)}
@@ -557,11 +557,11 @@ export function AdminDashboard() {
 
         {/* No Data State */}
         {!loading && !error && userUsage.length === 0 && (
-          <Card className="glass border-gray-200">
+          <Card className="glass border-border">
             <CardContent className="py-12">
               <div className="text-center">
                 <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600 font-medium">
+                <p className="text-muted-foreground font-medium">
                   Nenhum dado disponível para o período selecionado
                 </p>
                 <p className="text-sm text-gray-500 mt-2">

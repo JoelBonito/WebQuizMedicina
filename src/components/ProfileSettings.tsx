@@ -19,10 +19,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import { User, Mail, Calendar, Loader2, Upload, Languages, Palette, Sparkles } from "lucide-react";
+import { Mail, Calendar, Loader2, Upload, Languages, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Switch } from "./ui/switch";
-import { useTheme } from "../contexts/ThemeContext";
+
 import { useUserPreferences } from "../hooks/useUserPreferences";
 
 interface ProfileSettingsProps {
@@ -46,7 +46,6 @@ const LANGUAGES = [
 export function ProfileSettings({ open, onOpenChange }: ProfileSettingsProps) {
   const { user } = useAuth();
   const { profile, loading, updating, updateProfile, uploadAvatar } = useProfile();
-  const { theme, setTheme } = useTheme();
   const { preferences, updateAutoRemove } = useUserPreferences();
   const [displayName, setDisplayName] = useState("");
   const [responseLanguage, setResponseLanguage] = useState("pt");
@@ -61,9 +60,12 @@ export function ProfileSettings({ open, onOpenChange }: ProfileSettingsProps) {
   }, [profile, user?.email]);
 
   // Check if there are unsaved changes
+  const savedDisplayName = profile?.display_name || user?.email?.split("@")[0] || "";
+  const savedLanguage = profile?.response_language || "pt";
+
   const hasUnsavedChanges = profile && (
-    displayName.trim() !== (profile.display_name || user?.email?.split("@")[0] || "") ||
-    responseLanguage !== profile.response_language
+    displayName.trim() !== savedDisplayName ||
+    responseLanguage !== savedLanguage
   );
 
   const getUserInitials = () => {
@@ -72,8 +74,26 @@ export function ProfileSettings({ open, onOpenChange }: ProfileSettingsProps) {
   };
 
   const getJoinDate = () => {
-    if (!user?.created_at) return "N/A";
-    return new Date(user.created_at).toLocaleDateString("pt-BR", {
+    if (!profile?.created_at) return "N/A";
+
+    // Handle Firestore timestamps
+    const timestamp = profile.created_at;
+    let date: Date;
+
+    if (timestamp?.toDate) {
+      // Firestore Timestamp object
+      date = timestamp.toDate();
+    } else if (timestamp?.seconds) {
+      // Firestore Timestamp-like object with seconds
+      date = new Date(timestamp.seconds * 1000);
+    } else if (timestamp) {
+      // Regular date or string
+      date = new Date(timestamp);
+    } else {
+      return "N/A";
+    }
+
+    return date.toLocaleDateString("pt-BR", {
       day: "2-digit",
       month: "long",
       year: "numeric",
@@ -139,12 +159,12 @@ export function ProfileSettings({ open, onOpenChange }: ProfileSettingsProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] bg-white rounded-2xl">
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle className="text-gray-900 text-xl">
+          <DialogTitle className="text-foreground text-xl">
             Meu Perfil
           </DialogTitle>
-          <DialogDescription className="text-gray-600">
+          <DialogDescription className="text-muted-foreground">
             Visualize e edite suas informações pessoais
           </DialogDescription>
         </DialogHeader>
@@ -170,7 +190,7 @@ export function ProfileSettings({ open, onOpenChange }: ProfileSettingsProps) {
             <Button
               variant="outline"
               size="sm"
-              className="rounded-lg text-gray-700"
+              className="rounded-lg text-foreground"
               onClick={() => fileInputRef.current?.click()}
               disabled={updating}
             >
@@ -186,20 +206,20 @@ export function ProfileSettings({ open, onOpenChange }: ProfileSettingsProps) {
           {/* Form Fields */}
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="displayName" className="text-gray-700 font-medium">
+              <Label htmlFor="displayName" className="text-foreground font-medium">
                 Nome de exibição
               </Label>
               <Input
                 id="displayName"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                className="rounded-lg bg-white border-gray-200 text-gray-900"
+                className="rounded-lg bg-background border-border text-foreground"
                 placeholder="Como deseja ser chamado?"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-gray-700 font-medium flex items-center gap-2">
+              <Label htmlFor="email" className="text-foreground font-medium flex items-center gap-2">
                 <Mail className="w-4 h-4" />
                 Email
               </Label>
@@ -207,24 +227,24 @@ export function ProfileSettings({ open, onOpenChange }: ProfileSettingsProps) {
                 id="email"
                 value={user?.email || ""}
                 disabled
-                className="rounded-lg bg-gray-50 border-gray-200 text-gray-600"
+                className="rounded-lg bg-muted border-border text-muted-foreground"
               />
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 Email não pode ser alterado
               </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="language" className="text-gray-700 font-medium flex items-center gap-2">
+              <Label htmlFor="language" className="text-foreground font-medium flex items-center gap-2">
                 <Languages className="w-4 h-4" />
                 Idioma de resposta
               </Label>
               <Select value={responseLanguage} onValueChange={setResponseLanguage}>
-                <SelectTrigger id="language" className="rounded-lg bg-white border-gray-200 text-gray-900">
+                <SelectTrigger id="language" className="rounded-lg bg-background border-border text-foreground">
                   <SelectValue placeholder="Selecione um idioma" />
                 </SelectTrigger>
                 <SelectContent
-                  className="bg-white rounded-lg border-gray-200 max-h-[300px] overflow-y-auto"
+                  className="bg-background rounded-lg border-border max-h-[300px] overflow-y-auto"
                   position="popper"
                   sideOffset={5}
                 >
@@ -232,7 +252,7 @@ export function ProfileSettings({ open, onOpenChange }: ProfileSettingsProps) {
                     <SelectItem
                       key={lang.value}
                       value={lang.value}
-                      className="text-gray-900 focus:bg-gray-100 focus:text-gray-900 cursor-pointer"
+                      className="text-foreground focus:bg-muted focus:text-foreground cursor-pointer"
                     >
                       {lang.label}
                     </SelectItem>
@@ -240,7 +260,7 @@ export function ProfileSettings({ open, onOpenChange }: ProfileSettingsProps) {
                 </SelectContent>
               </Select>
               <div className="space-y-1">
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted-foreground">
                   Idioma usado nas respostas geradas pela IA
                 </p>
                 {profile?.response_language && (
@@ -251,94 +271,80 @@ export function ProfileSettings({ open, onOpenChange }: ProfileSettingsProps) {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="theme" className="text-gray-700 font-medium flex items-center gap-2">
-                <Palette className="w-4 h-4" />
-                Aparência
-              </Label>
-              <Select value={theme} onValueChange={(value) => setTheme(value as any)}>
-                <SelectTrigger id="theme" className="rounded-lg bg-white border-gray-200 text-gray-900">
-                  <SelectValue placeholder="Selecione um tema" />
-                </SelectTrigger>
-                <SelectContent className="bg-white rounded-lg border-gray-200">
-                  <SelectItem value="light" className="text-gray-900 focus:bg-gray-100 cursor-pointer">
-                    ☀️ Modo Claro
-                  </SelectItem>
-                  <SelectItem value="dark" className="text-gray-900 focus:bg-gray-100 cursor-pointer">
-                    🌙 Modo Escuro
-                  </SelectItem>
-                  <SelectItem value="system" className="text-gray-900 focus:bg-gray-100 cursor-pointer">
-                    💻 Sistema
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-gray-500">
-                Escolha como a interface será exibida
-              </p>
-            </div>
+
 
             <div className="space-y-2">
-              <Label htmlFor="autoRemove" className="text-gray-700 font-medium flex items-center gap-2">
+              <Label htmlFor="autoRemove" className="text-foreground font-medium flex items-center gap-2">
                 <Sparkles className="w-4 h-4" />
                 Auto-remoção de Dificuldades
               </Label>
-              <div className="flex items-center justify-between glass rounded-lg p-3 border border-gray-200">
+              <div className="flex items-center justify-between glass rounded-lg p-3 border border-border">
                 <div className="flex-1">
-                  <p className="text-sm text-gray-700 font-medium">
+                  <p className="text-sm text-foreground font-medium">
                     Remover automaticamente ao dominar
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-muted-foreground">
                     Remove tópicos da lista de dificuldades após dominá-los
                   </p>
                 </div>
                 <Switch
                   id="autoRemove"
                   checked={preferences.autoRemoveDifficulties}
-                  onCheckedChange={updateAutoRemove}
+                  onCheckedChange={(checked) => {
+                    updateAutoRemove(checked);
+                    toast.success(`Auto-remoção ${checked ? 'ativada' : 'desativada'}!`, { duration: 2000 });
+                  }}
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label className="text-gray-700 font-medium flex items-center gap-2">
+              <Label className="text-foreground font-medium flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
                 Membro desde
               </Label>
-              <div className="glass rounded-lg p-3 border border-gray-200">
-                <p className="text-sm text-gray-700">{getJoinDate()}</p>
+              <div className="glass rounded-lg p-3 border border-border">
+                <p className="text-sm text-foreground">{getJoinDate()}</p>
               </div>
             </div>
           </div>
 
           {/* Actions */}
-          <div className="flex justify-end gap-3 pt-4">
-            <Button
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              className="rounded-lg"
-              disabled={updating}
-            >
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleSave}
-              className="rounded-lg bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white relative"
-              disabled={updating || loading || !hasUnsavedChanges}
-            >
-              {updating ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Salvando...
-                </>
-              ) : (
-                <>
-                  Salvar alterações
-                  {hasUnsavedChanges && (
-                    <span className="ml-2 inline-flex h-2 w-2 rounded-full bg-white/80 animate-pulse" />
-                  )}
-                </>
-              )}
-            </Button>
+          {/* Actions */}
+          <div className="flex justify-between items-center pt-4 w-full">
+            <p className="text-xs text-muted-foreground italic">
+              * Preferências salvas automaticamente
+            </p>
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                className="rounded-lg text-foreground border-border hover:bg-muted"
+                disabled={updating}
+              >
+                Fechar
+              </Button>
+              <Button
+                onClick={handleSave}
+                className="rounded-lg bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white relative disabled:opacity-50"
+                disabled={updating || loading || !hasUnsavedChanges}
+                title={!hasUnsavedChanges ? "Faça alterações no nome ou idioma para salvar" : "Salvar alterações de perfil"}
+              >
+                {updating ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Salvando...
+                  </>
+                ) : (
+                  <>
+                    Salvar alterações
+                    {hasUnsavedChanges && (
+                      <span className="ml-2 inline-flex h-2 w-2 rounded-full bg-background/80 animate-pulse" />
+                    )}
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </div>
       </DialogContent>

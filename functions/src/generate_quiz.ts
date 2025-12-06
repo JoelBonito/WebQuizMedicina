@@ -1,9 +1,10 @@
-import * as functions from "firebase-functions";
+import { onCall, HttpsError } from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
 import { generateQuizSchema, validateRequest, sanitizeString } from "./shared/validation";
 import { callGeminiWithUsage, parseJsonFromResponse } from "./shared/gemini";
 import { logTokenUsage } from "./shared/token_usage";
 import { getModelSelector } from "./shared/modelSelector";
+import { getLanguageFromRequest, getLanguageInstruction } from "./shared/language_helper";
 
 // Initialize Firebase Admin if not already initialized
 if (!admin.apps.length) {
@@ -12,16 +13,22 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
-export const generate_quiz = functions.https.onCall(async (data, context) => {
+export const generate_quiz = onCall({
+    timeoutSeconds: 540,
+    memory: "1GiB",
+    region: "us-central1"
+}, async (request) => {
     // 1. Auth Check
-    if (!context.auth) {
-        throw new functions.https.HttpsError("unauthenticated", "User must be authenticated");
+    if (!request.auth) {
+        throw new HttpsError("unauthenticated", "User must be authenticated");
     }
-    // const userId = context.auth.uid;
+
+    // 2. Get user's language preference
+    const language = await getLanguageFromRequest(request.data, db, request.auth.uid);
 
     try {
-        // 2. Validation
-        const { source_ids, project_id, count, difficulty } = validateRequest(data, generateQuizSchema);
+        // 3. Validation
+        const { source_ids, project_id, count, difficulty } = validateRequest(request.data, generateQuizSchema);
 
         // 3. Fetch Content (Sources)
         let sources: any[] = [];
@@ -42,13 +49,13 @@ export const generate_quiz = functions.https.onCall(async (data, context) => {
         }
 
         if (sources.length === 0) {
-            throw new functions.https.HttpsError("not-found", "No sources found");
+            throw new HttpsError("not-found", "No sources found");
         }
 
         // Validate content availability
         const sourcesWithContent = sources.filter(s => s.extracted_content && s.extracted_content.trim());
         if (sourcesWithContent.length === 0) {
-            throw new functions.https.HttpsError("failed-precondition", "Sources found but no content available.");
+            throw new HttpsError("failed-precondition", "Sources found but no content available.");
         }
 
         // 4. Prepare Content for AI
@@ -68,7 +75,7 @@ export const generate_quiz = functions.https.onCall(async (data, context) => {
         }
 
         if (!combinedContent.trim()) {
-            throw new functions.https.HttpsError("failed-precondition", "No content available for generation");
+            throw new HttpsError("failed-precondition", "No content available for generation");
         }
 
         // 5. Generate Quiz
@@ -98,7 +105,7 @@ REGRAS DE FORMATO (Rígidas):
 REGRAS PARA A JUSTIFICATIVA (Obrigatório):
 Quero uma justificativa CURTA que valide a resposta certa usando o texto fornecido.
 1. CITE A FONTE: Comece frases com "Segundo o texto...", "O material indica que...".
-2. TRADUZA: Se o conteúdo base estiver em inglês, a justificativa DEVE ser em PORTUGUÊS.
+2. ${getLanguageInstruction(language)}
 3. CONCISÃO: Máximo de 2 a 3 frases.
 
 ${(difficulty && difficulty !== 'misto') ? `DIFICULDADE: TODAS as questões devem ser de nível "${difficulty}".` : 'DIFICULDADE: Varie o nível de dificuldade das questões entre fácil, médio e difícil.'}
@@ -143,7 +150,7 @@ FORMATO JSON (OBRIGATÓRIO - SEM MARKDOWN):
         const parsed = parseJsonFromResponse(result.text);
 
         if (!parsed.perguntas || !Array.isArray(parsed.perguntas)) {
-            throw new functions.https.HttpsError("internal", "Failed to generate valid questions format");
+            throw new HttpsError("internal", "Failed to generate valid questions format");
         }
 
         // 6. Save Questions to Firestore
@@ -160,7 +167,7 @@ FORMATO JSON (OBRIGATÓRIO - SEM MARKDOWN):
 
             const newQuestion = {
                 project_id: project_id || sources[0].project_id,
-                user_id: context.auth.uid,
+                user_id: request.auth.uid,
                 source_id: (source_ids && source_ids.length === 1) ? source_ids[0] : null,
                 session_id: sessionId,
                 tipo: tipo,
@@ -182,7 +189,7 @@ FORMATO JSON (OBRIGATÓRIO - SEM MARKDOWN):
 
         // 7. Log Token Usage
         await logTokenUsage(
-            context.auth.uid,
+            request.auth.uid,
             project_id || sources[0].project_id,
             "quiz",
             result.usage.inputTokens,
@@ -200,9 +207,9 @@ FORMATO JSON (OBRIGATÓRIO - SEM MARKDOWN):
 
     } catch (error: any) {
         console.error("Error in generate_quiz:", error);
-        if (error instanceof functions.https.HttpsError) {
+        if (error instanceof HttpsError) {
             throw error;
         }
-        throw new functions.https.HttpsError("internal", error.message);
+        throw new HttpsError("internal", error.message);
     }
 });

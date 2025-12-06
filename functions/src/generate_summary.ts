@@ -1,10 +1,11 @@
-import * as functions from "firebase-functions";
+import { onCall, HttpsError } from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
 import { z } from "zod";
 import { validateRequest, sanitizeString } from "./shared/validation";
 import { callGeminiWithUsage } from "./shared/gemini";
 import { logTokenUsage } from "./shared/token_usage";
 import { getModelSelector } from "./shared/modelSelector";
+import { getLanguageFromRequest, getLanguageInstruction } from "./shared/language_helper";
 
 // Initialize Firebase Admin if not already initialized
 if (!admin.apps.length) {
@@ -18,18 +19,22 @@ const generateSummarySchema = z.object({
   project_id: z.string().min(1),
 });
 
-export const generate_summary = functions.runWith({
+export const generate_summary = onCall({
   timeoutSeconds: 540,
-  memory: "1GB",
-}).https.onCall(async (data, context) => {
+  memory: "1GiB",
+  region: "us-central1"
+}, async (request) => {
   // 1. Auth Check
-  if (!context.auth) {
-    throw new functions.https.HttpsError("unauthenticated", "User must be authenticated");
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "User must be authenticated");
   }
 
   try {
-    // 2. Validation
-    const { source_ids, project_id } = validateRequest(data, generateSummarySchema);
+    // 2. Get user's language preference
+    const language = await getLanguageFromRequest(request.data, db, request.auth.uid);
+
+    // 3. Validation
+    const { source_ids, project_id } = validateRequest(request.data, generateSummarySchema);
 
     // 3. Fetch Content (Sources)
     let combinedContent = "";
@@ -39,7 +44,7 @@ export const generate_summary = functions.runWith({
       .get();
 
     if (sourcesSnapshot.empty) {
-      throw new functions.https.HttpsError("not-found", "Sources not found");
+      throw new HttpsError("not-found", "Sources not found");
     }
 
     sourcesSnapshot.forEach(doc => {
@@ -55,7 +60,7 @@ export const generate_summary = functions.runWith({
     }
 
     if (!combinedContent.trim()) {
-      throw new functions.https.HttpsError("failed-precondition", "No content available for generation");
+      throw new HttpsError("failed-precondition", "No content available for generation");
     }
 
     // 4. Generate Summary
@@ -140,7 +145,7 @@ REGRAS DE OURO:
 2. **PROFUNDIDADE:** Explicações de 1 parágrafo são proibidas para tópicos principais. Desenvolva o raciocínio.
 3. **FIDELIDADE:** Mantenha a terminologia técnica correta.
 4. **FORMATO:** HTML limpo, use as classes CSS indicadas.
-5. **IDIOMA:** Português do Brasil.
+5. ${getLanguageInstruction(language)}
 
 Gere o HTML agora.
     `;
@@ -169,7 +174,7 @@ Gere o HTML agora.
     // 5. Save Summary
     const summaryData = {
       project_id,
-      user_id: context.auth.uid,
+      user_id: request.auth.uid,
       titulo: `Resumo Gerado em ${new Date().toLocaleDateString('pt-BR')}`,
       conteudo_html: result.text,
       created_at: admin.firestore.FieldValue.serverTimestamp(),
@@ -182,7 +187,7 @@ Gere o HTML agora.
 
     // 6. Log Token Usage
     await logTokenUsage(
-      context.auth.uid,
+      request.auth.uid,
       project_id,
       "generate_summary",
       result.usage.inputTokens,
@@ -194,6 +199,6 @@ Gere o HTML agora.
 
   } catch (error: any) {
     console.error("Error generating summary:", error);
-    throw new functions.https.HttpsError("internal", error.message || "Failed to generate summary");
+    throw new HttpsError("internal", error.message || "Failed to generate summary");
   }
 });

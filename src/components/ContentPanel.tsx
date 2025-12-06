@@ -20,8 +20,6 @@ import {
   Lightbulb,
   Network,
   BarChart3,
-  ToggleLeft,
-  ToggleRight
 
 } from "lucide-react";
 import { motion } from "motion/react";
@@ -112,36 +110,36 @@ const getContentStyle = (type: string) => {
     case 'quiz':
       return {
         icon: HelpCircle,
-        bgColor: 'bg-blue-50',
-        iconColor: 'text-blue-600',
+        bgColor: 'bg-blue-50 dark:bg-blue-950',
+        iconColor: 'text-blue-600 dark:text-blue-400',
         label: 'Quiz'
       };
     case 'flashcards':
       return {
         icon: Layers,
-        bgColor: 'bg-red-50',
-        iconColor: 'text-red-600',
+        bgColor: 'bg-red-50 dark:bg-red-950',
+        iconColor: 'text-red-600 dark:text-red-400',
         label: 'Flashcards'
       };
     case 'summary':
       return {
         icon: FileText,
-        bgColor: 'bg-purple-50',
-        iconColor: 'text-purple-600',
+        bgColor: 'bg-purple-50 dark:bg-purple-950',
+        iconColor: 'text-purple-600 dark:text-purple-400',
         label: 'Resumo'
       };
     case 'mindmap':
       return {
         icon: Network,
-        bgColor: 'bg-teal-50',
-        iconColor: 'text-teal-600',
+        bgColor: 'bg-teal-50 dark:bg-teal-950',
+        iconColor: 'text-teal-600 dark:text-teal-400',
         label: 'Mapa Mental'
       };
     default:
       return {
         icon: FileText,
-        bgColor: 'bg-gray-50',
-        iconColor: 'text-gray-600',
+        bgColor: 'bg-muted',
+        iconColor: 'text-muted-foreground',
         label: 'Conteúdo'
       };
   }
@@ -159,13 +157,13 @@ const formatTimeAgo = (date: Date) => {
 const getDifficultyBadgeStyle = (difficulty: 'fácil' | 'médio' | 'difícil' | 'misto') => {
   switch (difficulty) {
     case 'fácil':
-      return 'bg-gradient-to-br from-green-50 to-emerald-50 text-green-700';
+      return 'bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 text-green-700 dark:text-green-400';
     case 'médio':
-      return 'bg-gradient-to-br from-orange-50 to-amber-50 text-orange-700';
+      return 'bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-950 dark:to-amber-950 text-orange-700 dark:text-orange-400';
     case 'difícil':
-      return 'bg-gradient-to-br from-red-50 to-rose-50 text-red-700';
+      return 'bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-950 dark:to-rose-950 text-red-700 dark:text-red-400';
     case 'misto':
-      return 'bg-gradient-to-br from-amber-50 to-yellow-50 text-amber-800';
+      return 'bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-950 dark:to-yellow-950 text-amber-800 dark:text-amber-400';
   }
 };
 
@@ -608,11 +606,11 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
 
   if (!projectId) {
     return (
-      <div className="h-full w-full flex flex-col bg-gray-50/50 rounded-3xl p-4 border border-gray-200 overflow-hidden">
+      <div className="h-full w-full flex flex-col bg-muted/50 rounded-3xl p-4 border border-border overflow-hidden">
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <BookOpen className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-            <p className="text-gray-600">Selecione um projeto para ver o conteúdo</p>
+            <p className="text-muted-foreground">Selecione um projeto para ver o conteúdo</p>
           </div>
         </div>
       </div>
@@ -624,8 +622,8 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
   return (
     <>
       <div className={`w-full flex flex-col ${isFullscreenMode
-        ? "bg-gray-50/50"
-        : "bg-gray-50/50 rounded-3xl border border-gray-200 h-full overflow-hidden"
+        ? "bg-card"
+        : "bg-card rounded-3xl border border-border h-full overflow-hidden"
         }`}>
         {/* Banda colorida do topo */}
         <div className="h-1.5 w-full bg-gradient-to-r from-green-500 to-emerald-500" />
@@ -634,10 +632,10 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
           {/* Header - Oculto em fullscreen para evitar duplicidade */}
           {!isFullscreenMode && (
             <div className="flex items-center justify-between mb-6">
-              <h1 className="text-lg font-semibold text-gray-900">Estudo</h1>
+              <h1 className="text-lg font-semibold text-foreground">Estudo</h1>
               <button
                 onClick={() => setIsFullscreen(true)}
-                className="hidden md:flex items-center justify-center text-gray-600 hover:text-gray-900 transition-colors"
+                className="hidden md:flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
                 aria-label="Expandir"
               >
                 <span className="material-symbols-outlined text-[20px]">expand_content</span>
@@ -700,8 +698,8 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
 
                     {/* Loading indicator - only for this specific button */}
                     {isButtonGenerating && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-white/90 backdrop-blur-md rounded-2xl z-20">
-                        <Loader2 className="w-6 h-6 animate-spin text-gray-600" />
+                      <div className="absolute inset-0 flex items-center justify-center bg-background/90 backdrop-blur-md rounded-2xl z-20">
+                        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                       </div>
                     )}
                   </button>
@@ -793,7 +791,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
           </div>
 
           {/* Divider */}
-          <div className="border-t border-gray-200 my-4" />
+          <div className="border-t border-border my-4" />
 
           {/* Lista de Conteúdo Gerado */}
           <div className="flex-1 min-h-0 overflow-y-auto pr-2 custom-scrollbar">
@@ -820,7 +818,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.05 }}
                       onClick={() => handleOpenContent(content)}
-                      className="flex items-center gap-4 p-4 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer group"
+                      className="flex items-center gap-4 p-4 rounded-xl hover:bg-muted transition-colors cursor-pointer group"
                     >
                       {/* Ícone */}
                       <div className={`w-12 h-12 rounded-xl ${style.bgColor} flex items-center justify-center flex-shrink-0`}>
@@ -830,7 +828,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
                       {/* Informações */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <h3 className="font-medium text-gray-900 truncate">
+                          <h3 className="font-medium text-foreground truncate">
                             {content.title}
                           </h3>
                           {/* Recovery Badge */}
@@ -865,9 +863,9 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
                               e.preventDefault();
                               e.stopPropagation();
                             }}
-                            className="p-2 hover:bg-gray-200 rounded-lg transition-opacity"
+                            className="p-2 hover:bg-border rounded-lg transition-opacity"
                           >
-                            <MoreVertical className="w-5 h-5 text-gray-600" />
+                            <MoreVertical className="w-5 h-5 text-muted-foreground" />
                           </button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent
@@ -909,10 +907,10 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
 
       {/* Summary Dialog */}
       <Dialog open={!!selectedSummary} onOpenChange={() => setSelectedSummary(null)}>
-        <DialogContent className="!fixed !inset-0 !top-0 !left-0 !right-0 !bottom-0 !translate-x-0 !translate-y-0 !max-w-none !w-screen !h-screen !m-0 !rounded-none !p-0 overflow-hidden supports-[height:100dvh]:!h-dvh">
+        <DialogContent className="!fixed !inset-0 !top-0 !left-0 !right-0 !bottom-0 !translate-x-0 !translate-y-0 !max-w-none !w-screen !h-screen !max-h-none !m-0 !rounded-none !p-0 overflow-hidden supports-[height:100dvh]:!h-dvh">
           <div className="h-screen supports-[height:100dvh]:h-dvh w-full flex flex-col">
             <div className="flex items-center justify-between p-6 border-b">
-              <DialogTitle className="text-2xl font-bold text-gray-900">
+              <DialogTitle className="text-2xl font-bold text-foreground">
                 {selectedSummary?.titulo}
               </DialogTitle>
               <Button
@@ -972,10 +970,10 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
 
       {/* Mind Map Dialog - Fullscreen */}
       <Dialog open={!!selectedMindMap} onOpenChange={() => setSelectedMindMap(null)}>
-        <DialogContent className="!fixed !inset-0 !top-0 !left-0 !right-0 !bottom-0 !translate-x-0 !translate-y-0 !max-w-none !w-screen !h-screen !m-0 !rounded-none !p-0 overflow-hidden supports-[height:100dvh]:!h-dvh">
+        <DialogContent className="!fixed !inset-0 !top-0 !left-0 !right-0 !bottom-0 !translate-x-0 !translate-y-0 !max-w-none !w-screen !h-screen !max-h-none !m-0 !rounded-none !p-0 overflow-hidden supports-[height:100dvh]:!h-dvh">
           <div className="h-screen supports-[height:100dvh]:h-dvh w-full flex flex-col">
-            <div className="flex items-center justify-between p-6 border-b bg-white">
-              <DialogTitle className="text-2xl font-bold text-gray-900">
+            <div className="flex items-center justify-between p-6 border-b bg-background">
+              <DialogTitle className="text-2xl font-bold text-foreground">
                 {selectedMindMap?.title}
               </DialogTitle>
               <Button
@@ -1004,37 +1002,59 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
 
       {/* Difficulties Dialog - Fullscreen */}
       <Dialog open={difficultiesOpen} onOpenChange={setDifficultiesOpen}>
-        <DialogContent className="!fixed !inset-0 !top-0 !left-0 !right-0 !bottom-0 !translate-x-0 !translate-y-0 !max-w-none !w-screen !h-screen !m-0 !rounded-none !p-0 overflow-hidden supports-[height:100dvh]:!h-dvh">
-          <div className="h-screen supports-[height:100dvh]:h-dvh w-full flex flex-col bg-gray-50">
-            <div className="flex items-center justify-between p-6 border-b bg-white">
-              <h2 className="text-2xl font-bold text-gray-900">Análise das Dificuldades</h2>
-              <div className="flex items-center gap-3">
-                {/* Toggle Auto-Remove */}
-                <button
-                  onClick={() => {
-                    const newValue = !preferences.autoRemoveDifficulties;
-                    updateAutoRemove(newValue);
-                    toast.success(
-                      newValue
-                        ? 'Remoção automática ativada (3 acertos consecutivos)'
-                        : 'Remoção automática desativada'
-                    );
-                  }}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${preferences.autoRemoveDifficulties
-                    ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
-                  title={preferences.autoRemoveDifficulties ? 'Desativar remoção automática' : 'Ativar remoção automática'}
-                >
-                  {preferences.autoRemoveDifficulties ? (
-                    <ToggleRight className="w-5 h-5" />
-                  ) : (
-                    <ToggleLeft className="w-5 h-5" />
-                  )}
-                  <span className="text-sm font-medium">
-                    Auto-remoção {preferences.autoRemoveDifficulties ? 'ON' : 'OFF'}
-                  </span>
-                </button>
+        <DialogContent className="!fixed !inset-0 !top-0 !left-0 !right-0 !bottom-0 !translate-x-0 !translate-y-0 !max-w-none !w-screen !h-screen !max-h-none !m-0 !rounded-none !p-0 overflow-hidden supports-[height:100dvh]:!h-dvh">
+          <div className="h-screen supports-[height:100dvh]:h-dvh w-full flex flex-col bg-muted">
+            <div className="flex items-center justify-between p-6 border-b bg-background gap-6">
+              <h2 className="text-2xl font-bold text-foreground">Análise das Dificuldades</h2>
+              <div className="flex items-center gap-4">
+                {/* Toggle Auto-Remove - Compacto */}
+                <div className="flex items-center gap-3 px-3 py-1.5 bg-background rounded-lg border border-border">
+                  <div className="flex flex-col">
+                    <label
+                      htmlFor="difficulty-auto-remove"
+                      className="text-xs font-medium text-muted-foreground cursor-pointer"
+                    >
+                      Auto-remoção de Dificuldades
+                    </label>
+                    <span className="text-[10px] text-gray-500">
+                      Remove ao dominar (3 acertos)
+                    </span>
+                  </div>
+
+                  {/* Toggle Button Customizado - Tamanho Reduzido */}
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={preferences.autoRemoveDifficulties}
+                    onClick={async () => {
+                      try {
+                        const newValue = !preferences.autoRemoveDifficulties;
+                        await updateAutoRemove(newValue);
+                        toast.success(
+                          newValue
+                            ? 'Remoção automática ativada'
+                            : 'Remoção automática desativada'
+                        );
+                      } catch (error) {
+                        console.error('Error toggling auto-remove:', error);
+                        toast.error('Erro ao atualizar. Verifique sua conexão.');
+                      }
+                    }}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 ${preferences.autoRemoveDifficulties
+                      ? 'bg-green-500'
+                      : 'bg-muted'
+                      }`}
+                  >
+                    <span className="sr-only">Auto-remoção de dificuldades</span>
+                    <span
+                      aria-hidden="true"
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-background shadow-lg ring-0 transition duration-200 ease-in-out ${preferences.autoRemoveDifficulties
+                        ? 'translate-x-5'
+                        : 'translate-x-0'
+                        }`}
+                    />
+                  </button>
+                </div>
 
                 <Button
                   size="sm"
@@ -1065,10 +1085,10 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
         }
       }}>
         <DialogContent className="rounded-3xl max-w-md">
-          <DialogTitle className="text-xl font-semibold text-gray-900">
+          <DialogTitle className="text-xl font-semibold text-foreground">
             Renomear {renamingContent?.type === 'quiz' ? 'Quiz' : renamingContent?.type === 'flashcards' ? 'Flashcards' : 'Resumo'}
           </DialogTitle>
-          <DialogDescription className="text-sm text-gray-600">
+          <DialogDescription className="text-sm text-muted-foreground">
             Digite o novo nome para "{renamingContent?.currentName}"
           </DialogDescription>
           <div className="py-4">
@@ -1093,7 +1113,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
                 setRenamingContent(null);
                 setNewContentName('');
               }}
-              className="rounded-xl border-gray-300 hover:bg-gray-50 text-gray-700"
+              className="rounded-xl border-gray-300 hover:bg-muted text-muted-foreground"
             >
               Cancelar
             </Button>
@@ -1111,10 +1131,10 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
       {/* Fullscreen Dialog */}
       {!isFullscreenMode && (
         <Dialog open={isFullscreen} onOpenChange={setIsFullscreen}>
-          <DialogContent className="!fixed !inset-0 !top-0 !left-0 !right-0 !bottom-0 !translate-x-0 !translate-y-0 !max-w-none !w-screen !h-screen !m-0 !rounded-none !p-0 overflow-hidden supports-[height:100dvh]:!h-dvh">
-            <div className="h-screen supports-[height:100dvh]:h-dvh w-full flex flex-col bg-gray-50">
-              <div className="flex items-center justify-between p-6 border-b bg-white">
-                <h2 className="text-2xl font-bold text-gray-900">Estudo</h2>
+          <DialogContent className="!fixed !inset-0 !top-0 !left-0 !right-0 !bottom-0 !translate-x-0 !translate-y-0 !max-w-none !w-screen !h-screen !max-h-none !m-0 !rounded-none !p-0 overflow-hidden supports-[height:100dvh]:!h-dvh">
+            <div className="h-screen supports-[height:100dvh]:h-dvh w-full flex flex-col bg-muted">
+              <div className="flex items-center justify-between p-6 border-b bg-background">
+                <h2 className="text-2xl font-bold text-foreground">Estudo</h2>
                 <Button
                   size="sm"
                   variant="ghost"

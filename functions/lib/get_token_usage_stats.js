@@ -24,7 +24,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.get_token_usage_stats = void 0;
-const functions = __importStar(require("firebase-functions"));
+const https_1 = require("firebase-functions/v2/https");
 const admin = __importStar(require("firebase-admin"));
 if (!admin.apps.length) {
     admin.initializeApp();
@@ -35,12 +35,16 @@ const USD_TO_BRL_RATE = 5.5;
 function convertCostToBRL(costUSD) {
     return costUSD * USD_TO_BRL_RATE;
 }
-exports.get_token_usage_stats = functions.https.onCall(async (data, context) => {
-    if (!context.auth) {
-        throw new functions.https.HttpsError("unauthenticated", "Usuário deve estar autenticado");
+exports.get_token_usage_stats = (0, https_1.onCall)({
+    timeoutSeconds: 60,
+    memory: "256MiB",
+    region: "us-central1"
+}, async (request) => {
+    if (!request.auth) {
+        throw new https_1.HttpsError("unauthenticated", "User must be authenticated");
     }
-    const { action, start_date, end_date } = data;
-    const userId = context.auth.uid;
+    const { action, start_date, end_date } = request.data;
+    const userId = request.auth.uid;
     // Parse dates
     const start = start_date ? new Date(start_date) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const end = end_date ? new Date(end_date) : new Date();
@@ -71,12 +75,12 @@ exports.get_token_usage_stats = functions.https.onCall(async (data, context) => 
             case "get_token_usage_summary":
                 return calculateSummary(usageData);
             default:
-                throw new functions.https.HttpsError("invalid-argument", `Ação desconhecida: ${action}`);
+                throw new https_1.HttpsError("invalid-argument", `Ação desconhecida: ${action}`);
         }
     }
     catch (error) {
         console.error("Erro em get_token_usage_stats:", error);
-        throw new functions.https.HttpsError("internal", error.message);
+        throw new https_1.HttpsError("internal", error.message);
     }
 });
 async function calculateUsageGroupedByUser(data) {

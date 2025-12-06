@@ -368,11 +368,11 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
 
   if (!projectId) {
     return (
-      <div className="h-full w-full flex flex-col bg-gray-50/50 rounded-3xl p-4 border border-gray-200 overflow-hidden">
+      <div className="h-full w-full flex flex-col bg-muted/50 rounded-3xl p-4 border border-border overflow-hidden">
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <Upload className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-            <p className="text-gray-600">Selecione um projeto para ver as fontes</p>
+            <p className="text-muted-foreground">Selecione um projeto para ver as fontes</p>
           </div>
         </div>
       </div>
@@ -380,7 +380,7 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
   }
 
   return (
-    <div className="h-full w-full flex flex-col bg-gray-50/50 rounded-3xl border border-gray-200 overflow-hidden">
+    <div className="h-full w-full flex flex-col bg-card rounded-3xl border border-border overflow-hidden">
       {/* Banda colorida do topo */}
       <div className="h-1.5 w-full bg-gradient-to-r from-[#0891B2] to-[#7CB342]" />
 
@@ -395,13 +395,13 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
         />
 
         {/* Header */}
-        <div className="glass-dark rounded-2xl mb-4 p-4 border border-gray-200 flex-shrink-0">
+        <div className="bg-muted/40 rounded-2xl mb-4 p-4 border border-border flex-shrink-0">
           {/* Linha 1: Título e botão expand */}
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-lg font-semibold text-gray-900">Fontes</h3>
+            <h3 className="text-lg font-semibold text-foreground">Fontes</h3>
             <button
               onClick={() => setIsFullscreen(true)}
-              className="hidden md:flex items-center justify-center text-gray-600 hover:text-gray-900 transition-colors"
+              className="hidden md:flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
               aria-label="Expandir"
             >
               <span className="material-symbols-outlined text-[20px]">expand_content</span>
@@ -471,7 +471,7 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  className="flex items-center gap-4 p-4 rounded-xl hover:bg-gray-50 transition-colors"
+                  className="flex items-center gap-4 p-4 rounded-xl hover:bg-muted transition-colors"
                 >
                   {/* Checkbox de seleção */}
                   {source.status === 'ready' && (
@@ -483,7 +483,7 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
 
                   {/* Nome da fonte */}
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-medium text-gray-900 truncate">
+                    <h3 className="font-medium text-foreground truncate">
                       {source.name}
                     </h3>
                   </div>
@@ -496,9 +496,9 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
                           onClick={(e) => {
                             e.stopPropagation();
                           }}
-                          className="p-2 hover:bg-gray-200 rounded-lg transition-opacity"
+                          className="p-2 hover:bg-border rounded-lg transition-opacity"
                         >
-                          <MoreVertical className="w-5 h-5 text-gray-600" />
+                          <MoreVertical className="w-5 h-5 text-muted-foreground" />
                         </button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent
@@ -541,15 +541,15 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
         <AlertDialog open={deletingSource !== null} onOpenChange={(open) => !open && setDeletingSource(null)}>
           <AlertDialogContent className="rounded-3xl">
             <AlertDialogHeader>
-              <AlertDialogTitle className="text-xl font-semibold text-gray-900">
+              <AlertDialogTitle className="text-xl font-semibold text-foreground">
                 Excluir Fonte?
               </AlertDialogTitle>
-              <AlertDialogDescription className="text-sm text-gray-600">
+              <AlertDialogDescription className="text-sm text-muted-foreground">
                 Tem certeza que deseja excluir "{deletingSource?.name}"? Esta ação não pode ser desfeita e todos os conteúdos gerados a partir desta fonte serão removidos.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter className="gap-3">
-              <AlertDialogCancel className="rounded-xl border-gray-300 hover:bg-gray-50 text-gray-700">
+              <AlertDialogCancel className="rounded-xl border-gray-300 hover:bg-muted text-muted-foreground">
                 Cancelar
               </AlertDialogCancel>
               <AlertDialogAction
@@ -571,10 +571,10 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
         }}>
           <DialogContent className="rounded-3xl sm:max-w-md">
             <DialogHeader>
-              <DialogTitle className="text-xl font-semibold text-gray-900">
+              <DialogTitle className="text-xl font-semibold text-foreground">
                 Renomear Fonte
               </DialogTitle>
-              <DialogDescription className="text-sm text-gray-600">
+              <DialogDescription className="text-sm text-muted-foreground">
                 Digite o novo nome para "{renamingSource?.currentName}"
               </DialogDescription>
             </DialogHeader>
@@ -624,10 +624,10 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
                   <CheckCircle2 className="w-8 h-8 text-white" />
                 </div>
               </div>
-              <DialogTitle className="text-xl font-semibold text-gray-900 text-center">
+              <DialogTitle className="text-xl font-semibold text-foreground text-center">
                 Upload Concluído com Sucesso!
               </DialogTitle>
-              <DialogDescription className="text-center text-gray-600">
+              <DialogDescription className="text-center text-muted-foreground">
                 {uploadedSourceIds.length === 1
                   ? "Seu arquivo foi enviado com sucesso."
                   : `${uploadedSourceIds.length} arquivos foram enviados com sucesso.`}
@@ -660,10 +660,10 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
         {/* Fullscreen Dialog */}
         {!isFullscreenMode && (
           <Dialog open={isFullscreen} onOpenChange={setIsFullscreen}>
-            <DialogContent className="!fixed !inset-0 !top-0 !left-0 !right-0 !bottom-0 !translate-x-0 !translate-y-0 !max-w-none !w-screen !h-screen !m-0 !rounded-none !p-0 overflow-hidden supports-[height:100dvh]:!h-dvh">
-              <div className="h-screen supports-[height:100dvh]:h-dvh w-full flex flex-col bg-gray-50">
-                <div className="flex items-center justify-between p-6 border-b bg-white">
-                  <h2 className="text-2xl font-bold text-gray-900">Fontes</h2>
+            <DialogContent className="!fixed !inset-0 !top-0 !left-0 !right-0 !bottom-0 !translate-x-0 !translate-y-0 !max-w-none !w-screen !h-screen !max-h-none !m-0 !rounded-none !p-0 overflow-hidden supports-[height:100dvh]:!h-dvh">
+              <div className="h-screen supports-[height:100dvh]:h-dvh w-full flex flex-col bg-muted">
+                <div className="flex items-center justify-between p-6 border-b bg-background">
+                  <h2 className="text-2xl font-bold text-foreground">Fontes</h2>
                   <Button
                     size="sm"
                     variant="ghost"

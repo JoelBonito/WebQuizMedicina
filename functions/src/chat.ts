@@ -1,9 +1,10 @@
-import * as functions from "firebase-functions";
+import { onCall, HttpsError } from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
 import { chatSchema, validateRequest, sanitizeString } from "./shared/validation";
 import { callGeminiWithUsage } from "./shared/gemini";
 import { logTokenUsage } from "./shared/token_usage";
 import { getModelSelector } from "./shared/modelSelector";
+import { getLanguageFromRequest, getLanguageInstruction } from "./shared/language_helper";
 
 // Initialize Firebase Admin if not already initialized
 if (!admin.apps.length) {
@@ -12,16 +13,23 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
-export const chat = functions.https.onCall(async (data, context) => {
+export const chat = onCall({
+    timeoutSeconds: 120,
+    memory: "512MiB",
+    region: "us-central1"
+}, async (request) => {
     // 1. Auth Check
-    if (!context.auth) {
-        throw new functions.https.HttpsError("unauthenticated", "User must be authenticated");
+    if (!request.auth) {
+        throw new HttpsError("unauthenticated", "User must be authenticated");
     }
-    const userId = context.auth.uid;
+    const userId = request.auth.uid;
 
     try {
-        // 2. Validation
-        const { message, project_id } = validateRequest(data, chatSchema);
+        // 2. Get user's language preference
+        const language = await getLanguageFromRequest(request.data, db, userId);
+
+        // 3. Validation
+        const { message, project_id } = validateRequest(request.data, chatSchema);
 
         // 3. Save User Message
         await db.collection("chat_messages").add({
@@ -59,6 +67,7 @@ export const chat = functions.https.onCall(async (data, context) => {
         // 5. Call AI
         const systemPrompt = `
 Você é um assistente tutor de medicina.
+${getLanguageInstruction(language)}
 Use o CONTEÚDO ABAIXO para responder à pergunta do aluno.
 Se a resposta não estiver no conteúdo, diga que não encontrou a informação nas fontes fornecidas, mas tente ajudar com seu conhecimento geral (deixando claro a distinção).
 
@@ -120,6 +129,6 @@ ${contextText}
 
     } catch (error: any) {
         console.error("Error in chat function:", error);
-        throw new functions.https.HttpsError("internal", error.message);
+        throw new HttpsError("internal", error.message || "Failed to process chat message");
     }
 });

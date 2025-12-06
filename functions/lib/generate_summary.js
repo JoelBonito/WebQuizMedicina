@@ -24,13 +24,14 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.generate_summary = void 0;
-const functions = __importStar(require("firebase-functions"));
+const https_1 = require("firebase-functions/v2/https");
 const admin = __importStar(require("firebase-admin"));
 const zod_1 = require("zod");
 const validation_1 = require("./shared/validation");
 const gemini_1 = require("./shared/gemini");
 const token_usage_1 = require("./shared/token_usage");
 const modelSelector_1 = require("./shared/modelSelector");
+const language_helper_1 = require("./shared/language_helper");
 // Initialize Firebase Admin if not already initialized
 if (!admin.apps.length) {
     admin.initializeApp();
@@ -40,17 +41,20 @@ const generateSummarySchema = zod_1.z.object({
     source_ids: zod_1.z.array(zod_1.z.string().min(1)).min(1),
     project_id: zod_1.z.string().min(1),
 });
-exports.generate_summary = functions.runWith({
+exports.generate_summary = (0, https_1.onCall)({
     timeoutSeconds: 540,
-    memory: "1GB",
-}).https.onCall(async (data, context) => {
+    memory: "1GiB",
+    region: "us-central1"
+}, async (request) => {
     // 1. Auth Check
-    if (!context.auth) {
-        throw new functions.https.HttpsError("unauthenticated", "User must be authenticated");
+    if (!request.auth) {
+        throw new https_1.HttpsError("unauthenticated", "User must be authenticated");
     }
     try {
-        // 2. Validation
-        const { source_ids, project_id } = (0, validation_1.validateRequest)(data, generateSummarySchema);
+        // 2. Get user's language preference
+        const language = await (0, language_helper_1.getLanguageFromRequest)(request.data, db, request.auth.uid);
+        // 3. Validation
+        const { source_ids, project_id } = (0, validation_1.validateRequest)(request.data, generateSummarySchema);
         // 3. Fetch Content (Sources)
         let combinedContent = "";
         const sourcesSnapshot = await db.collection("sources")
@@ -58,7 +62,7 @@ exports.generate_summary = functions.runWith({
             .where(admin.firestore.FieldPath.documentId(), "in", source_ids)
             .get();
         if (sourcesSnapshot.empty) {
-            throw new functions.https.HttpsError("not-found", "Sources not found");
+            throw new https_1.HttpsError("not-found", "Sources not found");
         }
         sourcesSnapshot.forEach(doc => {
             const source = doc.data();
@@ -71,7 +75,7 @@ exports.generate_summary = functions.runWith({
             combinedContent = combinedContent.substring(0, MAX_CONTENT_LENGTH);
         }
         if (!combinedContent.trim()) {
-            throw new functions.https.HttpsError("failed-precondition", "No content available for generation");
+            throw new https_1.HttpsError("failed-precondition", "No content available for generation");
         }
         // 4. Generate Summary
         const prompt = `
@@ -155,7 +159,7 @@ REGRAS DE OURO:
 2. **PROFUNDIDADE:** Explicações de 1 parágrafo são proibidas para tópicos principais. Desenvolva o raciocínio.
 3. **FIDELIDADE:** Mantenha a terminologia técnica correta.
 4. **FORMATO:** HTML limpo, use as classes CSS indicadas.
-5. **IDIOMA:** Português do Brasil.
+5. ${(0, language_helper_1.getLanguageInstruction)(language)}
 
 Gere o HTML agora.
     `;
@@ -183,7 +187,7 @@ Gere o HTML agora.
         // 5. Save Summary
         const summaryData = {
             project_id,
-            user_id: context.auth.uid,
+            user_id: request.auth.uid,
             titulo: `Resumo Gerado em ${new Date().toLocaleDateString('pt-BR')}`,
             conteudo_html: result.text,
             created_at: admin.firestore.FieldValue.serverTimestamp(),
@@ -193,12 +197,12 @@ Gere o HTML agora.
         const docRef = await db.collection("summaries").add(summaryData);
         const savedDoc = await docRef.get();
         // 6. Log Token Usage
-        await (0, token_usage_1.logTokenUsage)(context.auth.uid, project_id, "generate_summary", result.usage.inputTokens, result.usage.outputTokens, modelName);
+        await (0, token_usage_1.logTokenUsage)(request.auth.uid, project_id, "generate_summary", result.usage.inputTokens, result.usage.outputTokens, modelName);
         return { success: true, summary: Object.assign({ id: docRef.id }, savedDoc.data()) };
     }
     catch (error) {
         console.error("Error generating summary:", error);
-        throw new functions.https.HttpsError("internal", error.message || "Failed to generate summary");
+        throw new https_1.HttpsError("internal", error.message || "Failed to generate summary");
     }
 });
 //# sourceMappingURL=generate_summary.js.map

@@ -1,4 +1,4 @@
-import * as functions from "firebase-functions";
+import { onCall, HttpsError } from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
 
 if (!admin.apps.length) {
@@ -14,13 +14,17 @@ function convertCostToBRL(costUSD: number): number {
     return costUSD * USD_TO_BRL_RATE;
 }
 
-export const get_token_usage_stats = functions.https.onCall(async (data, context) => {
-    if (!context.auth) {
-        throw new functions.https.HttpsError("unauthenticated", "Usuário deve estar autenticado");
+export const get_token_usage_stats = onCall({
+    timeoutSeconds: 60,
+    memory: "256MiB",
+    region: "us-central1"
+}, async (request) => {
+    if (!request.auth) {
+        throw new HttpsError("unauthenticated", "User must be authenticated");
     }
 
-    const { action, start_date, end_date } = data;
-    const userId = context.auth.uid;
+    const { action, start_date, end_date } = request.data;
+    const userId = request.auth.uid;
 
     // Parse dates
     const start = start_date ? new Date(start_date) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
@@ -61,12 +65,12 @@ export const get_token_usage_stats = functions.https.onCall(async (data, context
                 return calculateSummary(usageData);
 
             default:
-                throw new functions.https.HttpsError("invalid-argument", `Ação desconhecida: ${action}`);
+                throw new HttpsError("invalid-argument", `Ação desconhecida: ${action}`);
         }
 
     } catch (error: any) {
         console.error("Erro em get_token_usage_stats:", error);
-        throw new functions.https.HttpsError("internal", error.message);
+        throw new HttpsError("internal", error.message);
     }
 });
 

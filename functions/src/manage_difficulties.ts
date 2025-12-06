@@ -1,4 +1,4 @@
-import * as functions from "firebase-functions";
+import { onCall, HttpsError } from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
 import { z } from "zod";
 import { validateRequest, sanitizeString } from "./shared/validation";
@@ -19,22 +19,26 @@ const manageDifficultiesSchema = z.object({
     correct: z.boolean().optional(), // Para check_auto_resolve
 });
 
-export const manage_difficulties = functions.https.onCall(async (data, context) => {
-    // 1. Auth Check
-    if (!context.auth) {
-        throw new functions.https.HttpsError("unauthenticated", "User must be authenticated");
+export const manage_difficulties = onCall({
+    timeoutSeconds: 60,
+    memory: "256MiB",
+    region: "us-central1"
+}, async (request) => {
+    // Auth Check
+    if (!request.auth) {
+        throw new HttpsError("unauthenticated", "User must be authenticated");
     }
-    const userId = context.auth.uid;
+    const userId = request.auth.uid;
 
     try {
         // 2. Validation
-        const { action, project_id, topico, difficulty_id } = validateRequest(data, manageDifficultiesSchema);
+        const { action, project_id, topico, difficulty_id, topic, correct } = validateRequest(request.data, manageDifficultiesSchema);
 
         const difficultiesCollection = db.collection("difficulties");
 
         if (action === "add") {
             if (!topico) {
-                throw new functions.https.HttpsError("invalid-argument", "Topico is required for 'add' action");
+                throw new HttpsError("invalid-argument", "Topico is required for 'add' action");
             }
 
             // Check if already exists
@@ -68,18 +72,18 @@ export const manage_difficulties = functions.https.onCall(async (data, context) 
             }
         } else if (action === "resolve") {
             if (!difficulty_id) {
-                throw new functions.https.HttpsError("invalid-argument", "Difficulty ID is required for 'resolve' action");
+                throw new HttpsError("invalid-argument", "Difficulty ID is required for 'resolve' action");
             }
 
             const docRef = difficultiesCollection.doc(difficulty_id);
             const doc = await docRef.get();
 
             if (!doc.exists) {
-                throw new functions.https.HttpsError("not-found", "Difficulty not found");
+                throw new HttpsError("not-found", "Difficulty not found");
             }
 
             if (doc.data()?.user_id !== userId) {
-                throw new functions.https.HttpsError("permission-denied", "Not authorized to modify this difficulty");
+                throw new HttpsError("permission-denied", "Not authorized to modify this difficulty");
             }
 
             await docRef.update({
@@ -100,21 +104,22 @@ export const manage_difficulties = functions.https.onCall(async (data, context) 
             return { success: true, difficulties };
         } else if (action === "check_auto_resolve") {
             // Nova ação para verificar e auto-resolver dificuldades após 3 acertos
-            const topic = topico || data.topic;
-            const correct = data.correct;
+            // `topic` and `correct` are already validated and sanitized by `validateRequest`
+            // const topic = sanitizeString(request.data.topic || ""); // No longer needed, `topic` is from validateRequest
+            // const correct = request.data.correct; // No longer needed, `correct` is from validateRequest
 
             if (!topic) {
-                throw new functions.https.HttpsError("invalid-argument", "Topic is required for 'check_auto_resolve' action");
+                throw new HttpsError("invalid-argument", "Topic is required for 'check_auto_resolve' action");
             }
             if (correct === undefined) {
-                throw new functions.https.HttpsError("invalid-argument", "Correct flag is required for 'check_auto_resolve' action");
+                throw new HttpsError("invalid-argument", "Correct flag is required for 'check_auto_resolve' action");
             }
             if (!project_id) {
-                throw new functions.https.HttpsError("invalid-argument", "Project ID is required for 'check_auto_resolve' action");
+                throw new HttpsError("invalid-argument", "Project ID is required for 'check_auto_resolve' action");
             }
 
             // Normalizar tópico
-            const normalizedTopic = normalizeTopic(topic);
+            const normalizedTopic = normalizeTopic((topico || topic));
 
             // Buscar dificuldade não resolvida
             const difficultyQuery = await difficultiesCollection
@@ -179,7 +184,7 @@ export const manage_difficulties = functions.https.onCall(async (data, context) 
         } else if (action === "statistics") {
             // Nova ação para obter estatísticas
             if (!project_id) {
-                throw new functions.https.HttpsError("invalid-argument", "Project ID is required for 'statistics' action");
+                throw new HttpsError("invalid-argument", "Project ID is required for 'statistics' action");
             }
 
             const snapshot = await difficultiesCollection
@@ -208,22 +213,22 @@ export const manage_difficulties = functions.https.onCall(async (data, context) 
             };
         } else if (action === "normalize_topic") {
             // Nova ação para normalizar nome de tópico
-            const topic = topico || data.topic;
-            if (!topic) {
-                throw new functions.https.HttpsError("invalid-argument", "Topic is required for 'normalize_topic' action");
+            const topicNormalize = topico || topic;
+            if (!topicNormalize) {
+                throw new HttpsError("invalid-argument", "Topic is required for 'normalize_topic' action");
             }
 
             return {
-                normalized: normalizeTopic(topic),
-                original: topic,
+                normalized: normalizeTopic(topicNormalize),
+                original: topicNormalize,
             };
         }
 
-        throw new functions.https.HttpsError("invalid-argument", "Invalid action");
+        throw new HttpsError("invalid-argument", "Invalid action");
 
     } catch (error: any) {
         console.error("Error in manage_difficulties:", error);
-        throw new functions.https.HttpsError("internal", error.message);
+        throw new HttpsError("internal", error.message);
     }
 });
 

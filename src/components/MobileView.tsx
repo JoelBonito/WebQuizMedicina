@@ -18,7 +18,7 @@ export function MobileView({
   const [activeTab, setActiveTab] = useState<'sources' | 'studio' | 'chat'>('studio');
 
   return (
-    <div className="h-full flex flex-col bg-white">
+    <div className="h-full flex flex-col bg-background">
       {/* Content Area - with bottom padding for navigation and safe area */}
       <div className="flex-1 overflow-hidden" style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom))' }}>
         {/* Sources Panel */}

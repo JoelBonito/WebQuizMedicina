@@ -1,9 +1,10 @@
-import * as functions from "firebase-functions";
+import { onCall, HttpsError } from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
 import { generateFlashcardsSchema, validateRequest, sanitizeString } from "./shared/validation";
 import { callGeminiWithUsage, parseJsonFromResponse } from "./shared/gemini";
 import { logTokenUsage } from "./shared/token_usage";
 import { getModelSelector } from "./shared/modelSelector";
+import { getLanguageFromRequest, getLanguageInstruction } from "./shared/language_helper";
 
 // Initialize Firebase Admin if not already initialized
 if (!admin.apps.length) {
@@ -12,22 +13,29 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
-export const generate_flashcards = functions.https.onCall(async (data, context) => {
+export const generate_flashcards = onCall({
+    timeoutSeconds: 300,
+    memory: "1GiB",
+    region: "us-central1"
+}, async (request) => {
     // 1. Auth Check
-    if (!context.auth) {
-        throw new functions.https.HttpsError("unauthenticated", "User must be authenticated");
+    if (!request.auth) {
+        throw new HttpsError("unauthenticated", "User must be authenticated");
     }
 
     try {
-        // 2. Validation
-        const { source_id, project_id, count } = validateRequest(data, generateFlashcardsSchema);
+        // 2. Get user's language preference
+        const language = await getLanguageFromRequest(request.data, db, request.auth.uid);
+
+        // 3. Validation
+        const { source_id, project_id, count } = validateRequest(request.data, generateFlashcardsSchema);
 
         // 3. Fetch Content (Sources)
         let sources: any[] = [];
         if (source_id) {
             const sourceDoc = await db.collection("sources").doc(source_id).get();
             if (!sourceDoc.exists) {
-                throw new functions.https.HttpsError("not-found", "Source not found");
+                throw new HttpsError("not-found", "Source not found");
             }
             sources = [{ id: sourceDoc.id, ...sourceDoc.data() }];
         } else if (project_id) {
@@ -41,13 +49,13 @@ export const generate_flashcards = functions.https.onCall(async (data, context) 
         }
 
         if (sources.length === 0) {
-            throw new functions.https.HttpsError("not-found", "No sources found");
+            throw new HttpsError("not-found", "No sources found");
         }
 
         // Validate content availability
         const sourcesWithContent = sources.filter(s => s.extracted_content && s.extracted_content.trim());
         if (sourcesWithContent.length === 0) {
-            throw new functions.https.HttpsError("failed-precondition", "Sources found but no content available.");
+            throw new HttpsError("failed-precondition", "Sources found but no content available.");
         }
 
         // 4. Prepare Content for AI
@@ -67,7 +75,7 @@ export const generate_flashcards = functions.https.onCall(async (data, context) 
         }
 
         if (!combinedContent.trim()) {
-            throw new functions.https.HttpsError("failed-precondition", "No content available for generation");
+            throw new HttpsError("failed-precondition", "No content available for generation");
         }
 
         // 5. Generate Flashcards
@@ -83,6 +91,7 @@ REGRAS DE CRIAÇÃO:
 2. PERGUNTAS DIRETAS: "Qual o tratamento de...", "O que caracteriza...", "Qual a dose de...".
 3. RESPOSTAS CONCISAS: Vá direto ao ponto. Evite textos longos no verso.
 4. ATOMICIDADE: Cada flashcard deve testar UM único conceito.
+5. ${getLanguageInstruction(language)}
 
 FORMATO JSON OBRIGATÓRIO (SEM MARKDOWN):
 Retorne APENAS o JSON cru, sem blocos de código (\`\`\`).
@@ -131,11 +140,11 @@ Retorne APENAS o JSON cru, sem blocos de código (\`\`\`).
             }
         } catch (error: any) {
             console.error("AI Generation or Parsing Error:", error);
-            throw new functions.https.HttpsError("internal", "Failed to generate valid JSON from AI: " + error.message);
+            throw new HttpsError("internal", "Failed to generate valid JSON from AI: " + error.message);
         }
 
         if (!parsed.flashcards || !Array.isArray(parsed.flashcards)) {
-            throw new functions.https.HttpsError("internal", "Failed to generate valid flashcards format");
+            throw new HttpsError("internal", "Failed to generate valid flashcards format");
         }
 
         // 6. Save Flashcards to Firestore
@@ -150,7 +159,7 @@ Retorne APENAS o JSON cru, sem blocos de código (\`\`\`).
 
             const newFlashcard = {
                 project_id: project_id || sources[0].project_id,
-                user_id: context.auth.uid,
+                user_id: request.auth.uid,
                 source_id: source_id || null,
                 session_id: sessionId,
                 frente: sanitizeString(f.frente || ""),
@@ -169,7 +178,7 @@ Retorne APENAS o JSON cru, sem blocos de código (\`\`\`).
         // 7. Log Token Usage
         if (result && result.usage) {
             await logTokenUsage(
-                context.auth.uid,
+                request.auth.uid,
                 project_id || sources[0].project_id,
                 "flashcards",
                 result.usage.inputTokens,
@@ -189,6 +198,6 @@ Retorne APENAS o JSON cru, sem blocos de código (\`\`\`).
 
     } catch (error: any) {
         console.error("Error in generate_flashcards:", error);
-        throw new functions.https.HttpsError("internal", error.message);
+        throw new HttpsError("internal", error.message);
     }
 });

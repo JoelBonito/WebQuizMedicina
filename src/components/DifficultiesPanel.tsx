@@ -38,7 +38,7 @@ const getOriginColor = (origin: string) => {
     case "chat":
       return "bg-[#F0F9FF] text-[#0891B2]";
     default:
-      return "bg-gray-50 text-gray-700";
+      return "bg-muted text-muted-foreground";
   }
 };
 
@@ -222,13 +222,13 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
   if (!projectId) {
     return (
       <div className={`flex flex-col ${isFullscreenMode
-        ? "bg-gray-50/50 p-6"
-        : "bg-gray-50/50 rounded-3xl p-4 border border-gray-200 h-full"
+        ? "bg-muted/50 p-6"
+        : "bg-muted/50 rounded-3xl p-4 border border-border h-full"
         }`}>
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <TrendingUp className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-            <p className="text-gray-600">Selecione um projeto para ver suas dificuldades</p>
+            <p className="text-muted-foreground">Selecione um projeto para ver suas dificuldades</p>
           </div>
         </div>
       </div>
@@ -237,25 +237,25 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
 
   return (
     <div className={`flex flex-col ${isFullscreenMode
-      ? "bg-gray-50/50 p-6"
-      : "bg-gray-50/50 rounded-3xl p-4 border border-gray-200 h-full"
+      ? "bg-muted/50 p-6"
+      : "bg-muted/50 rounded-3xl p-4 border border-border h-full"
       }`}>
       {/* Header */}
-      <div className="glass-dark rounded-2xl p-4 mb-4 border border-gray-200">
+      <div className="glass-dark rounded-2xl p-4 mb-4 border border-border">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center">
               <TrendingUp className="w-4 h-4 text-white" />
             </div>
-            <h3 className="text-gray-900 font-semibold">Dashboard de Dificuldades</h3>
+            <h3 className="text-foreground font-semibold">Dashboard de Dificuldades</h3>
           </div>
         </div>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-4 gap-3">
-          <div className="glass rounded-xl p-3 border border-gray-200">
-            <p className="text-xs text-gray-600 mb-1">Total</p>
-            <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+          <div className="glass rounded-xl p-3 border border-border">
+            <p className="text-xs text-muted-foreground mb-1">Total</p>
+            <p className="text-2xl font-bold text-foreground">{stats.total}</p>
           </div>
           <div className="glass rounded-xl p-3 border border-red-200 bg-red-50/50">
             <p className="text-xs text-red-600 mb-1">Críticas</p>
@@ -280,8 +280,8 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center max-w-sm">
             <CheckCircle className="w-16 h-16 mx-auto mb-4 text-green-500" />
-            <h4 className="text-gray-900 font-semibold mb-2">Nenhuma dificuldade encontrada!</h4>
-            <p className="text-sm text-gray-600">
+            <h4 className="text-foreground font-semibold mb-2">Nenhuma dificuldade encontrada!</h4>
+            <p className="text-sm text-muted-foreground">
               Continue estudando com quiz e flashcards. Quando você clicar em "NÃO SEI" ou avaliar como "Difícil",
               os tópicos aparecerão aqui.
             </p>
@@ -293,21 +293,21 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
           {topDifficulties.length > 0 && (
             <div className="glass-dark rounded-2xl p-4 mb-4 border border-orange-200 bg-gradient-to-br from-orange-50 to-red-50">
               <div className="mb-3">
-                <h4 className="text-gray-900 font-semibold mb-1 flex items-center gap-2">
+                <h4 className="text-foreground font-semibold mb-1 flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-orange-600" />
                   Conteúdo Personalizado
                 </h4>
-                <p className="text-sm text-gray-700 mb-2">
+                <p className="text-sm text-muted-foreground mb-2">
                   Focado nos seus {topDifficulties.length} tópicos mais difíceis
                 </p>
                 <div className="flex flex-wrap gap-1 mb-3">
                   {topDifficulties.slice(0, 3).map((d, idx) => (
-                    <Badge key={idx} variant="outline" className="text-xs bg-white text-orange-700">
+                    <Badge key={idx} variant="outline" className="text-xs bg-background text-orange-700">
                       {d.topico}
                     </Badge>
                   ))}
                   {topDifficulties.length > 3 && (
-                    <Badge variant="outline" className="text-xs bg-white text-orange-700">
+                    <Badge variant="outline" className="text-xs bg-background text-orange-700">
                       +{topDifficulties.length - 3}
                     </Badge>
                   )}
@@ -365,7 +365,7 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
           {/* Difficulties List */}
           <ScrollArea className="flex-1">
             <div className="space-y-3 pr-2">
-              <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+              <h4 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 text-orange-600" />
                 Dificuldades Ativas ({activeDifficulties.length})
               </h4>
@@ -378,12 +378,12 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
-                    className="glass-hover glass-dark rounded-2xl p-4 border border-gray-200"
+                    className="glass-hover glass-dark rounded-2xl p-4 border border-border"
                   >
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
-                          <h5 className="text-gray-900 font-semibold">{difficulty.topico}</h5>
+                          <h5 className="text-foreground font-semibold">{difficulty.topico}</h5>
                           <Badge className={`rounded-lg ${getLevelBadgeColor(difficulty.nivel)}`}>
                             Nível {difficulty.nivel}
                           </Badge>
@@ -397,7 +397,7 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
 
                         {/* Level Bar */}
                         <div className="flex items-center gap-2 mb-2">
-                          <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                          <div className="flex-1 h-2 bg-border rounded-full overflow-hidden">
                             <motion.div
                               initial={{ width: 0 }}
                               animate={{ width: `${Math.min((difficulty.nivel / 10) * 100, 100)}%` }}
@@ -405,7 +405,7 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
                               className={`h-full ${getLevelColor(difficulty.nivel)} rounded-full`}
                             />
                           </div>
-                          <span className="text-xs text-gray-600 w-12 text-right">
+                          <span className="text-xs text-muted-foreground w-12 text-right">
                             {Math.min(Math.round((difficulty.nivel / 10) * 100), 100)}%
                           </span>
                         </div>
@@ -443,7 +443,7 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
               {/* Resolved Difficulties */}
               {resolvedDifficulties.length > 0 && (
                 <>
-                  <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2 mt-6">
+                  <h4 className="text-sm font-semibold text-muted-foreground flex items-center gap-2 mt-6">
                     <CheckCircle className="w-4 h-4 text-green-600" />
                     Resolvidas ({resolvedDifficulties.length})
                   </h4>
@@ -462,7 +462,7 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <CheckCircle className="w-4 h-4 text-green-600" />
-                            <p className="text-sm text-gray-700 font-medium">{difficulty.topico}</p>
+                            <p className="text-sm text-muted-foreground font-medium">{difficulty.topico}</p>
                             <Badge variant="outline" className="text-xs text-green-700">
                               Era nível {difficulty.nivel}
                             </Badge>
@@ -475,7 +475,7 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
                                 />
                               </div>
                             ) : (
-                              <Badge className="text-xs bg-gray-100 text-gray-600 border-gray-200 mt-2">
+                              <Badge className="text-xs bg-muted text-muted-foreground border-border mt-2">
                                 <CheckCircle className="w-3 h-3 mr-1" />
                                 Resolvido manualmente
                               </Badge>

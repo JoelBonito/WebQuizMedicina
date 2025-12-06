@@ -35,6 +35,7 @@ const embeddings_1 = require("./shared/embeddings");
 const recovery_strategies_1 = require("./shared/recovery_strategies");
 const token_usage_1 = require("./shared/token_usage");
 const modelSelector_1 = require("./shared/modelSelector");
+const language_helper_1 = require("./shared/language_helper");
 const db = admin.firestore();
 // Recovery Mode Token Limit (slightly less than normal quiz for focused content)
 const RECOVERY_TOKEN_LIMIT = 12000;
@@ -49,6 +50,8 @@ exports.generate_recovery_quiz = (0, https_1.onCall)({
         }
         const { project_id, count, difficulty } = (0, validation_1.validateRequest)(request.data, validation_1.generateRecoveryQuizSchema);
         const userId = request.auth.uid;
+        // 2. Get user's language preference
+        const language = await (0, language_helper_1.getLanguageFromRequest)(request.data, db, userId);
         // 1. Get Project Information
         const projectDoc = await db.collection("projects").doc(project_id).get();
         if (!projectDoc.exists) {
@@ -185,7 +188,7 @@ Este é um quiz de RECUPERAÇÃO. O aluno errou isso antes. A justificativa deve
 1. CITAR A FONTE: "Segundo o texto...", "O material indica que...", "Conforme a fonte..."
 2. SER EDUCATIVA: Explique POR QUE a alternativa está correta (não apenas repita o fato)
 3. CORRIGIR ERROS COMUNS: Se o aluno pode ter confundido conceitos, esclareça a diferença
-4. PORTUGUÊS: Toda justificativa em PORTUGUÊS DO BRASIL
+4. ${(0, language_helper_1.getLanguageInstruction)(language)}
 5. CONCISÃO: 2-3 frases máximo
 
 FORMATO JSON:

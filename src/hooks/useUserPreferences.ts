@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { doc, onSnapshot, updateDoc, setDoc } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from './useAuth';
 
@@ -53,11 +53,21 @@ export function useUserPreferences() {
 
         try {
             const userRef = doc(db, 'users', user.uid);
-            await updateDoc(userRef, {
-                'preferences.autoRemoveDifficulties': enabled
-            });
+            // Usar setDoc com merge para criar o documento se não existir
+            await setDoc(userRef, {
+                preferences: {
+                    autoRemoveDifficulties: enabled
+                }
+            }, { merge: true });
+
+            // Atualizar estado local imediatamente para feedback instantâneo
+            setPreferences(prev => ({
+                ...prev,
+                autoRemoveDifficulties: enabled
+            }));
         } catch (error) {
             console.error('Error updating auto-remove preference:', error);
+            throw error; // Re-throw para que o ContentPanel possa mostrar erro
         }
     };
 

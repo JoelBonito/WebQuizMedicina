@@ -13,7 +13,7 @@ export function RightPanel({ projectId }: RightPanelProps) {
 
   return (
     <>
-      <div className="h-full w-full flex flex-col bg-gray-50/50 rounded-3xl border border-gray-200 overflow-hidden">
+      <div className="h-full w-full flex flex-col bg-card rounded-3xl border border-border overflow-hidden">
         {/* Banda colorida do topo */}
         <div className="h-1.5 w-full bg-gradient-to-r from-purple-500 to-pink-500" />
 
@@ -22,11 +22,11 @@ export function RightPanel({ projectId }: RightPanelProps) {
           <div className="flex items-center justify-between mb-4 px-2">
             <div className="flex items-center gap-2">
               <MessageSquare className="w-5 h-5 text-purple-600" />
-              <h3 className="text-lg font-semibold text-gray-900">Chat</h3>
+              <h3 className="text-lg font-semibold text-foreground">Chat</h3>
             </div>
             <button
               onClick={() => setIsFullscreen(true)}
-              className="hidden md:flex items-center justify-center text-gray-600 hover:text-gray-900 transition-colors"
+              className="hidden md:flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
               aria-label="Expandir"
             >
               <span className="material-symbols-outlined text-[20px]">expand_content</span>
@@ -42,10 +42,10 @@ export function RightPanel({ projectId }: RightPanelProps) {
 
       {/* Fullscreen Dialog */}
       <Dialog open={isFullscreen} onOpenChange={setIsFullscreen}>
-        <DialogContent className="!fixed !inset-0 !top-0 !left-0 !right-0 !bottom-0 !translate-x-0 !translate-y-0 !max-w-none !w-screen !h-screen !m-0 !rounded-none !p-0 overflow-hidden supports-[height:100dvh]:!h-dvh">
-          <div className="h-screen supports-[height:100dvh]:h-dvh w-full flex flex-col bg-gray-50">
-            <div className="flex items-center justify-between p-6 border-b bg-white">
-              <h2 className="text-2xl font-bold text-gray-900">Chat</h2>
+        <DialogContent className="!fixed !inset-0 !top-0 !left-0 !right-0 !bottom-0 !translate-x-0 !translate-y-0 !max-w-none !w-screen !h-screen !max-h-none !m-0 !rounded-none !p-0 overflow-hidden supports-[height:100dvh]:!h-dvh">
+          <div className="h-screen supports-[height:100dvh]:h-dvh w-full flex flex-col bg-muted">
+            <div className="flex items-center justify-between p-6 border-b bg-background">
+              <h2 className="text-2xl font-bold text-foreground">Chat</h2>
               <Button
                 size="sm"
                 variant="ghost"

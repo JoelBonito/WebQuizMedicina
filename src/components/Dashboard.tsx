@@ -72,7 +72,7 @@ const ProjectCard = ({ project, index, onSelect, onEdit, onDelete, onViewStats }
       transition={{ delay: index * 0.1 }}
       className="group relative"
     >
-      <div className="glass-dark rounded-2xl p-6 border border-gray-200 hover:shadow-xl transition-all duration-300 cursor-pointer h-full flex flex-col">
+      <div className="bg-card rounded-2xl p-6 border border-border hover:shadow-xl transition-all duration-300 cursor-pointer h-full flex flex-col">
         {/* Icon */}
         <div className="flex items-center justify-between mb-4">
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#0891B2] to-[#7CB342] flex items-center justify-center shadow-lg">
@@ -84,64 +84,64 @@ const ProjectCard = ({ project, index, onSelect, onEdit, onDelete, onViewStats }
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 rounded-lg hover:bg-blue-50"
+              className="h-8 w-8 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950"
               onClick={(e) => {
                 e.stopPropagation();
                 onViewStats({ id: project.id, name: project.name });
               }}
             >
-              <BarChart3 className="w-4 h-4 text-blue-600" />
+              <BarChart3 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
             </Button>
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 rounded-lg hover:bg-gray-100"
+              className="h-8 w-8 rounded-lg hover:bg-muted"
               onClick={(e) => {
                 e.stopPropagation();
                 onEdit({ id: project.id, name: project.name });
               }}
             >
-              <Edit className="w-4 h-4 text-gray-600" />
+              <Edit className="w-4 h-4 text-muted-foreground" />
             </Button>
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 rounded-lg hover:bg-red-50"
+              className="h-8 w-8 rounded-lg hover:bg-red-50 dark:hover:bg-red-950"
               onClick={(e) => {
                 e.stopPropagation();
                 onDelete({ id: project.id, name: project.name });
               }}
             >
-              <Trash2 className="w-4 h-4 text-red-600" />
+              <Trash2 className="w-4 h-4 text-red-600 dark:text-red-400" />
             </Button>
           </div>
         </div>
 
         {/* Content */}
         <div className="flex-1" onClick={() => onSelect(project.id)}>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">{project.name}</h3>
-          <p className="text-sm text-gray-500 mb-4">
+          <h3 className="text-lg font-semibold text-foreground mb-2">{project.name}</h3>
+          <p className="text-sm text-muted-foreground mb-4">
             Criado em {formatDate(project.created_at)}
           </p>
 
           {/* Stats */}
           <div className="flex flex-wrap gap-2 mb-4">
-            <Badge variant="outline" className="rounded-lg text-[#0891B2] border-[#BAE6FD] bg-[#F0F9FF]">
+            <Badge variant="outline" className="rounded-lg text-primary border-primary/30 bg-primary/10 dark:bg-primary/20">
               {stats.totalSources} Fontes
             </Badge>
-            <Badge variant="outline" className="rounded-lg text-blue-600 border-blue-200 bg-blue-50">
+            <Badge variant="outline" className="rounded-lg text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950">
               {stats.totalQuizzes} Quiz
             </Badge>
-            <Badge variant="outline" className="rounded-lg text-red-600 border-red-200 bg-red-50">
+            <Badge variant="outline" className="rounded-lg text-red-600 dark:text-red-400 border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950">
               {stats.totalFlashcards} Cards
             </Badge>
             {stats.totalSummaries > 0 && (
-              <Badge variant="outline" className="rounded-lg text-purple-600 border-purple-200 bg-purple-50">
+              <Badge variant="outline" className="rounded-lg text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950">
                 {stats.totalSummaries} Resumos
               </Badge>
             )}
             {stats.quizAccuracy > 0 && (
-              <Badge variant="outline" className="rounded-lg text-green-600 border-green-200 bg-green-50">
+              <Badge variant="outline" className="rounded-lg text-green-600 dark:text-green-400 border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950">
                 {stats.quizAccuracy}% acerto
               </Badge>
             )}
@@ -151,7 +151,7 @@ const ProjectCard = ({ project, index, onSelect, onEdit, onDelete, onViewStats }
         {/* Footer - Open button */}
         <Button
           variant="ghost"
-          className="w-full justify-between rounded-xl hover:bg-[#F0F9FF] text-gray-700 font-medium"
+          className="w-full justify-between rounded-xl hover:bg-primary/10 text-muted-foreground font-medium"
           onClick={() => onSelect(project.id)}
         >
           Abrir matéria
@@ -240,13 +240,13 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
   };
 
   return (
-    <div className="min-h-screen bg-white relative">
+    <div className="min-h-screen bg-background relative">
       {/* Header Flutuante */}
-      <div className="sticky top-16 z-40 bg-white/95 backdrop-blur-sm border-b border-gray-200 shadow-sm">
+      <div className="sticky top-16 z-40 bg-background/95 backdrop-blur-sm border-b border-border shadow-sm">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Minhas Matérias</h1>
-            <p className="text-sm text-gray-600 mt-1">Gerencie seus estudos e materiais</p>
+            <h1 className="text-2xl font-bold text-foreground">Minhas Matérias</h1>
+            <p className="text-sm text-muted-foreground mt-1">Gerencie seus estudos e materiais</p>
           </div>
           <Button
             onClick={openAddDialog}
@@ -271,7 +271,7 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
               <div className="w-20 h-20 mx-auto mb-6 rounded-3xl bg-gradient-to-br from-[#E0F2FE] to-[#F0F9FF] flex items-center justify-center">
                 <BookOpen className="w-10 h-10 text-[#0891B2]" />
               </div>
-              <h3 className="text-2xl font-semibold text-gray-900 mb-3">
+              <h3 className="text-2xl font-semibold text-foreground mb-3">
                 Nenhuma matéria ainda
               </h3>
               <p className="text-gray-500 mb-8 max-w-md mx-auto">
@@ -316,7 +316,7 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
       >
         <DialogContent className="sm:max-w-[500px] rounded-3xl">
           <div className="flex items-center justify-between mb-2">
-            <DialogTitle className="text-xl font-semibold text-gray-900">
+            <DialogTitle className="text-xl font-semibold text-foreground">
               {editingProject ? "Editar Matéria" : "Criar Nova Matéria"}
             </DialogTitle>
             <button
@@ -325,7 +325,7 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
                 setEditingProject(null);
                 setFormData({ name: "" });
               }}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className="text-gray-400 hover:text-muted-foreground transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -337,7 +337,7 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
           </DialogDescription>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="name" className="text-sm font-medium text-gray-700">
+              <Label htmlFor="name" className="text-sm font-medium text-muted-foreground">
                 Nome da Matéria
               </Label>
               <Input
@@ -363,7 +363,7 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
                 setEditingProject(null);
                 setFormData({ name: "" });
               }}
-              className="rounded-xl border-gray-300 hover:bg-gray-50 text-gray-700"
+              className="rounded-xl border-gray-300 hover:bg-muted text-muted-foreground"
               disabled={submitting}
             >
               Cancelar
@@ -386,15 +386,15 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
       <AlertDialog open={deletingProject !== null} onOpenChange={(open) => !open && setDeletingProject(null)}>
         <AlertDialogContent className="rounded-3xl">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-xl font-semibold text-gray-900">
+            <AlertDialogTitle className="text-xl font-semibold text-foreground">
               Excluir Matéria?
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-sm text-gray-600">
+            <AlertDialogDescription className="text-sm text-muted-foreground">
               Tem certeza que deseja excluir a matéria "{deletingProject?.name}"? Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-3">
-            <AlertDialogCancel className="rounded-xl border-gray-300 hover:bg-gray-50 text-gray-700">
+            <AlertDialogCancel className="rounded-xl border-gray-300 hover:bg-muted text-muted-foreground">
               Cancelar
             </AlertDialogCancel>
             <AlertDialogAction

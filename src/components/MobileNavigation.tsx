@@ -31,7 +31,7 @@ const MOBILE_TABS = [
 
 export function MobileNavigation({ activeTab, onTabChange }: MobileNavigationProps) {
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 safe-area-bottom">
+    <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border z-50 safe-area-bottom">
       <div className="flex justify-around items-center h-20 px-2">
         {MOBILE_TABS.map(tab => {
           const isActive = activeTab === tab.id;
@@ -45,7 +45,7 @@ export function MobileNavigation({ activeTab, onTabChange }: MobileNavigationPro
                 flex flex-col items-center justify-center
                 flex-1 h-14 gap-1
                 transition-all duration-200
-                ${isActive ? `${tab.bgColor} scale-105` : 'hover:bg-gray-50'}
+                ${isActive ? `${tab.bgColor} scale-105` : 'hover:bg-muted'}
                 rounded-2xl mx-1
               `}
             >

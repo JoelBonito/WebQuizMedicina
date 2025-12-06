@@ -72,13 +72,13 @@ export function LanguageSettings({ open, onOpenChange }: LanguageSettingsProps) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] bg-white rounded-2xl">
+      <DialogContent className="sm:max-w-[500px] bg-background rounded-2xl">
         <DialogHeader>
-          <DialogTitle className="text-gray-900 text-xl flex items-center gap-2">
-            <Languages className="w-5 h-5 text-[#0891B2]" />
+          <DialogTitle className="text-foreground text-xl flex items-center gap-2">
+            <Languages className="w-5 h-5 text-primary" />
             Idioma de Resposta
           </DialogTitle>
-          <DialogDescription className="text-gray-600">
+          <DialogDescription className="text-muted-foreground">
             Escolha o idioma para todo o conteúdo gerado pela IA
           </DialogDescription>
         </DialogHeader>
@@ -86,7 +86,7 @@ export function LanguageSettings({ open, onOpenChange }: LanguageSettingsProps) 
         <div className="space-y-6 py-4">
           {/* Language Selection */}
           <div className="space-y-4">
-            <Label className="text-gray-700 font-medium">
+            <Label className="text-muted-foreground font-medium">
               Selecione seu idioma preferido
             </Label>
             <RadioGroup value={language} onValueChange={(value) => setLanguage(value as any)}>
@@ -96,18 +96,18 @@ export function LanguageSettings({ open, onOpenChange }: LanguageSettingsProps) 
                     key={lang.value}
                     className={`flex items-center space-x-3 rounded-xl p-4 border-2 transition-colors cursor-pointer ${
                       language === lang.value
-                        ? "border-[#0891B2] bg-[#F0F9FF]"
-                        : "border-gray-200 hover:border-gray-300"
+                        ? "border-primary bg-primary/10"
+                        : "border-border hover:border-muted-foreground/30"
                     }`}
                     onClick={() => setLanguage(lang.value)}
                   >
-                    <RadioGroupItem value={lang.value} id={lang.value} className="text-[#0891B2]" />
+                    <RadioGroupItem value={lang.value} id={lang.value} className="text-primary" />
                     <Label
                       htmlFor={lang.value}
                       className="flex items-center gap-3 flex-1 cursor-pointer"
                     >
                       <span className="text-2xl">{lang.flag}</span>
-                      <span className="text-gray-900 font-medium">{lang.label}</span>
+                      <span className="text-foreground font-medium">{lang.label}</span>
                     </Label>
                   </div>
                 ))}
@@ -116,43 +116,43 @@ export function LanguageSettings({ open, onOpenChange }: LanguageSettingsProps) 
           </div>
 
           {/* Info Box */}
-          <div className="glass-dark rounded-xl p-4 border border-[#BAE6FD] bg-gradient-to-br from-[#F0F9FF] to-white">
-            <h4 className="text-gray-900 font-semibold mb-3 flex items-center gap-2">
-              <BookOpen className="w-4 h-4 text-[#0891B2]" />
+          <div className="glass-dark rounded-xl p-4 border border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+            <h4 className="text-foreground font-semibold mb-3 flex items-center gap-2">
+              <BookOpen className="w-4 h-4 text-primary" />
               Como funciona?
             </h4>
-            <p className="text-sm text-gray-700 mb-3">
+            <p className="text-sm text-muted-foreground mb-3">
               Este idioma será usado para gerar todo o conteúdo:
             </p>
             <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <MessageSquare className="w-4 h-4 text-[#0891B2]" />
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <MessageSquare className="w-4 h-4 text-primary" />
                 <span>Perguntas de Quiz</span>
               </div>
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Brain className="w-4 h-4 text-[#7CB342]" />
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Brain className="w-4 h-4 text-accent" />
                 <span>Flashcards</span>
               </div>
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <FileText className="w-4 h-4 text-[#0891B2]" />
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <FileText className="w-4 h-4 text-primary" />
                 <span>Resumos</span>
               </div>
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <MessageSquare className="w-4 h-4 text-[#7CB342]" />
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <MessageSquare className="w-4 h-4 text-accent" />
                 <span>Respostas do Chat</span>
               </div>
             </div>
-            <p className="text-xs text-gray-500 mt-3">
-              💡 Seus arquivos de origem podem estar em qualquer idioma. O conteúdo gerado
+            <p className="text-xs text-muted-foreground mt-3">
+              Seus arquivos de origem podem estar em qualquer idioma. O conteúdo gerado
               sempre estará no idioma selecionado.
             </p>
           </div>
 
           {/* Current Selection */}
-          <div className="glass rounded-xl p-3 border border-gray-200">
-            <p className="text-sm text-gray-600">
+          <div className="glass rounded-xl p-3 border border-border">
+            <p className="text-sm text-muted-foreground">
               Idioma atual:{" "}
-              <span className="font-semibold text-gray-900">{getLanguageName(language)}</span>
+              <span className="font-semibold text-foreground">{getLanguageName(language)}</span>
             </p>
           </div>
 
@@ -180,7 +180,7 @@ export function LanguageSettings({ open, onOpenChange }: LanguageSettingsProps) 
                 <>
                   Salvar
                   {hasChanges && (
-                    <span className="ml-2 inline-flex h-2 w-2 rounded-full bg-white/80 animate-pulse" />
+                    <span className="ml-2 inline-flex h-2 w-2 rounded-full bg-background/80 animate-pulse" />
                   )}
                 </>
               )}

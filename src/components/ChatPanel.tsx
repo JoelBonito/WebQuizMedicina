@@ -129,11 +129,11 @@ export function ChatPanel({ projectId, isFullscreenMode = false }: ChatPanelProp
 
   if (!projectId) {
     return (
-      <div className="flex flex-col bg-gray-50/50 rounded-3xl p-4 border border-gray-200 h-full">
+      <div className="flex flex-col bg-muted/50 rounded-3xl p-4 border border-gray-200 h-full">
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <Sparkles className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-            <p className="text-gray-600">Selecione um projeto para começar a conversar</p>
+            <p className="text-muted-foreground">Selecione um projeto para começar a conversar</p>
           </div>
         </div>
       </div>
@@ -141,12 +141,9 @@ export function ChatPanel({ projectId, isFullscreenMode = false }: ChatPanelProp
   }
 
   return (
-    <div className={`flex flex-col ${isFullscreenMode
-      ? "bg-gray-50/50 p-6"
-      : "bg-gray-50/50 rounded-3xl p-4 border border-gray-200 h-full"
-      }`}>
+    <div className={`h-full flex flex-col ${isFullscreenMode ? "bg-muted/50" : "bg-card rounded-3xl border border-border"} overflow-hidden relative`}>
       {/* Header */}
-      <div className="glass-dark rounded-2xl p-4 mb-4 border border-gray-200 flex-shrink-0">
+      <div className="bg-muted/30 rounded-2xl p-4 mb-4 border border-border flex-shrink-0">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#0891B2] to-[#7CB342] flex items-center justify-center">
@@ -178,7 +175,7 @@ export function ChatPanel({ projectId, isFullscreenMode = false }: ChatPanelProp
           <div className="text-center max-w-sm">
             <AlertCircle className="w-12 h-12 mx-auto mb-4 text-yellow-500" />
             <h4 className="text-gray-900 font-semibold mb-2">Nenhuma fonte disponível</h4>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-muted-foreground">
               Faça upload de fontes (PDFs, textos) no painel "Fontes" para começar a conversar com a IA
             </p>
           </div>
@@ -195,7 +192,7 @@ export function ChatPanel({ projectId, isFullscreenMode = false }: ChatPanelProp
               ) : messages.length === 0 ? (
                 <div className="text-center py-8">
                   <Bot className="w-12 h-12 mx-auto mb-4 text-[#0891B2]" />
-                  <p className="text-gray-600 mb-2">Olá! Estou aqui para ajudar você.</p>
+                  <p className="text-muted-foreground mb-2">Olá! Estou aqui para ajudar você.</p>
                   <p className="text-sm text-gray-500">
                     Faça perguntas sobre suas fontes e eu responderei com base no conteúdo delas.
                   </p>
@@ -216,7 +213,7 @@ export function ChatPanel({ projectId, isFullscreenMode = false }: ChatPanelProp
                             <div className="max-w-[90%] glass rounded-2xl p-4 bg-gradient-to-br from-blue-50 via-[#F0F9FF] to-[#F1F8E9] border-2 border-[#0891B2] shadow-lg">
                               <div className="flex items-start gap-3">
                                 <Sparkles className="w-5 h-5 text-[#0891B2] mt-0.5 flex-shrink-0" />
-                                <div className="flex-1 chat-message prose prose-sm max-w-none prose-p:leading-relaxed prose-pre:bg-gray-100 prose-pre:p-2 prose-pre:rounded-lg prose-headings:font-semibold prose-a:text-blue-600">
+                                <div className="flex-1 chat-message prose prose-sm max-w-none prose-p:leading-relaxed prose-pre:bg-muted prose-pre:p-2 prose-pre:rounded-lg prose-headings:font-semibold prose-a:text-blue-600">
                                   <ReactMarkdown
                                     remarkPlugins={[remarkGfm]}
                                   >
@@ -236,12 +233,12 @@ export function ChatPanel({ projectId, isFullscreenMode = false }: ChatPanelProp
                                 transition={{ delay: index * 0.05 }}
                                 className="flex justify-end mb-4"
                               >
-                                <div className="max-w-[85%] glass rounded-2xl rounded-tr-md p-4 bg-gradient-to-br from-[#F0F9FF] to-[#F1F8E9] border border-[#BAE6FD]">
+                                <div className={`p-3 rounded-2xl text-sm leading-relaxed shadow-sm bg-[#0891B2] text-white rounded-tr-sm ml-8 max-w-[85%]`}>
                                   <div className="flex items-start gap-2 mb-2">
-                                    <User className="w-4 h-4 text-[#0891B2] mt-0.5" />
+                                    <User className="w-4 h-4 text-white mt-0.5" />
                                     <p className="chat-message flex-1">{message.message}</p>
                                   </div>
-                                  <span className="text-xs text-gray-500">
+                                  <span className="text-xs text-gray-200">
                                     {new Date(message.created_at).toLocaleTimeString('pt-BR', {
                                       hour: '2-digit',
                                       minute: '2-digit',
@@ -258,11 +255,11 @@ export function ChatPanel({ projectId, isFullscreenMode = false }: ChatPanelProp
                               transition={{ delay: index * 0.05 + 0.1 }}
                               className="flex justify-start mb-4"
                             >
-                              <div className="max-w-[85%] glass-dark rounded-2xl rounded-tl-md p-4 border border-gray-200">
+                              <div className={`p-3 rounded-2xl text-sm leading-relaxed shadow-sm bg-card border border-border text-foreground rounded-tl-sm mr-8 max-w-[85%]`}>
                                 <div className="flex items-start gap-2 mb-2">
                                   <Bot className="w-4 h-4 text-[#0891B2] mt-0.5" />
                                   <div className="flex-1">
-                                    <div className="chat-message mb-3 prose prose-sm max-w-none prose-p:leading-relaxed prose-pre:bg-gray-100 prose-pre:p-2 prose-pre:rounded-lg prose-headings:font-semibold prose-a:text-blue-600">
+                                    <div className="chat-message mb-3 prose prose-sm max-w-none prose-p:leading-relaxed prose-pre:bg-muted prose-pre:p-2 prose-pre:rounded-lg prose-headings:font-semibold prose-a:text-blue-600">
                                       <ReactMarkdown
                                         remarkPlugins={[remarkGfm]}
                                       >
@@ -308,10 +305,10 @@ export function ChatPanel({ projectId, isFullscreenMode = false }: ChatPanelProp
                       animate={{ opacity: 1, y: 0 }}
                       className="flex justify-start"
                     >
-                      <div className="glass-dark rounded-2xl rounded-tl-md p-4 border border-gray-200">
+                      <div className="bg-card border border-border rounded-2xl rounded-tl-md p-4">
                         <div className="flex items-center gap-2">
                           <Loader2 className="w-4 h-4 animate-spin text-[#0891B2]" />
-                          <p className="text-sm text-gray-600">Pensando...</p>
+                          <p className="text-sm text-muted-foreground">Pensando...</p>
                         </div>
                       </div>
                     </motion.div>
@@ -325,7 +322,7 @@ export function ChatPanel({ projectId, isFullscreenMode = false }: ChatPanelProp
           {/* Suggestions */}
           {messages.length === 0 && suggestions.length > 0 && (
             <div className="mb-4 space-y-2 flex-shrink-0">
-              <p className="text-xs text-gray-600 flex items-center gap-1">
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
                 <Lightbulb className="w-3 h-3" />
                 Sugestões{smartSuggestions.length > 0 ? ' baseadas nas suas dificuldades' : ''}:
               </p>
@@ -336,7 +333,7 @@ export function ChatPanel({ projectId, isFullscreenMode = false }: ChatPanelProp
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => handleSuggestion(suggestion)}
-                    className="glass px-3 py-2 rounded-xl text-xs text-gray-700 hover:bg-[#F0F9FF]/50 transition-all duration-300 border border-gray-200"
+                    className="bg-card px-3 py-2 rounded-xl text-xs text-muted-foreground hover:bg-accent transition-all duration-300 border border-border"
                   >
                     {suggestion}
                   </motion.button>
@@ -346,13 +343,13 @@ export function ChatPanel({ projectId, isFullscreenMode = false }: ChatPanelProp
           )}
 
           {/* Input */}
-          <div className="glass-dark rounded-2xl p-3 flex items-center gap-2 border border-gray-200 flex-shrink-0">
+          <div className="bg-card/50 p-3 rounded-2xl border border-border flex gap-2 items-center flex-shrink-0">
             <input
               type="text"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               placeholder="Pergunte qualquer coisa sobre suas fontes..."
-              className="flex-1 bg-transparent border-0 outline-none text-sm text-gray-800 placeholder:text-gray-500"
+              className="flex-1 bg-transparent border-0 outline-none text-sm text-foreground placeholder:text-muted-foreground"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();

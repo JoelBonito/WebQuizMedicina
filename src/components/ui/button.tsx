@@ -13,11 +13,11 @@ const buttonVariants = cva(
         destructive:
           "bg-gradient-to-br from-destructive/90 to-destructive text-white hover:from-destructive hover:to-destructive/95 shadow-lg hover:shadow-xl border border-white/20 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/20 before:to-transparent before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-300",
         outline:
-          "border-2 bg-white/40 backdrop-blur-xl text-foreground hover:bg-white/60 hover:text-accent-foreground dark:bg-input/20 dark:border-input/40 dark:hover:bg-input/40 shadow-md hover:shadow-lg before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/30 before:to-transparent before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-300",
+          "border-2 bg-card/40 backdrop-blur-xl text-foreground hover:bg-card/60 hover:text-accent-foreground dark:bg-input/20 dark:border-input/40 dark:hover:bg-input/40 shadow-md hover:shadow-lg before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/30 before:to-transparent before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-300",
         secondary:
           "bg-gradient-to-br from-secondary/80 to-secondary text-secondary-foreground hover:from-secondary hover:to-secondary/90 shadow-md hover:shadow-lg border border-white/20 before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/20 before:to-transparent before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-300",
         ghost:
-          "hover:bg-white/30 hover:text-accent-foreground dark:hover:bg-accent/30 backdrop-blur-sm hover:backdrop-blur-md before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/20 before:to-transparent before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-300",
+          "hover:bg-card/30 hover:text-accent-foreground dark:hover:bg-accent/30 backdrop-blur-sm hover:backdrop-blur-md before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/20 before:to-transparent before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-300",
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {

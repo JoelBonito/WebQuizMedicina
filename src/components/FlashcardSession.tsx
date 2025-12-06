@@ -169,7 +169,7 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
       case "difícil":
         return "bg-red-50 text-red-700 border-red-200";
       default:
-        return "bg-gray-50 text-gray-700 border-gray-200";
+        return "bg-muted text-muted-foreground border-border";
     }
   };
 
@@ -185,7 +185,7 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="!fixed !inset-0 !top-0 !left-0 !right-0 !bottom-0 !translate-x-0 !translate-y-0 !max-w-none !w-screen !h-screen !m-0 !rounded-none !p-0 !gap-0 overflow-hidden supports-[height:100dvh]:!h-dvh">
+      <DialogContent className="!fixed !inset-0 !top-0 !left-0 !right-0 !bottom-0 !translate-x-0 !translate-y-0 !max-w-none !w-screen !h-screen !max-h-none !m-0 !rounded-none !p-0 !gap-0 overflow-hidden supports-[height:100dvh]:!h-dvh">
         {sessionState === "studying" ? (
           <div className="flex flex-col h-screen supports-[height:100dvh]:h-dvh w-full overflow-hidden">
             <DialogTitle className="sr-only">
@@ -195,9 +195,9 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
               Estude os flashcards virando as cartas e avalie seu conhecimento
             </DialogDescription>
             {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+            <div className="flex items-center justify-between p-6 border-b border-border">
               <div className="flex items-center gap-4">
-                <h3 className="text-xl font-semibold text-gray-900">
+                <h3 className="text-xl font-semibold text-foreground">
                   Flashcard {currentIndex + 1} de {flashcards.length}
                 </h3>
                 {currentCard && (
@@ -208,7 +208,7 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
               </div>
               <button
                 onClick={handleClose}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="text-gray-400 hover:text-muted-foreground transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -217,7 +217,7 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
             {/* Progress Bar */}
             <div className="px-6 pt-4">
               <Progress value={progressPercentage} className="h-2" />
-              <p className="text-xs text-gray-600 mt-2 text-center">
+              <p className="text-xs text-muted-foreground mt-2 text-center">
                 {Math.round(progressPercentage)}% completo
               </p>
             </div>
@@ -235,16 +235,16 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
                     animate={{ rotateY: 0, opacity: 1 }}
                     exit={{ rotateY: isFlipped ? 180 : -180, opacity: 0 }}
                     transition={{ duration: 0.6 }}
-                    className="glass-dark rounded-3xl p-12 border-2 border-gray-200 shadow-2xl min-h-[400px] flex flex-col items-center justify-center cursor-pointer"
+                    className="glass-dark rounded-3xl p-12 border-2 border-border shadow-2xl min-h-[400px] flex flex-col items-center justify-center cursor-pointer"
                     onClick={handleFlip}
                     style={{ transformStyle: "preserve-3d" }}
                   >
                     <div className="text-center">
-                      <p className="text-xs font-semibold text-[#0891B2] mb-4 uppercase tracking-wider">
+                      <p className="text-xs font-semibold text-primary mb-4 uppercase tracking-wider">
                         {isFlipped ? "VERSO" : "FRENTE"}
                       </p>
                       <div
-                        className="text-2xl text-gray-900 leading-relaxed"
+                        className="text-2xl text-foreground leading-relaxed"
                         dangerouslySetInnerHTML={{
                           __html: isFlipped ? currentCard?.verso || '' : currentCard?.frente || ''
                         }}
@@ -258,7 +258,7 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
 
                     {/* Flip hint */}
                     <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2">
-                      <div className="flex items-center gap-2 text-sm text-gray-500">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <RotateCw className="w-4 h-4" />
                         <span>Clique para virar</span>
                       </div>
@@ -273,38 +273,38 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="sticky bottom-0 p-4 md:p-6 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-6 border-t border-gray-200 bg-white shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-10"
+                className="sticky bottom-0 p-4 md:p-6 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-6 border-t border-border bg-background shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-10"
               >
-                <p className="text-sm text-gray-700 mb-4 text-center font-medium">
+                <p className="text-sm text-muted-foreground mb-4 text-center font-medium">
                   Como foi a dificuldade deste flashcard?
                 </p>
                 <div className="grid grid-cols-3 gap-4">
                   <Button
                     onClick={() => handleRating("dificil")}
                     variant="outline"
-                    className="h-auto py-4 rounded-xl border-2 border-gray-300 text-red-700 hover:bg-red-50 hover:border-red-400 flex flex-col gap-2"
+                    className="h-auto py-4 rounded-xl border-2 border-border text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 hover:border-red-400 flex flex-col gap-2"
                   >
                     <Frown className="w-6 h-6" />
                     <span className="font-semibold">Difícil</span>
-                    <span className="text-xs text-red-600">Revisar em 1 dia</span>
+                    <span className="text-xs text-red-600 dark:text-red-400">Revisar em 1 dia</span>
                   </Button>
                   <Button
                     onClick={() => handleRating("medio")}
                     variant="outline"
-                    className="h-auto py-4 rounded-xl border-2 border-gray-300 text-yellow-700 hover:bg-yellow-50 hover:border-yellow-400 flex flex-col gap-2"
+                    className="h-auto py-4 rounded-xl border-2 border-border text-yellow-700 dark:text-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-950 hover:border-yellow-400 flex flex-col gap-2"
                   >
                     <Meh className="w-6 h-6" />
                     <span className="font-semibold">Médio</span>
-                    <span className="text-xs text-yellow-600">Revisar em 6 dias</span>
+                    <span className="text-xs text-yellow-600 dark:text-yellow-400">Revisar em 6 dias</span>
                   </Button>
                   <Button
                     onClick={() => handleRating("facil")}
                     variant="outline"
-                    className="h-auto py-4 rounded-xl border-2 border-gray-300 text-green-700 hover:bg-green-50 hover:border-green-400 flex flex-col gap-2"
+                    className="h-auto py-4 rounded-xl border-2 border-border text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950 hover:border-green-400 flex flex-col gap-2"
                   >
                     <Smile className="w-6 h-6" />
                     <span className="font-semibold">Fácil</span>
-                    <span className="text-xs text-green-600">Revisar quando precisar</span>
+                    <span className="text-xs text-green-600 dark:text-green-400">Revisar quando precisar</span>
                   </Button>
                 </div>
               </motion.div>
@@ -312,8 +312,8 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
 
             {/* Next hint for front */}
             {cardState === "front" && (
-              <div className="sticky bottom-0 p-4 md:p-6 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-6 border-t border-gray-200 bg-white shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-10">
-                <p className="text-sm text-gray-600 text-center">
+              <div className="sticky bottom-0 p-4 md:p-6 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-6 border-t border-border bg-background shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-10">
+                <p className="text-sm text-muted-foreground text-center">
                   Vire o card para ver a resposta e avaliar sua compreensão
                 </p>
               </div>
@@ -337,8 +337,8 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
               </div>
             </motion.div>
 
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">Sessão Concluída!</h2>
-            <p className="text-gray-600 mb-8">Você revisou todos os flashcards</p>
+            <h2 className="text-3xl font-bold text-foreground mb-2">Sessão Concluída!</h2>
+            <p className="text-muted-foreground mb-8">Você revisou todos os flashcards</p>
 
             <div className="grid grid-cols-3 gap-6 w-full max-w-2xl mb-8">
               <motion.div
@@ -349,7 +349,7 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
               >
                 <Smile className="w-8 h-8 mx-auto mb-2 text-green-600" />
                 <p className="text-3xl font-bold text-green-700 mb-1">{stats.facil}</p>
-                <p className="text-sm text-gray-600">Fácil</p>
+                <p className="text-sm text-muted-foreground">Fácil</p>
               </motion.div>
 
               <motion.div
@@ -360,7 +360,7 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
               >
                 <Meh className="w-8 h-8 mx-auto mb-2 text-yellow-600" />
                 <p className="text-3xl font-bold text-yellow-700 mb-1">{stats.medio}</p>
-                <p className="text-sm text-gray-600">Médio</p>
+                <p className="text-sm text-muted-foreground">Médio</p>
               </motion.div>
 
               <motion.div
@@ -371,12 +371,12 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
               >
                 <Frown className="w-8 h-8 mx-auto mb-2 text-red-600" />
                 <p className="text-3xl font-bold text-red-700 mb-1">{stats.dificil}</p>
-                <p className="text-sm text-gray-600">Difícil</p>
+                <p className="text-sm text-muted-foreground">Difícil</p>
               </motion.div>
             </div>
 
-            <div className="glass rounded-2xl p-6 mb-8 max-w-2xl w-full border border-gray-200">
-              <h3 className="font-semibold text-gray-900 mb-3">Próximas Revisões</h3>
+            <div className="glass rounded-2xl p-6 mb-8 max-w-2xl w-full border border-border">
+              <h3 className="font-semibold text-foreground mb-3">Próximas Revisões</h3>
               <div className="space-y-2 text-sm">
                 {stats.dificil > 0 && (
                   <p className="text-red-700">
@@ -400,7 +400,7 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
               <Button
                 onClick={handleRestart}
                 variant="outline"
-                className="rounded-xl border-gray-300 hover:bg-gray-50 text-gray-700"
+                className="rounded-xl border-gray-300 hover:bg-muted text-muted-foreground"
               >
                 <RotateCw className="w-4 h-4 mr-2" />
                 Revisar Novamente

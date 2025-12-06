@@ -23,7 +23,7 @@ const AdminDashboard = lazy(() => import("./components/AdminDashboard").then(mod
 
 // Loading fallback component
 const LoadingFallback = () => (
-  <div className="min-h-screen bg-white flex items-center justify-center">
+  <div className="min-h-screen bg-background flex items-center justify-center">
     <Loader2 className="w-8 h-8 animate-spin text-[#0891B2]" />
   </div>
 );
@@ -93,7 +93,7 @@ export default function App() {
       <ThemeProvider>
         <LanguageProvider>
           <Navbar onAdminClick={handleAdminClick} />
-          <div className="min-h-screen bg-white pt-16">
+          <div className="min-h-screen bg-background pt-16">
             <Suspense fallback={<LoadingFallback />}>
               <Dashboard onSelectSubject={handleSelectProject} />
             </Suspense>
@@ -109,7 +109,7 @@ export default function App() {
       <ThemeProvider>
         <LanguageProvider>
           <Navbar onBackClick={handleBackToDashboard} onAdminClick={handleAdminClick} />
-          <div className="min-h-screen bg-white pt-16">
+          <div className="min-h-screen bg-background pt-16">
             <Suspense fallback={<LoadingFallback />}>
               <AdminDashboard />
             </Suspense>
@@ -144,7 +144,7 @@ export default function App() {
             </>
           ) : (
             // Layout desktop com 3 colunas
-            <div className="min-h-screen bg-white">
+            <div className="min-h-screen bg-background">
               <Navbar
                 onBackClick={handleBackToDashboard}
                 projectName={projectName}

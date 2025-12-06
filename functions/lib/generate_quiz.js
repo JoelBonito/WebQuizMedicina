@@ -24,26 +24,32 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.generate_quiz = void 0;
-const functions = __importStar(require("firebase-functions"));
+const https_1 = require("firebase-functions/v2/https");
 const admin = __importStar(require("firebase-admin"));
 const validation_1 = require("./shared/validation");
 const gemini_1 = require("./shared/gemini");
 const token_usage_1 = require("./shared/token_usage");
 const modelSelector_1 = require("./shared/modelSelector");
+const language_helper_1 = require("./shared/language_helper");
 // Initialize Firebase Admin if not already initialized
 if (!admin.apps.length) {
     admin.initializeApp();
 }
 const db = admin.firestore();
-exports.generate_quiz = functions.https.onCall(async (data, context) => {
+exports.generate_quiz = (0, https_1.onCall)({
+    timeoutSeconds: 540,
+    memory: "1GiB",
+    region: "us-central1"
+}, async (request) => {
     // 1. Auth Check
-    if (!context.auth) {
-        throw new functions.https.HttpsError("unauthenticated", "User must be authenticated");
+    if (!request.auth) {
+        throw new https_1.HttpsError("unauthenticated", "User must be authenticated");
     }
-    // const userId = context.auth.uid;
+    // 2. Get user's language preference
+    const language = await (0, language_helper_1.getLanguageFromRequest)(request.data, db, request.auth.uid);
     try {
-        // 2. Validation
-        const { source_ids, project_id, count, difficulty } = (0, validation_1.validateRequest)(data, validation_1.generateQuizSchema);
+        // 3. Validation
+        const { source_ids, project_id, count, difficulty } = (0, validation_1.validateRequest)(request.data, validation_1.generateQuizSchema);
         // 3. Fetch Content (Sources)
         let sources = [];
         if (source_ids && source_ids.length > 0) {
@@ -61,12 +67,12 @@ exports.generate_quiz = functions.https.onCall(async (data, context) => {
             sources = sourcesSnapshot.docs.map(doc => (Object.assign({ id: doc.id }, doc.data())));
         }
         if (sources.length === 0) {
-            throw new functions.https.HttpsError("not-found", "No sources found");
+            throw new https_1.HttpsError("not-found", "No sources found");
         }
         // Validate content availability
         const sourcesWithContent = sources.filter(s => s.extracted_content && s.extracted_content.trim());
         if (sourcesWithContent.length === 0) {
-            throw new functions.https.HttpsError("failed-precondition", "Sources found but no content available.");
+            throw new https_1.HttpsError("failed-precondition", "Sources found but no content available.");
         }
         // 4. Prepare Content for AI
         let combinedContent = "";
@@ -82,7 +88,7 @@ exports.generate_quiz = functions.https.onCall(async (data, context) => {
             combinedContent = combinedContent.substring(0, MAX_CONTENT_LENGTH);
         }
         if (!combinedContent.trim()) {
-            throw new functions.https.HttpsError("failed-precondition", "No content available for generation");
+            throw new https_1.HttpsError("failed-precondition", "No content available for generation");
         }
         // 5. Generate Quiz
         // Simplified batching for now (single batch)
@@ -111,7 +117,7 @@ REGRAS DE FORMATO (Rígidas):
 REGRAS PARA A JUSTIFICATIVA (Obrigatório):
 Quero uma justificativa CURTA que valide a resposta certa usando o texto fornecido.
 1. CITE A FONTE: Comece frases com "Segundo o texto...", "O material indica que...".
-2. TRADUZA: Se o conteúdo base estiver em inglês, a justificativa DEVE ser em PORTUGUÊS.
+2. ${(0, language_helper_1.getLanguageInstruction)(language)}
 3. CONCISÃO: Máximo de 2 a 3 frases.
 
 ${(difficulty && difficulty !== 'misto') ? `DIFICULDADE: TODAS as questões devem ser de nível "${difficulty}".` : 'DIFICULDADE: Varie o nível de dificuldade das questões entre fácil, médio e difícil.'}
@@ -154,7 +160,7 @@ FORMATO JSON (OBRIGATÓRIO - SEM MARKDOWN):
         }
         const parsed = (0, gemini_1.parseJsonFromResponse)(result.text);
         if (!parsed.perguntas || !Array.isArray(parsed.perguntas)) {
-            throw new functions.https.HttpsError("internal", "Failed to generate valid questions format");
+            throw new https_1.HttpsError("internal", "Failed to generate valid questions format");
         }
         // 6. Save Questions to Firestore
         const validTypes = ["multipla_escolha", "verdadeiro_falso", "citar", "caso_clinico", "completar"];
@@ -167,7 +173,7 @@ FORMATO JSON (OBRIGATÓRIO - SEM MARKDOWN):
             const questionRef = questionsCollection.doc();
             const newQuestion = {
                 project_id: project_id || sources[0].project_id,
-                user_id: context.auth.uid,
+                user_id: request.auth.uid,
                 source_id: (source_ids && source_ids.length === 1) ? source_ids[0] : null,
                 session_id: sessionId,
                 tipo: tipo,
@@ -185,7 +191,7 @@ FORMATO JSON (OBRIGATÓRIO - SEM MARKDOWN):
         }
         await batch.commit();
         // 7. Log Token Usage
-        await (0, token_usage_1.logTokenUsage)(context.auth.uid, project_id || sources[0].project_id, "quiz", result.usage.inputTokens, result.usage.outputTokens, modelName, // Log the actual model used
+        await (0, token_usage_1.logTokenUsage)(request.auth.uid, project_id || sources[0].project_id, "quiz", result.usage.inputTokens, result.usage.outputTokens, modelName, // Log the actual model used
         { count, difficulty, source_count: sources.length });
         return {
             success: true,
@@ -196,10 +202,10 @@ FORMATO JSON (OBRIGATÓRIO - SEM MARKDOWN):
     }
     catch (error) {
         console.error("Error in generate_quiz:", error);
-        if (error instanceof functions.https.HttpsError) {
+        if (error instanceof https_1.HttpsError) {
             throw error;
         }
-        throw new functions.https.HttpsError("internal", error.message);
+        throw new https_1.HttpsError("internal", error.message);
     }
 });
 //# sourceMappingURL=generate_quiz.js.map

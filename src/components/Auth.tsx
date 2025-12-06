@@ -87,7 +87,7 @@ export function Auth() {
           </div>
         </div>
 
-        <Card className="glass-dark border-gray-200 shadow-2xl">
+        <Card className="glass-dark border-border shadow-2xl">
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Bem-vindo</CardTitle>
             <CardDescription className="text-xs">
@@ -219,7 +219,7 @@ export function Auth() {
                 <div className="w-full border-t border-gray-300" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white px-2 text-gray-500">Ou</span>
+                <span className="bg-background px-2 text-gray-500">Ou</span>
               </div>
             </div>
 
@@ -264,7 +264,7 @@ export function Auth() {
           </CardContent>
         </Card>
 
-        <p className="text-center text-[10px] text-gray-600 mt-3">
+        <p className="text-center text-[10px] text-muted-foreground mt-3">
           Desenvolvido com ❤️ para potencializar seus estudos
         </p>
       </motion.div>

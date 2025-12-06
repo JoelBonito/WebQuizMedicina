@@ -88,7 +88,7 @@ export function StarProgress({ consecutiveCorrect, showBadge }: StarProgressProp
                     );
                 })}
             </div>
-            <span className="text-xs font-medium text-gray-600">
+            <span className="text-xs font-medium text-muted-foreground">
                 {consecutiveCorrect}/3
             </span>
         </div>

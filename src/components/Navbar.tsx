@@ -1,5 +1,5 @@
-import { ArrowLeft, LogOut, User, BookOpen, Shield } from "lucide-react";
-import { Avatar, AvatarFallback } from "./ui/avatar";
+import { ArrowLeft, LogOut, User, BookOpen, Shield, Palette } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Button } from "./ui/button";
 import { useAuth } from "../hooks/useAuth";
 import { useProfile } from "../hooks/useProfile";
@@ -13,6 +13,7 @@ import {
 } from "./ui/dropdown-menu";
 import { Logo } from "./Logo";
 import { ProfileSettings } from "./ProfileSettings";
+import { ThemeSettings } from "./ThemeSettings";
 import { useState } from "react";
 
 interface NavbarProps {
@@ -25,6 +26,7 @@ export function Navbar({ onBackClick, projectName, onAdminClick }: NavbarProps) 
   const { user, signOut } = useAuth();
   const { profile } = useProfile();
   const [profileOpen, setProfileOpen] = useState(false);
+  const [themeOpen, setThemeOpen] = useState(false);
 
   // Debug: log profile data
   // console.log('[Navbar] Profile data:', profile);
@@ -44,17 +46,40 @@ export function Navbar({ onBackClick, projectName, onAdminClick }: NavbarProps) 
   };
 
   const getUserInitials = () => {
-    if (!user?.email) return "US";
-    return user.email.substring(0, 2).toUpperCase();
+    // 1. Prioridade: Profile Display Name (Configurado pelo usuário)
+    if (profile?.display_name) {
+      return profile.display_name
+        .split(' ')
+        .map((n) => n[0])
+        .slice(0, 2)
+        .join('')
+        .toUpperCase();
+    }
+
+    // 2. Fallback: Email (Auth)
+    if (user?.email) {
+      return user.email.substring(0, 2).toUpperCase();
+    }
+
+    return "US";
   };
 
   const getUserName = () => {
-    if (!user?.email) return "Usuário";
-    return user.email.split("@")[0];
+    // 1. Prioridade: Profile Display Name
+    if (profile?.display_name) {
+      return profile.display_name;
+    }
+
+    // 2. Fallback: Email
+    if (user?.email) {
+      return user.email.split("@")[0];
+    }
+
+    return "Usuário";
   };
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 h-16 glass border-b border-gray-200">
+    <nav className="fixed top-0 left-0 right-0 z-50 h-16 bg-card/80 backdrop-blur-md border-b border-border">
       <div className="h-full px-6 flex items-center justify-between">
         {/* Logo and Project Name */}
         <div className="flex items-center gap-3">
@@ -63,9 +88,9 @@ export function Navbar({ onBackClick, projectName, onAdminClick }: NavbarProps) 
               variant="ghost"
               size="icon"
               onClick={onBackClick}
-              className="rounded-xl hover:bg-gray-100"
+              className="rounded-xl hover:bg-muted"
             >
-              <ArrowLeft className="w-5 h-5 text-gray-700" />
+              <ArrowLeft className="w-5 h-5 text-muted-foreground" />
             </Button>
           )}
           <div className="flex items-center gap-3">
@@ -74,9 +99,9 @@ export function Navbar({ onBackClick, projectName, onAdminClick }: NavbarProps) 
               className="h-12 w-auto"
             />
             {projectName && (
-              <div className="flex items-center gap-2 ml-2 border-l-2 border-gray-200 pl-4 h-8">
-                <BookOpen className="w-4 h-4 text-gray-400" />
-                <span className="text-gray-900 italic font-medium text-lg">{projectName}</span>
+              <div className="flex items-center gap-2 ml-2 border-l-2 border-border pl-4 h-8">
+                <BookOpen className="w-4 h-4 text-muted-foreground" />
+                <span className="text-foreground italic font-medium text-lg">{projectName}</span>
               </div>
             )}
           </div>
@@ -88,27 +113,29 @@ export function Navbar({ onBackClick, projectName, onAdminClick }: NavbarProps) 
         <div className="flex items-center gap-3">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="flex items-center gap-3 p-1 rounded-xl hover:bg-gray-50 transition-colors">
-                <Avatar className="w-10 h-10 ring-2 ring-[#0891B2] ring-offset-2 ring-offset-white">
+              <button className="flex items-center gap-3 p-1 rounded-xl hover:bg-muted transition-colors">
+                <Avatar className="w-10 h-10 ring-2 ring-[#0891B2] ring-offset-2 ring-offset-background">
+                  {profile?.avatar_url && <AvatarImage src={profile.avatar_url} alt={getUserName()} className="object-cover" />}
                   <AvatarFallback className="bg-gradient-to-br from-[#0891B2] to-[#7CB342] text-white font-semibold">
                     {getUserInitials()}
                   </AvatarFallback>
                 </Avatar>
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64 rounded-xl bg-white">
+            <DropdownMenuContent align="end" className="w-64 rounded-xl bg-card border-border">
               {/* User Info Header */}
-              <div className="flex items-center gap-3 px-3 py-3 border-b border-gray-200">
+              <div className="flex items-center gap-3 px-3 py-3 border-b border-border">
                 <Avatar className="w-12 h-12 ring-2 ring-[#0891B2]">
+                  {profile?.avatar_url && <AvatarImage src={profile.avatar_url} alt={getUserName()} className="object-cover" />}
                   <AvatarFallback className="bg-gradient-to-br from-[#0891B2] to-[#7CB342] text-white font-semibold">
                     {getUserInitials()}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-900 truncate">
+                  <p className="text-sm font-semibold text-foreground truncate">
                     {getUserName()}
                   </p>
-                  <p className="text-xs text-gray-500 truncate">
+                  <p className="text-xs text-muted-foreground truncate">
                     {user?.email}
                   </p>
                 </div>
@@ -117,8 +144,13 @@ export function Navbar({ onBackClick, projectName, onAdminClick }: NavbarProps) 
               {/* Menu Items */}
               <div className="py-1 px-2">
                 <DropdownMenuItem onClick={() => setProfileOpen(true)} className="cursor-pointer rounded-lg">
-                  <User className="w-4 h-4 mr-2 text-gray-600" />
-                  <span className="text-gray-700">Perfil</span>
+                  <User className="w-4 h-4 mr-2 text-muted-foreground" />
+                  <span className="text-muted-foreground">Perfil</span>
+                </DropdownMenuItem>
+
+                <DropdownMenuItem onClick={() => setThemeOpen(true)} className="cursor-pointer rounded-lg">
+                  <Palette className="w-4 h-4 mr-2 text-muted-foreground" />
+                  <span className="text-muted-foreground">Aparência</span>
                 </DropdownMenuItem>
 
                 {/* Admin Button - Only visible for admins */}
@@ -147,8 +179,9 @@ export function Navbar({ onBackClick, projectName, onAdminClick }: NavbarProps) 
         </div>
       </div>
 
-      {/* Settings Dialog */}
+      {/* Settings Dialogs */}
       <ProfileSettings open={profileOpen} onOpenChange={setProfileOpen} />
+      <ThemeSettings open={themeOpen} onOpenChange={setThemeOpen} />
     </nav>
   );
 }

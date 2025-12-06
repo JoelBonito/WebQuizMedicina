@@ -323,14 +323,14 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
           <div className="flex items-center gap-2">
             <button
               onClick={handleCollapseAll}
-              className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded-md transition-colors"
+              className="p-1.5 text-gray-400 hover:text-white hover:bg-accent rounded-md transition-colors"
               title="Colapsar Tudo"
             >
               <Minimize2 size={18} />
             </button>
             <button
               onClick={handleExpandAll}
-              className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded-md transition-colors"
+              className="p-1.5 text-gray-400 hover:text-white hover:bg-accent rounded-md transition-colors"
               title="Expandir Tudo"
             >
               <Maximize2 size={18} />
@@ -342,7 +342,7 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
       <div className="flex-1 overflow-hidden bg-[#1a1a1a] relative touch-none">
         {isRendering && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-20">
-            <Loader2 className="w-8 h-8 animate-spin text-[#A78BFA]" />
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
         )}
         <svg ref={svgRef} className="w-full h-full block markmap" />
