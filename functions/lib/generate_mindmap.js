@@ -24,7 +24,6 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.generate_mindmap = void 0;
-const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
 const https_1 = require("firebase-functions/v2/https");
 const gemini_1 = require("./shared/gemini");
@@ -33,17 +32,20 @@ const sanitization_1 = require("./shared/sanitization");
 const validation_1 = require("./shared/validation");
 const token_usage_1 = require("./shared/token_usage");
 const modelSelector_1 = require("./shared/modelSelector");
-const db = admin.firestore();
+const language_helper_1 = require("./shared/language_helper");
 exports.generate_mindmap = (0, https_1.onCall)({
     timeoutSeconds: 300,
     memory: "1GiB",
     region: "us-central1",
     cors: true,
 }, async (request) => {
+    const db = admin.firestore();
     try {
         if (!request.auth) {
-            throw new functions.https.HttpsError("unauthenticated", "User must be authenticated");
+            throw new https_1.HttpsError("unauthenticated", "User must be authenticated");
         }
+        // Get user's language preference
+        const language = await (0, language_helper_1.getLanguageFromRequest)(request.data, db, request.auth.uid);
         const { source_ids, project_id, tipo } = (0, validation_1.validateRequest)(request.data, validation_1.generateMindmapSchema);
         const userId = request.auth.uid;
         // 1. Fetch Sources
@@ -83,7 +85,7 @@ exports.generate_mindmap = (0, https_1.onCall)({
             });
         }
         if (sources.length === 0) {
-            throw new functions.https.HttpsError("not-found", "No sources found");
+            throw new https_1.HttpsError("not-found", "No sources found");
         }
         const finalSourceIds = sources.map(s => s.id);
         let combinedContent = '';
@@ -95,50 +97,53 @@ exports.generate_mindmap = (0, https_1.onCall)({
         }
         console.log(`🗺️ [MindMap] Combined ${sources.length} sources: ${combinedContent.length} chars`);
         if (!combinedContent.trim()) {
-            throw new functions.https.HttpsError("failed-precondition", "No content available to generate mind map");
+            throw new https_1.HttpsError("failed-precondition", "No content available to generate mind map");
         }
         // 2. Token Calculation
         const inputTokens = (0, output_limits_1.estimateTokens)(combinedContent);
-        const safeOutputTokens = (0, output_limits_1.calculateSafeOutputTokens)(combinedContent, 60000);
-        console.log(`🗺️ [MindMap] Input: ~${inputTokens} tokens, Safe output: ${safeOutputTokens} tokens`);
+        console.log(`🗺️ [MindMap] Input: ~${inputTokens} tokens, Output limit: 32768 tokens`);
         // 3. The Improved Prompt with Standard Markdown Rules
-        const prompt = `Você é um especialista em didática médica. Crie um MAPA MENTAL completo e detalhado com base no conteúdo fornecido.
+        const prompt = `You are an expert in medical didactics. Create a COMPLETE and DETAILED MIND MAP based on the provided content.
 
-CONTEÚDO:
+${(0, language_helper_1.getLanguageInstruction)(language)}
+
+CONTENT:
 ${combinedContent}
 
-INSTRUÇÕES TÉCNICAS (CRÍTICO - SIGA EXATAMENTE):
- 
- 1. **FORMATO JSON OBRIGATÓRIO**: 
-    - Sua resposta DEVE ser APENAS um objeto JSON válido
-    - Campos obrigatórios: "titulo" (string) e "markdown" (string)
-    - Nada antes ou depois do JSON (NÃO use \`\`\`json)
+TECHNICAL INSTRUCTIONS (CRITICAL - FOLLOW EXACTLY):
 
-2. **ESTRUTURA MARKDOWN (Markmap)**:
-   - Use a sintaxe padrão de Markdown para listas hierárquicas.
-   - O nó raiz deve ser um título H1 (# Título).
-   - Os ramos principais devem ser títulos H2 (## Ramo).
-   - Os sub-ramos podem ser H3 (###) ou listas com hifens (-).
-   - Use **negrito** para ênfase.
-   - Use *itálico* para detalhes secundários.
+ 1. **MANDATORY JSON FORMAT**: 
+    - Your response MUST be ONLY a valid JSON object
+    - Required fields: "titulo" (string) and "markdown" (string)
+    - Nothing before or after the JSON (do NOT use \`\`\`json)
+    - If the user language is English, title should be "title", if Portuguese "titulo". Or just use "titulo" as key and translate the value. Let's keep "titulo" as key for compatibility.
 
-3. **HIERARQUIA E PROFUNDIDADE**:
-   - Crie uma estrutura profunda (pelo menos 3-4 níveis).
-   - Use listas aninhadas para detalhar conceitos.
-   - Exemplo:
-     # Insuficiência Cardíaca
-     ## Fisiopatologia
-     - Disfunção Sistólica
-       - Fração de Ejeção < 40%
-     - Disfunção Diastólica
-     ## Sintomas
-     - Congestivos
-       - Dispneia
+2. **MARKDOWN STRUCTURE (Markmap)**:
+   - Use standard Markdown syntax for hierarchical lists.
+   - The root node must be an H1 title (# Title).
+   - Main branches must be H2 titles (## Branch).
+   - Sub-branches can be H3 (###) or hyphen lists (-).
+   - Use **bold** for emphasis.
+   - Use *itálics* for secondary details.
+
+3. **HIERARCHY AND DEPTH**:
+   - Create a deep structure (at least 3-4 levels).
+   - Use nested lists to detail concepts.
+   - Example:
+     # Heart Failure
+     ## Pathophysiology
+     - Systolic Dysfunction
+       - Ejection Fraction < 40%
+     - Diastolic Dysfunction
+     ## Symptoms
+     - Congestive
+       - Dyspnea
        - Edema
 
-4. **CARACTERES PERMITIDOS**:
-   - Use UTF-8 completo (acentos permitidos).
-   - Pode usar emojis para ilustrar tópicos principais.
+4. **ALLOWED CHARACTERS**:
+   - Use full UTF-8 (accents allowed).
+   - You can use emojis to illustrate main topics.
+   - ${(0, language_helper_1.getLanguageInstruction)(language)}
 
 EXEMPLO DO JSON ESPERADO:
 {
@@ -154,7 +159,8 @@ Gere o JSON agora, garantindo que o campo "markdown" contenha uma string válida
         console.log(`🤖 Using model: ${modelName} for mindmap generation`);
         let result;
         try {
-            result = await (0, gemini_1.callGeminiWithUsage)(prompt, modelName, safeOutputTokens, true // JSON mode
+            result = await (0, gemini_1.callGeminiWithUsage)(prompt, modelName, 32768, // Increased for large mindmaps
+            true // JSON mode
             );
         }
         catch (error) {
@@ -163,7 +169,7 @@ Gere o JSON agora, garantindo que o campo "markdown" contenha uma string válida
                 console.warn('⚠️ Primary model failed, trying fallback...');
                 const fallbackModel = 'gemini-flash-latest'; // Safe fallback
                 console.log(`🤖 Using fallback model: ${fallbackModel}`);
-                result = await (0, gemini_1.callGeminiWithUsage)(prompt, fallbackModel, safeOutputTokens, true);
+                result = await (0, gemini_1.callGeminiWithUsage)(prompt, fallbackModel, 32768, true);
             }
             else {
                 throw error;
@@ -174,7 +180,7 @@ Gere o JSON agora, garantindo que o campo "markdown" contenha uma string válida
         const parsed = (0, gemini_1.parseJsonFromResponse)(result.text);
         if (!parsed.titulo || (!parsed.markdown && !parsed.mermaid)) {
             console.error('Invalid AI Response:', result.text.substring(0, 200));
-            throw new functions.https.HttpsError("internal", "Invalid response format from AI");
+            throw new https_1.HttpsError("internal", "Invalid response format from AI");
         }
         // Handle legacy mermaid field if model hallucinates it, but prefer markdown
         let contentMarkdown = parsed.markdown;
@@ -204,7 +210,7 @@ Gere o JSON agora, garantindo que o campo "markdown" contenha uma string válida
     }
     catch (error) {
         console.error("❌ Error generating mind map:", error);
-        throw new functions.https.HttpsError("internal", error.message || "Failed to generate mind map");
+        throw new https_1.HttpsError("internal", error.message || "Failed to generate mind map");
     }
 });
 //# sourceMappingURL=generate_mindmap.js.map

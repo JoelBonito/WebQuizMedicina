@@ -7,12 +7,28 @@ import { logTokenUsage } from "./shared/token_usage";
 import { getModelSelector } from "./shared/modelSelector";
 import { getLanguageFromRequest, getLanguageInstruction } from "./shared/language_helper";
 
-// Initialize Firebase Admin if not already initialized
-if (!admin.apps.length) {
-  admin.initializeApp();
+/**
+ * Generate the summary title based on the user's language preference
+ */
+function getSummaryTitle(language: string): string {
+  const date = new Date();
+  const titles: Record<string, string> = {
+    "pt": `Resumo Gerado em ${date.toLocaleDateString('pt-BR')}`,
+    "pt-PT": `Resumo Gerado em ${date.toLocaleDateString('pt-PT')}`,
+    "en": `Summary Generated on ${date.toLocaleDateString('en-US')}`,
+    "es": `Resumen Generado el ${date.toLocaleDateString('es-ES')}`,
+    "fr": `Résumé Généré le ${date.toLocaleDateString('fr-FR')}`,
+    "de": `Zusammenfassung erstellt am ${date.toLocaleDateString('de-DE')}`,
+    "it": `Riepilogo Generato il ${date.toLocaleDateString('it-IT')}`,
+    "ja": `${date.toLocaleDateString('ja-JP')}に生成された要約`,
+    "zh": `生成于 ${date.toLocaleDateString('zh-CN')} 的摘要`,
+    "ru": `Резюме создано ${date.toLocaleDateString('ru-RU')}`,
+    "ar": `ملخص تم إنشاؤه في ${date.toLocaleDateString('ar-SA')}`
+  };
+
+  return titles[language] || titles["en"]; // Default to English
 }
 
-const db = admin.firestore();
 
 const generateSummarySchema = z.object({
   source_ids: z.array(z.string().min(1)).min(1),
@@ -24,6 +40,7 @@ export const generate_summary = onCall({
   memory: "1GiB",
   region: "us-central1"
 }, async (request) => {
+  const db = admin.firestore();
   // 1. Auth Check
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "User must be authenticated");
@@ -64,84 +81,88 @@ export const generate_summary = onCall({
     }
 
     // 4. Generate Summary
+    // 4. Generate Summary
     const prompt = `
-Você é um professor médico SÊNIOR e MENTOR ACADÊMICO de elite.
-Sua tarefa é criar o "RESUMO DEFINITIVO" (Master Summary) a partir do material fornecido.
+${getLanguageInstruction(language)}
 
-🚨 INSTRUÇÃO CRÍTICA DE ABRANGÊNCIA:
-O usuário relatou que resumos anteriores ignoraram quase metade do conteúdo. ISSO É INACEITÁVEL.
-Você deve agir como um auditor rigoroso:
-1. Primeiro, LEIA TODO O CONTEÚDO fornecido.
-2. Liste mentalmente TODOS os tópicos, subtópicos e conceitos apresentados em TODAS as fontes.
-3. Se o material tem 10 tópicos, seu resumo DEVE ter 10 seções principais. Não agrupe excessivamente a ponto de perder detalhes.
-4. Identifique a origem de cada tópico (ex: "Do material sobre Cardiologia...").
+You are an elite SENIOR MEDICAL PROFESSOR and ACADEMIC MENTOR.
+Your task is to create the "MASTER SUMMARY" (Definitive Summary) from the provided material.
 
-CONTEÚDO BASE:
+🚨 CRITICAL COMPREHENSIVENESS INSTRUCTION:
+Users reported that previous summaries ignored almost half the content. THIS IS UNACCEPTABLE.
+You must act as a rigorous auditor:
+1. First, READ ALL PROVIDED CONTENT.
+2. List mentally ALL topics, subtopics, and concepts presented in ALL sources.
+3. If the material has 10 topics, your summary MUST have 10 main sections. Do not group excessively to the point of losing details.
+4. Identify the origin of each topic (e.g., "From the Cardiology material...").
+
+BASE CONTENT:
 ${combinedContent}
 
 ---
 
-ESTRUTURA OBRIGATÓRIA DO RESUMO (HTML):
+MANDATORY SUMMARY STRUCTURE (HTML):
+Return ONLY valid HTML inside a div.
 
 <div class="master-summary">
   <div class="summary-header">
-    <h1>📚 Resumo Mestre Completo</h1>
-    <p class="subtitle">Análise profunda e exaustiva de todo o material de estudo</p>
+    <h1>📚 ${language === 'pt' ? 'Resumo Mestre Completo' : (language === 'fr' ? 'Résumé Maître Complet' : 'Master Summary')}</h1>
+    <p class="subtitle">${language === 'pt' ? 'Análise profunda e exaustiva' : (language === 'fr' ? 'Analyse approfondie et exhaustive' : 'Deep and exhaustive analysis')}</p>
   </div>
 
-  <!-- INTRODUÇÃO GERAL -->
+  <!-- GENERAL INTRO -->
   <section class="intro-section">
-    <h2>Visão Geral</h2>
-    <p>[Parágrafo introdutório integrando os temas abordados nas fontes]</p>
+    <h2>Overview</h2>
+    <p>[Introductory paragraph integrating themes covered in sources]</p>
   </section>
 
-  <!-- PARA CADA TÓPICO ENCONTRADO (SEM EXCEÇÃO) -->
-  <!-- Crie uma section separada para cada grande tema identificado -->
+  <!-- FOR EACH TOPIC FOUND (NO EXCEPTION) -->
   <section class="topic-section">
     <div class="topic-header">
-      <h2>[Nome do Tópico Principal]</h2>
-      <span class="topic-source">Fonte: [Nome do arquivo ou contexto]</span>
+      <h2>[Main Topic Name]</h2>
+      <span class="topic-source">Source: [File name or context]</span>
     </div>
 
     <div class="deep-dive">
-      <h3>🔍 Análise Aprofundada</h3>
-      <p>[Explicação detalhada, nível acadêmico/profissional. Mínimo 3 parágrafos robustos.]</p>
-      <p>[Não seja superficial. Explique fisiopatologia, mecanismos, "porquês" e nuances.]</p>
-      <p>[Use termos técnicos corretos, mas explique-os de forma didática.]</p>
+      <h3>🔍 Deep Analysis</h3>
+      <p>[Detailed explanation, academic/professional level. At least 3 robust paragraphs.]</p>
+      <p>[Do not be superficial. Explain pathophysiology, mechanisms, "whys" and nuances.]</p>
+      <p>[Use correct technical terms, but explain them didactically.]</p>
     </div>
 
-    <!-- Se houver classificações, critérios ou listas no texto original, inclua aqui -->
+    <!-- If there are classifications, criteria or lists in the original text, include here -->
     <div class="structured-content">
-       <h3>📋 Classificações e Critérios</h3>
+       <h3>📋 Classifications & Criteria</h3>
        <ul>
-         <li><strong>[Item]:</strong> [Descrição detalhada]</li>
+         <li><strong>[Item]:</strong> [Detailed description]</li>
        </ul>
     </div>
 
     <div class="analogy">
-      <h3>💡 Analogia ou Exemplo Prático</h3>
-      <p>[Uma analogia didática ou caso clínico curto para ilustrar o conceito]</p>
+       <h3>💡 Analogy or Practical Example</h3>
+       <p>[A didactic analogy or short clinical case to illustrate the concept]</p>
     </div>
 
     <div class="clinical-pearls">
-      <h3>💎 Pérolas Clínicas & Prática</h3>
+      <h3>💎 Clinical Pearls & Practice</h3>
       <ul>
-        <li><strong>[Sinal/Sintoma]:</strong> [O que buscar no exame físico]</li>
-        <li><strong>[Alerta]:</strong> [Red flags ou erros comuns]</li>
-        <li><strong>[Conduta]:</strong> [Pontos chave sobre manejo/diagnóstico citados no texto]</li>
+        <li><strong>[Sign/Symptom]:</strong> [What to look for in physical exam]</li>
+        <li><strong>[Alert]:</strong> [Red flags or common mistakes]</li>
+        <li><strong>[Conduct]:</strong> [Key points on management/diagnosis cited in text]</li>
       </ul>
     </div>
   </section>
 
-  <!-- CONCLUSÃO -->
+  <!-- CONCLUSION -->
   <section class="conclusion-section">
-    <h2>🚀 Síntese Final</h2>
-    <p>[Conclusão integradora]</p>
+    <h2>🚀 Final Synthesis</h2>
+    <p>[Integrating conclusion]</p>
   </section>
 </div>
 
-REGRAS DE OURO:
-1. **TOLERÂNCIA ZERO PARA OMISSÕES:** Se está no texto, deve estar no resumo. Varra o texto do início ao fim.
+GOLDEN RULES:
+1. **ZERO TOLERANCE FOR OMISSIONS:** If it's in the text, it must be in the summary. Scan text from start to finish.
+2. ${getLanguageInstruction(language)}
 2. **PROFUNDIDADE:** Explicações de 1 parágrafo são proibidas para tópicos principais. Desenvolva o raciocínio.
 3. **FIDELIDADE:** Mantenha a terminologia técnica correta.
 4. **FORMATO:** HTML limpo, use as classes CSS indicadas.
@@ -158,14 +179,14 @@ Gere o HTML agora.
 
     let result;
     try {
-      result = await callGeminiWithUsage(prompt, modelName, 16384, false);
+      result = await callGeminiWithUsage(prompt, modelName, 32768, false);
     } catch (error: any) {
       // 🔄 FALLBACK AUTOMÁTICO se o modelo falhar
       if (error.status === 404 || error.message.includes('not found')) {
         console.warn('⚠️ Primary model failed, trying fallback...');
         const fallbackModel = 'gemini-flash-latest'; // Safe fallback
         console.log(`🤖 Using fallback model: ${fallbackModel}`);
-        result = await callGeminiWithUsage(prompt, fallbackModel, 8192, false);
+        result = await callGeminiWithUsage(prompt, fallbackModel, 32768, false);
       } else {
         throw error;
       }
@@ -175,7 +196,7 @@ Gere o HTML agora.
     const summaryData = {
       project_id,
       user_id: request.auth.uid,
-      titulo: `Resumo Gerado em ${new Date().toLocaleDateString('pt-BR')}`,
+      titulo: getSummaryTitle(language),
       conteudo_html: result.text,
       created_at: admin.firestore.FieldValue.serverTimestamp(),
       type: 'general', // Added type for consistency

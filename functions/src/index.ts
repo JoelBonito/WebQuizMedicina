@@ -1,7 +1,9 @@
 import * as admin from "firebase-admin";
 
 // Initialize Firebase Admin SDK once
-admin.initializeApp();
+if (!admin.apps.length) {
+    admin.initializeApp();
+}
 
 // Export functions
 export { generate_quiz } from "./generate_quiz";

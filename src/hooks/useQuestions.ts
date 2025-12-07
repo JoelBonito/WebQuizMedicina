@@ -3,6 +3,7 @@ import { db, functions } from '../lib/firebase';
 import { collection, query, where, orderBy, getDocs, onSnapshot } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { useAuth } from './useAuth';
+import { useProfile } from './useProfile';
 import { CONTENT_REFRESH_EVENT } from '../lib/events';
 
 export interface Question {
@@ -24,6 +25,7 @@ export interface Question {
 
 export const useQuestions = (projectId: string | null) => {
   const { user } = useAuth();
+  const { profile } = useProfile();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -98,7 +100,8 @@ export const useQuestions = (projectId: string | null) => {
         source_ids,
         project_id: projectId,
         count,
-        difficulty: difficulty || 'misto'
+        difficulty: difficulty || 'misto',
+        language: profile?.response_language || 'pt'
       };
       console.log('📤 [useQuestions] Dados enviados para generate_quiz:', payload);
 
@@ -132,7 +135,8 @@ export const useQuestions = (projectId: string | null) => {
         project_id: projectId,
         difficulties,
         count,
-        difficulty
+        difficulty,
+        language: profile?.response_language || 'pt'
       });
 
       return result.data;

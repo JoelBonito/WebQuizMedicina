@@ -4,6 +4,7 @@ import { MessageSquare, Star, ZoomIn, ZoomOut, Palette } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useHighlights, HighlightColor } from "../hooks/useHighlights";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 interface SummaryViewerProps {
   html: string;
@@ -30,6 +31,7 @@ export function SummaryViewer({ html, summaryId, projectId, onAskChat, onHighlig
   const contentRef = useRef<HTMLDivElement>(null);
   const originalHtmlRef = useRef<string>(html);
   const selectionRangeRef = useRef<Range | null>(null);
+  const { t } = useTranslation();
 
   const { highlights, addHighlight, removeHighlight } = useHighlights(summaryId, projectId);
 
@@ -91,10 +93,10 @@ export function SummaryViewer({ html, summaryId, projectId, onAskChat, onHighlig
 
             // Remove do Firestore (em background)
             await removeHighlight(highlightId);
-            toast.success("Marcação removida");
+            toast.success(t('summary.highlightRemoved'));
           } catch (error) {
             console.error('Error removing highlight:', error);
-            toast.error("Erro ao remover marcação");
+            toast.error(t('summary.errorRemoveHighlight'));
             // Em caso de erro, força refresh do Firestore
             const highlightedHtml = applyHighlightsToHtml(originalHtmlRef.current);
             setRenderedHtml(highlightedHtml);
@@ -254,14 +256,15 @@ export function SummaryViewer({ html, summaryId, projectId, onAskChat, onHighlig
         setRenderedHtml(newHtml);
       }
 
-      toast.success(`Texto marcado com ${HIGHLIGHT_COLORS.find(c => c.color === color)?.label}`);
+      const colorLabel = HIGHLIGHT_COLORS.find(c => c.color === color)?.label;
+      toast.success(t('summary.highlightAdded', { color: colorLabel }));
 
       setShowPopover(false);
       setShowColorPicker(false);
       window.getSelection()?.removeAllRanges();
     } catch (error) {
       console.error('Error adding highlight:', error);
-      toast.error("Erro ao marcar texto");
+      toast.error(t('summary.errorHighlight'));
     }
   };
 
@@ -329,7 +332,7 @@ export function SummaryViewer({ html, summaryId, projectId, onAskChat, onHighlig
                   className="rounded-lg bg-gradient-to-r from-primary to-accent hover:from-primary hover:to-accent text-white shadow-lg text-xs"
                 >
                   <MessageSquare className="w-3 h-3 mr-1" />
-                  Perguntar ao Chat
+                  {t('summary.askChat')}
                 </Button>
               )}
 
@@ -342,7 +345,7 @@ export function SummaryViewer({ html, summaryId, projectId, onAskChat, onHighlig
                 className="rounded-lg border-primary/30 bg-background text-foreground hover:bg-muted text-xs font-medium"
               >
                 <Palette className="w-3 h-3 mr-1" />
-                Marcar Texto
+                {t('summary.highlight')}
               </Button>
 
               {onHighlight && (

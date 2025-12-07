@@ -3,12 +3,14 @@ import { ChatPanel } from "./ChatPanel";
 import { useState } from "react";
 import { Button } from "./ui/button";
 import { Dialog, DialogContent } from "./ui/dialog";
+import { useTranslation } from "react-i18next";
 
 interface RightPanelProps {
   projectId: string | null;
 }
 
 export function RightPanel({ projectId }: RightPanelProps) {
+  const { t } = useTranslation();
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   return (
@@ -22,7 +24,7 @@ export function RightPanel({ projectId }: RightPanelProps) {
           <div className="flex items-center justify-between mb-4 px-2">
             <div className="flex items-center gap-2">
               <MessageSquare className="w-5 h-5 text-purple-600" />
-              <h3 className="text-lg font-semibold text-foreground">Chat</h3>
+              <h3 className="text-lg font-semibold text-foreground">{t('chat.title')}</h3>
             </div>
             <button
               onClick={() => setIsFullscreen(true)}
@@ -45,7 +47,7 @@ export function RightPanel({ projectId }: RightPanelProps) {
         <DialogContent className="!fixed !inset-0 !top-0 !left-0 !right-0 !bottom-0 !translate-x-0 !translate-y-0 !max-w-none !w-screen !h-screen !max-h-none !m-0 !rounded-none !p-0 overflow-hidden supports-[height:100dvh]:!h-dvh">
           <div className="h-screen supports-[height:100dvh]:h-dvh w-full flex flex-col bg-muted">
             <div className="flex items-center justify-between p-6 border-b bg-background">
-              <h2 className="text-2xl font-bold text-foreground">Chat</h2>
+              <h2 className="text-2xl font-bold text-foreground">{t('chat.title')}</h2>
               <Button
                 size="sm"
                 variant="ghost"

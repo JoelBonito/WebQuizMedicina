@@ -26,6 +26,7 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { useProjects } from "../hooks/useProjects";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 interface DashboardProps {
   onSelectSubject: (subjectId: string) => void;
@@ -40,29 +41,49 @@ interface ProjectCardProps {
   onViewStats: (project: { id: string; name: string }) => void;
 }
 
-const formatDate = (date: any) => {
-  if (!date) return "Data desconhecida";
+const formatDate = (date: any, locale: string = "pt-BR") => {
+  if (!date) return null;
 
   // Handle Firestore Timestamp
   if (date && typeof date.toDate === 'function') {
-    return date.toDate().toLocaleDateString("pt-BR");
+    return date.toDate().toLocaleDateString(locale);
   }
 
   // Handle serialized Timestamp (seconds)
   if (date && typeof date.seconds === 'number') {
-    return new Date(date.seconds * 1000).toLocaleDateString("pt-BR");
+    return new Date(date.seconds * 1000).toLocaleDateString(locale);
   }
 
   // Handle standard Date object or string
   try {
-    return new Date(date).toLocaleDateString("pt-BR");
+    return new Date(date).toLocaleDateString(locale);
   } catch (e) {
-    return "Data inválida";
+    return null;
   }
 };
 
 const ProjectCard = ({ project, index, onSelect, onEdit, onDelete, onViewStats }: ProjectCardProps) => {
+  const { t, i18n } = useTranslation();
   const { stats } = useProjectStats(project.id);
+
+  const getLocaleFromLanguage = (lang: string) => {
+    const localeMap: Record<string, string> = {
+      'pt': 'pt-BR',
+      'pt-PT': 'pt-PT',
+      'en': 'en-US',
+      'es': 'es-ES',
+      'fr': 'fr-FR',
+      'de': 'de-DE',
+      'it': 'it-IT',
+      'ja': 'ja-JP',
+      'zh': 'zh-CN',
+      'ru': 'ru-RU',
+      'ar': 'ar-SA'
+    };
+    return localeMap[lang] || 'pt-BR';
+  };
+
+  const formattedDate = formatDate(project.created_at, getLocaleFromLanguage(i18n.language));
 
   return (
     <motion.div
@@ -121,28 +142,28 @@ const ProjectCard = ({ project, index, onSelect, onEdit, onDelete, onViewStats }
         <div className="flex-1" onClick={() => onSelect(project.id)}>
           <h3 className="text-lg font-semibold text-foreground mb-2">{project.name}</h3>
           <p className="text-sm text-muted-foreground mb-4">
-            Criado em {formatDate(project.created_at)}
+            {formattedDate ? t('dashboard.createdOn', { date: formattedDate }) : t('dashboard.unknownDate')}
           </p>
 
           {/* Stats */}
           <div className="flex flex-wrap gap-2 mb-4">
             <Badge variant="outline" className="rounded-lg text-primary border-primary/30 bg-primary/10 dark:bg-primary/20">
-              {stats.totalSources} Fontes
+              {t('dashboard.sourcesCount', { count: stats.totalSources })}
             </Badge>
             <Badge variant="outline" className="rounded-lg text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950">
-              {stats.totalQuizzes} Quiz
+              {t('dashboard.quizzesCount', { count: stats.totalQuizzes })}
             </Badge>
             <Badge variant="outline" className="rounded-lg text-red-600 dark:text-red-400 border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950">
-              {stats.totalFlashcards} Cards
+              {t('dashboard.flashcardsCount', { count: stats.totalFlashcards })}
             </Badge>
             {stats.totalSummaries > 0 && (
               <Badge variant="outline" className="rounded-lg text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950">
-                {stats.totalSummaries} Resumos
+                {t('dashboard.summariesCount', { count: stats.totalSummaries })}
               </Badge>
             )}
             {stats.quizAccuracy > 0 && (
               <Badge variant="outline" className="rounded-lg text-green-600 dark:text-green-400 border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950">
-                {stats.quizAccuracy}% acerto
+                {t('dashboard.accuracy', { percent: stats.quizAccuracy })}
               </Badge>
             )}
           </div>
@@ -154,7 +175,7 @@ const ProjectCard = ({ project, index, onSelect, onEdit, onDelete, onViewStats }
           className="w-full justify-between rounded-xl hover:bg-primary/10 text-muted-foreground font-medium"
           onClick={() => onSelect(project.id)}
         >
-          Abrir matéria
+          {t('dashboard.openProject')}
           <ChevronRight className="w-4 h-4" />
         </Button>
       </div>
@@ -163,6 +184,7 @@ const ProjectCard = ({ project, index, onSelect, onEdit, onDelete, onViewStats }
 };
 
 export function Dashboard({ onSelectSubject }: DashboardProps) {
+  const { t } = useTranslation();
   const { projects, loading, createProject, updateProject, deleteProject } = useProjects();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<{ id: string; name: string } | null>(null);
@@ -173,14 +195,14 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
 
   const handleAddProject = async () => {
     if (!formData.name.trim()) {
-      toast.error("Digite um nome para a matéria");
+      toast.error(t('toasts.enterSubjectName'));
       return;
     }
 
     try {
       setSubmitting(true);
       const newProject = await createProject(formData.name.trim());
-      toast.success("Matéria criada com sucesso!");
+      toast.success(t('toasts.projectCreated'));
       setIsAddDialogOpen(false);
       setFormData({ name: "" });
 
@@ -190,7 +212,7 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
       }
     } catch (error) {
       console.error("Error creating project:", error);
-      toast.error("Erro ao criar matéria");
+      toast.error(t('toasts.errorCreatingProject'));
     } finally {
       setSubmitting(false);
     }
@@ -198,19 +220,19 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
 
   const handleEditProject = async () => {
     if (!editingProject || !formData.name.trim()) {
-      toast.error("Digite um nome para a matéria");
+      toast.error(t('toasts.enterSubjectName'));
       return;
     }
 
     try {
       setSubmitting(true);
       await updateProject(editingProject.id, formData.name.trim());
-      toast.success("Matéria atualizada!");
+      toast.success(t('toasts.projectUpdated'));
       setEditingProject(null);
       setFormData({ name: "" });
     } catch (error) {
       console.error("Error updating project:", error);
-      toast.error("Erro ao atualizar matéria");
+      toast.error(t('toasts.errorUpdatingProject'));
     } finally {
       setSubmitting(false);
     }
@@ -221,11 +243,11 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
 
     try {
       await deleteProject(deletingProject.id);
-      toast.success("Matéria excluída");
+      toast.success(t('toasts.projectDeleted'));
       setDeletingProject(null);
     } catch (error) {
       console.error("Error deleting project:", error);
-      toast.error("Erro ao excluir matéria");
+      toast.error(t('toasts.errorDeletingProject'));
     }
   };
 
@@ -245,7 +267,7 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
       <div className="sticky top-16 z-40 bg-background/95 backdrop-blur-sm border-b border-border shadow-sm">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Minhas Matérias</h1>
+            <h1 className="text-2xl font-bold text-foreground">{t('dashboard.title')}</h1>
             <p className="text-sm text-muted-foreground mt-1">Gerencie seus estudos e materiais</p>
           </div>
           <Button
@@ -253,7 +275,7 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
             className="rounded-xl bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white shadow-lg px-5 py-2.5"
           >
             <Plus className="w-5 h-5 mr-2" />
-            Nova Matéria
+            {t('dashboard.createProject')}
           </Button>
         </div>
       </div>
@@ -272,17 +294,17 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
                 <BookOpen className="w-10 h-10 text-[#0891B2]" />
               </div>
               <h3 className="text-2xl font-semibold text-foreground mb-3">
-                Nenhuma matéria ainda
+                {t('dashboard.noProjectsTitle')}
               </h3>
               <p className="text-gray-500 mb-8 max-w-md mx-auto">
-                Crie sua primeira matéria para começar a organizar seus estudos de medicina
+                {t('dashboard.noProjectsDesc')}
               </p>
               <Button
                 onClick={openAddDialog}
                 className="rounded-xl bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white shadow-lg px-6 py-3"
               >
                 <Plus className="w-5 h-5 mr-2" />
-                Criar Primeira Matéria
+                {t('dashboard.createFirstProject')}
               </Button>
             </div>
           ) : (
@@ -317,7 +339,7 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
         <DialogContent className="sm:max-w-[500px] rounded-3xl">
           <div className="flex items-center justify-between mb-2">
             <DialogTitle className="text-xl font-semibold text-foreground">
-              {editingProject ? "Editar Matéria" : "Criar Nova Matéria"}
+              {editingProject ? t('modals.editProject') : t('modals.createProject')}
             </DialogTitle>
             <button
               onClick={() => {
@@ -338,11 +360,11 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="name" className="text-sm font-medium text-muted-foreground">
-                Nome da Matéria
+                {t('modals.subjectName')}
               </Label>
               <Input
                 id="name"
-                placeholder="Ex: Farmacologia Geral, Anatomia Cardíaca..."
+                placeholder={t('modals.subjectNamePlaceholder')}
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 onKeyDown={(e) => {
@@ -366,7 +388,7 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
               className="rounded-xl border-gray-300 hover:bg-muted text-muted-foreground"
               disabled={submitting}
             >
-              Cancelar
+              {t('modals.cancel')}
             </Button>
             <Button
               onClick={editingProject ? handleEditProject : handleAddProject}
@@ -376,7 +398,7 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
               {submitting ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               ) : null}
-              {editingProject ? "Salvar" : "Criar"}
+              {editingProject ? t('modals.save') : t('modals.create')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -387,21 +409,21 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
         <AlertDialogContent className="rounded-3xl">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-xl font-semibold text-foreground">
-              Excluir Matéria?
+              {t('modals.deleteProjectTitle')}
             </AlertDialogTitle>
             <AlertDialogDescription className="text-sm text-muted-foreground">
-              Tem certeza que deseja excluir a matéria "{deletingProject?.name}"? Esta ação não pode ser desfeita.
+              {t('modals.deleteProjectDesc', { name: deletingProject?.name })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-3">
             <AlertDialogCancel className="rounded-xl border-gray-300 hover:bg-muted text-muted-foreground">
-              Cancelar
+              {t('modals.cancel')}
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteProject}
               className="rounded-xl bg-red-500 hover:bg-red-600 text-white shadow-lg"
             >
-              Excluir
+              {t('modals.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

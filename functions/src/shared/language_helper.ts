@@ -5,6 +5,7 @@
 
 export const LANGUAGE_NAMES: Record<string, string> = {
     pt: 'Português do Brasil',
+    'pt-PT': 'Português de Portugal',
     en: 'English',
     es: 'Español',
     fr: 'Français',

@@ -14,6 +14,7 @@ import {
 import { Logo } from "./Logo";
 import { ProfileSettings } from "./ProfileSettings";
 import { ThemeSettings } from "./ThemeSettings";
+import { useTranslation } from "react-i18next";
 import { useState } from "react";
 
 interface NavbarProps {
@@ -22,8 +23,9 @@ interface NavbarProps {
   onAdminClick?: () => void;
 }
 
-export function Navbar({ onBackClick, projectName, onAdminClick }: NavbarProps) {
-  const { user, signOut } = useAuth();
+export function Navbar({ projectName, onBackClick, onAdminClick }: NavbarProps) {
+  const { t } = useTranslation();
+  const { signOut, user } = useAuth();
   const { profile } = useProfile();
   const [profileOpen, setProfileOpen] = useState(false);
   const [themeOpen, setThemeOpen] = useState(false);
@@ -39,9 +41,9 @@ export function Navbar({ onBackClick, projectName, onAdminClick }: NavbarProps) 
   const handleSignOut = async () => {
     const { error } = await signOut();
     if (error) {
-      toast.error("Erro ao sair");
+      toast.error(t('toasts.logoutError'));
     } else {
-      toast.success("Até logo!");
+      toast.success(t('toasts.logoutSuccess'));
     }
   };
 
@@ -145,12 +147,12 @@ export function Navbar({ onBackClick, projectName, onAdminClick }: NavbarProps) 
               <div className="py-1 px-2">
                 <DropdownMenuItem onClick={() => setProfileOpen(true)} className="cursor-pointer rounded-lg">
                   <User className="w-4 h-4 mr-2 text-muted-foreground" />
-                  <span className="text-muted-foreground">Perfil</span>
+                  <span className="text-muted-foreground">{t('navbar.profile')}</span>
                 </DropdownMenuItem>
 
                 <DropdownMenuItem onClick={() => setThemeOpen(true)} className="cursor-pointer rounded-lg">
                   <Palette className="w-4 h-4 mr-2 text-muted-foreground" />
-                  <span className="text-muted-foreground">Aparência</span>
+                  <span className="text-muted-foreground">{t('navbar.appearance')}</span>
                 </DropdownMenuItem>
 
                 {/* Admin Button - Only visible for admins */}
@@ -159,7 +161,7 @@ export function Navbar({ onBackClick, projectName, onAdminClick }: NavbarProps) 
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={onAdminClick} className="cursor-pointer rounded-lg bg-gradient-to-r from-[#0891B2]/10 to-[#7CB342]/10 hover:from-[#0891B2]/20 hover:to-[#7CB342]/20">
                       <Shield className="w-4 h-4 mr-2 text-[#0891B2]" />
-                      <span className="text-[#0891B2] font-semibold">Admin Dashboard</span>
+                      <span className="text-[#0891B2] font-semibold">{t('navbar.adminDashboard')}</span>
                     </DropdownMenuItem>
                   </>
                 )}
@@ -171,7 +173,7 @@ export function Navbar({ onBackClick, projectName, onAdminClick }: NavbarProps) 
               <div className="py-1 px-2">
                 <DropdownMenuItem onClick={handleSignOut} className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer rounded-lg">
                   <LogOut className="w-4 h-4 mr-2" />
-                  Sair
+                  {t('navbar.logout')}
                 </DropdownMenuItem>
               </div>
             </DropdownMenuContent>

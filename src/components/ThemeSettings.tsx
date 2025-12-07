@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "../contexts/ThemeContext";
 import {
   Dialog,
@@ -18,6 +19,7 @@ interface ThemeSettingsProps {
 }
 
 export function ThemeSettings({ open, onOpenChange }: ThemeSettingsProps) {
+  const { t } = useTranslation();
   const { theme, setTheme, effectiveTheme } = useTheme();
   const [selectedTheme, setSelectedTheme] = useState(theme);
   const isFirstOpen = useRef(true);
@@ -45,20 +47,20 @@ export function ThemeSettings({ open, onOpenChange }: ThemeSettingsProps) {
   const themes = [
     {
       value: "light" as const,
-      label: "Modo Claro",
-      description: "Interface clara sempre ativa",
+      label: t("theme.light"),
+      description: t("theme.lightDesc"),
       icon: Sun,
     },
     {
       value: "dark" as const,
-      label: "Modo Escuro",
-      description: "Interface escura sempre ativa",
+      label: t("theme.dark"),
+      description: t("theme.darkDesc"),
       icon: Moon,
     },
     {
       value: "system" as const,
-      label: "Modo do Sistema",
-      description: "Sincroniza com as preferências do dispositivo",
+      label: t("theme.system"),
+      description: t("theme.systemDesc"),
       icon: Monitor,
     },
   ];
@@ -69,17 +71,17 @@ export function ThemeSettings({ open, onOpenChange }: ThemeSettingsProps) {
         <DialogHeader>
           <DialogTitle className="text-foreground text-xl flex items-center gap-2">
             <Palette className="w-5 h-5 text-[#0891B2]" />
-            Aparência
+            {t("theme.title")}
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
-            Personalize como o QuizMed aparece para você
+            {t("theme.subtitle")}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 py-4">
           {/* Theme Selection */}
           <div className="space-y-4">
-            <Label className="text-muted-foreground font-medium">Selecione o tema</Label>
+            <Label className="text-muted-foreground font-medium">{t("theme.selectTheme")}</Label>
             <RadioGroup value={selectedTheme} onValueChange={(value) => setSelectedTheme(value as any)}>
               <div className="space-y-3">
                 {themes.map((themeOption) => {
@@ -123,7 +125,7 @@ export function ThemeSettings({ open, onOpenChange }: ThemeSettingsProps) {
           <div className="bg-card rounded-xl p-4 border border-border">
             <h4 className="text-foreground font-semibold mb-3 flex items-center gap-2">
               <Monitor className="w-4 h-4 text-[#0891B2]" />
-              Pré-visualização
+              {t("theme.preview")}
             </h4>
             <div className="flex items-center gap-3">
               <div
@@ -150,8 +152,8 @@ export function ThemeSettings({ open, onOpenChange }: ThemeSettingsProps) {
             </div>
             <p className="text-xs text-gray-500 mt-3">
               {selectedTheme === "system"
-                ? `Atualmente usando: ${previewEffectiveTheme === "light" ? "Claro" : "Escuro"} (do sistema)`
-                : `Tema atual: ${selectedTheme === "light" ? "Claro" : "Escuro"}`}
+                ? t("theme.currentlyUsing", { theme: previewEffectiveTheme === "light" ? t("theme.light") : t("theme.dark") })
+                : t("theme.currentTheme", { theme: selectedTheme === "light" ? t("theme.light") : t("theme.dark") })}
             </p>
           </div>
 
@@ -159,7 +161,7 @@ export function ThemeSettings({ open, onOpenChange }: ThemeSettingsProps) {
           {selectedTheme === "system" && (
             <div className="glass rounded-xl p-3 border border-border">
               <p className="text-sm text-muted-foreground">
-                💡 O tema mudará automaticamente baseado nas configurações do seu dispositivo
+                {t("theme.systemInfo")}
               </p>
             </div>
           )}
@@ -167,14 +169,14 @@ export function ThemeSettings({ open, onOpenChange }: ThemeSettingsProps) {
           {/* Actions */}
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="outline" onClick={() => onOpenChange(false)} className="rounded-lg">
-              Cancelar
+              {t("profile.cancel")}
             </Button>
             <Button
               onClick={handleSave}
               disabled={selectedTheme === theme}
               className="rounded-lg bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white"
             >
-              Salvar
+              {t("profile.save")}
             </Button>
           </div>
         </div>

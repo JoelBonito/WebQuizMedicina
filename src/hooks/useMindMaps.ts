@@ -3,6 +3,7 @@ import { db, functions } from '../lib/firebase';
 import { collection, query, where, orderBy, getDocs, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { useAuth } from './useAuth';
+import { useProfile } from './useProfile';
 
 export interface MindMap {
   id: string;
@@ -18,6 +19,7 @@ export interface MindMap {
 
 export const useMindMaps = (projectId: string | null) => {
   const { user } = useAuth();
+  const { profile } = useProfile();
   const [mindMaps, setMindMaps] = useState<MindMap[]>([]);
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -83,6 +85,8 @@ export const useMindMaps = (projectId: string | null) => {
       if (!requestBody.source_ids || requestBody.source_ids.length === 0) {
         requestBody.project_id = projectId;
       }
+
+      requestBody.language = profile?.response_language || 'pt';
 
       const generateMindMapFn = httpsCallable(functions, 'generate_mindmap');
       const result = await generateMindMapFn(requestBody);

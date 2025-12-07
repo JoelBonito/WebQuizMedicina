@@ -9,6 +9,7 @@ import { useChat, CitedSource } from "../hooks/useChat";
 import { useSources } from "../hooks/useSources";
 import { useDifficulties } from "../hooks/useDifficulties";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 interface ChatPanelProps {
   projectId: string | null;
@@ -16,6 +17,7 @@ interface ChatPanelProps {
 }
 
 export function ChatPanel({ projectId, isFullscreenMode = false }: ChatPanelProps) {
+  const { t } = useTranslation();
   const [inputValue, setInputValue] = useState("");
   const [currentCitedSources, setCurrentCitedSources] = useState<CitedSource[]>([]);
   const [currentSuggestedTopics, setCurrentSuggestedTopics] = useState<string[]>([]);
@@ -71,7 +73,7 @@ export function ChatPanel({ projectId, isFullscreenMode = false }: ChatPanelProp
     // Debug logging to catch state issues
     if (!projectId) {
       console.error('[ChatPanel] Cannot send - projectId is null/undefined:', { projectId, inputValue: inputValue.trim() });
-      toast.error("Projeto não selecionado. Por favor, selecione um projeto.");
+      toast.error(t("chat.projectNotSelected"));
       return;
     }
 
@@ -88,11 +90,11 @@ export function ChatPanel({ projectId, isFullscreenMode = false }: ChatPanelProp
         setCurrentSuggestedTopics(response.suggested_topics);
 
         if (response.has_difficulties_context) {
-          toast.success("Resposta personalizada com base nas suas dificuldades!");
+          toast.success(t("chat.difficultyResponse"));
         }
       }
     } catch (error) {
-      toast.error("Erro ao enviar mensagem. Verifique se há fontes disponíveis.");
+      toast.error(t("chat.sendError"));
       console.error(error);
     }
   };
@@ -102,9 +104,9 @@ export function ChatPanel({ projectId, isFullscreenMode = false }: ChatPanelProp
       await clearHistory();
       setCurrentCitedSources([]);
       setCurrentSuggestedTopics([]);
-      toast.success("Histórico limpo");
+      toast.success(t("chat.historyCleared"));
     } catch (error) {
-      toast.error("Erro ao limpar histórico");
+      toast.error(t("chat.historyClearError"));
     }
   };
 
@@ -115,12 +117,12 @@ export function ChatPanel({ projectId, isFullscreenMode = false }: ChatPanelProp
   // Generate smart suggestions based on difficulties
   const smartSuggestions = difficulties
     .slice(0, 3)
-    .map((d) => `Explique melhor sobre ${d.topico}`);
+    .map((d) => t("chat.explainBetter", { topic: d.topico }));
 
   const defaultSuggestions = [
-    "Faça um resumo dos principais conceitos",
-    "Quais são os pontos mais importantes?",
-    "Explique de forma mais simples",
+    t("chat.summarizeConcepts"),
+    t("chat.mainPoints"),
+    t("chat.explainSimpler"),
   ];
 
   const suggestions = smartSuggestions.length > 0 ? smartSuggestions : defaultSuggestions;
@@ -133,7 +135,7 @@ export function ChatPanel({ projectId, isFullscreenMode = false }: ChatPanelProp
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <Sparkles className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-            <p className="text-muted-foreground">Selecione um projeto para começar a conversar</p>
+            <p className="text-muted-foreground">{t("chat.selectProject")}</p>
           </div>
         </div>
       </div>
@@ -149,7 +151,7 @@ export function ChatPanel({ projectId, isFullscreenMode = false }: ChatPanelProp
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#0891B2] to-[#7CB342] flex items-center justify-center">
               <Sparkles className="w-4 h-4 text-white" />
             </div>
-            <h3 className="text-gray-900 font-semibold">Chat com IA</h3>
+            <h3 className="text-gray-900 font-semibold">{t("chat.aiChatTitle")}</h3>
           </div>
           {messages.length > 0 && (
             <Button
@@ -165,7 +167,7 @@ export function ChatPanel({ projectId, isFullscreenMode = false }: ChatPanelProp
         <div className="flex items-center gap-2">
           <Badge className="rounded-lg bg-blue-50 text-blue-700 border-blue-200">
             <FileText className="w-3 h-3 mr-1" />
-            {readySources.length} fonte{readySources.length !== 1 ? 's' : ''} disponível{readySources.length !== 1 ? 'is' : ''}
+            {t("chat.sourcesAvailable", { count: readySources.length })}
           </Badge>
         </div>
       </div>
@@ -174,9 +176,9 @@ export function ChatPanel({ projectId, isFullscreenMode = false }: ChatPanelProp
         <div className="flex-1 flex items-center justify-center min-h-0">
           <div className="text-center max-w-sm">
             <AlertCircle className="w-12 h-12 mx-auto mb-4 text-yellow-500" />
-            <h4 className="text-gray-900 font-semibold mb-2">Nenhuma fonte disponível</h4>
+            <h4 className="text-gray-900 font-semibold mb-2">{t("chat.noSourcesTitle")}</h4>
             <p className="text-sm text-muted-foreground">
-              Faça upload de fontes (PDFs, textos) no painel "Fontes" para começar a conversar com a IA
+              {t("chat.noSourcesDescription")}
             </p>
           </div>
         </div>
@@ -192,9 +194,9 @@ export function ChatPanel({ projectId, isFullscreenMode = false }: ChatPanelProp
               ) : messages.length === 0 ? (
                 <div className="text-center py-8">
                   <Bot className="w-12 h-12 mx-auto mb-4 text-[#0891B2]" />
-                  <p className="text-muted-foreground mb-2">Olá! Estou aqui para ajudar você.</p>
+                  <p className="text-muted-foreground mb-2">{t("chat.greeting")}</p>
                   <p className="text-sm text-gray-500">
-                    Faça perguntas sobre suas fontes e eu responderei com base no conteúdo delas.
+                    {t("chat.greetingDescription")}
                   </p>
                 </div>
               ) : (
@@ -308,7 +310,7 @@ export function ChatPanel({ projectId, isFullscreenMode = false }: ChatPanelProp
                       <div className="bg-card border border-border rounded-2xl rounded-tl-md p-4">
                         <div className="flex items-center gap-2">
                           <Loader2 className="w-4 h-4 animate-spin text-[#0891B2]" />
-                          <p className="text-sm text-muted-foreground">Pensando...</p>
+                          <p className="text-sm text-muted-foreground">{t("chat.thinking")}</p>
                         </div>
                       </div>
                     </motion.div>
@@ -324,7 +326,7 @@ export function ChatPanel({ projectId, isFullscreenMode = false }: ChatPanelProp
             <div className="mb-4 space-y-2 flex-shrink-0">
               <p className="text-xs text-muted-foreground flex items-center gap-1">
                 <Lightbulb className="w-3 h-3" />
-                Sugestões{smartSuggestions.length > 0 ? ' baseadas nas suas dificuldades' : ''}:
+                {smartSuggestions.length > 0 ? t('chat.suggestionsDifficulties') : t('chat.suggestionsTitle')}:
               </p>
               <div className="flex flex-wrap gap-2">
                 {suggestions.map((suggestion, index) => (
@@ -348,7 +350,7 @@ export function ChatPanel({ projectId, isFullscreenMode = false }: ChatPanelProp
               type="text"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              placeholder="Pergunte qualquer coisa sobre suas fontes..."
+              placeholder={t("chat.placeholder")}
               className="flex-1 bg-transparent border-0 outline-none text-sm text-foreground placeholder:text-muted-foreground"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {

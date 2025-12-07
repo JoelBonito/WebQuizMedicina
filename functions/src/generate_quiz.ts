@@ -6,18 +6,14 @@ import { logTokenUsage } from "./shared/token_usage";
 import { getModelSelector } from "./shared/modelSelector";
 import { getLanguageFromRequest, getLanguageInstruction } from "./shared/language_helper";
 
-// Initialize Firebase Admin if not already initialized
-if (!admin.apps.length) {
-    admin.initializeApp();
-}
 
-const db = admin.firestore();
 
 export const generate_quiz = onCall({
     timeoutSeconds: 540,
     memory: "1GiB",
     region: "us-central1"
 }, async (request) => {
+    const db = admin.firestore();
     // 1. Auth Check
     if (!request.auth) {
         throw new HttpsError("unauthenticated", "User must be authenticated");
@@ -82,46 +78,55 @@ export const generate_quiz = onCall({
         // Simplified batching for now (single batch)
         // In a real scenario, we might want to implement the batching logic from the Supabase function
         const prompt = `
-Você é um professor universitário de MEDICINA criando uma prova.
-Gere ${count} questões baseadas no CONTEÚDO abaixo.
+${getLanguageInstruction(language)}
 
-CONTEÚDO BASE:
+You are a university-level MEDICINE professor creating an exam.
+Generate ${count} questions based on the CONTENT below.
+
+BASE CONTENT:
 ${combinedContent.substring(0, 30000)}
 
-REGRA CRÍTICA DE DIVERSIFICAÇÃO:
-- DISTRIBUA as questões entre DIFERENTES TÓPICOS identificados no conteúdo
-- EVITE concentrar mais de 30% das questões em um único tópico
+CRITICAL DIVERSITY RULE:
+- DISTRIBUTE questions across DIFFERENT TOPICS identified in the content
+- AVOID concentrating more than 30% of questions on a single topic
 
-TIPOS DE QUESTÃO (Varie):
-1. "multipla_escolha": Conceitos diretos.
-2. "verdadeiro_falso": Julgue a afirmação (Opções: [Verdadeiro, Falso]).
-3. "citar": "Qual destes é um exemplo de..." (4 opções).
-4. "caso_clinico": Cenário curto + conduta.
+QUESTION TYPES (Vary):
+1. "multipla_escolha": Direct concepts.
+2. "verdadeiro_falso": Judge the statement (Options: ["True", "False"] or localized equivalents).
+3. "citar": "Which of these is an example of..." (4 options).
+4. "caso_clinico": Short scenario + conduct.
 
-REGRAS DE FORMATO (Rígidas):
-- TODAS as questões devem ter APENAS UMA alternativa correta.
-- Opções devem ser sempre arrays de strings: ["A) Texto", "B) Texto"...] ou ["Verdadeiro", "Falso"].
+FORMAT RULES (Strict):
+- ALL questions must have ONLY ONE correct alternative.
+- Options must always be arrays of strings: ["A) Text", "B) Text"...] or ["True", "False"].
+- ${getLanguageInstruction(language)}
 
-REGRAS PARA A JUSTIFICATIVA (Obrigatório):
-Quero uma justificativa CURTA que valide a resposta certa usando o texto fornecido.
-1. CITE A FONTE: Comece frases com "Segundo o texto...", "O material indica que...".
+JUSTIFICATION RULES (Mandatory):
+I want a SHORT justification that validates the correct answer using the provided text.
+1. CITE THE SOURCE: Start sentences with equivalents of "According to the text...", "The material indicates that...".
 2. ${getLanguageInstruction(language)}
-3. CONCISÃO: Máximo de 2 a 3 frases.
+3. CONCISENESS: Maximum of 2 to 3 sentences.
 
-${(difficulty && difficulty !== 'misto') ? `DIFICULDADE: TODAS as questões devem ser de nível "${difficulty}".` : 'DIFICULDADE: Varie o nível de dificuldade das questões entre fácil, médio e difícil.'}
+${(difficulty && difficulty !== 'misto') ? `DIFFICULTY: ALL questions must be at "${difficulty}" level.` : 'DIFFICULTY: Vary the difficulty level of questions between easy, medium, and hard.'}
 
-FORMATO JSON (OBRIGATÓRIO - SEM MARKDOWN):
+🚨 IMPORTANT JSON RULES (DO NOT IGNORE):
+1. OUTPUT MUST BE PURE VALID JSON. NO MARKDOWN (no \`\`\`json tags).
+2. DO NOT ADD ANY CONVERSATIONAL TEXT (e.g. "Here is the json...").
+3. ⚠️ DO NOT TRANSLATE THE JSON KEYS. USE EXACTLY THESE KEYS: "perguntas", "tipo", "pergunta", "opcoes", "resposta_correta", "justificativa", "dica", "dificuldade", "topico".
+4. The values (content) MUST be in the requested language per **${getLanguageInstruction(language)}**, but the KEYS match the schema below.
+
+MANDATORY JSON FORMAT:
 {
   "perguntas": [
     {
       "tipo": "multipla_escolha",
-      "pergunta": "Qual o tratamento de primeira linha para...",
-      "opcoes": ["A) Opção A", "B) Opção B", "C) Opção C", "D) Opção D"],
+      "pergunta": "What is the first-line treatment for...",
+      "opcoes": ["A) Option A", "B) Option B", "C) Option C", "D) Option D"],
       "resposta_correta": "A",
-      "justificativa": "Conforme o texto...",
-      "dica": "Pense na droga que...",
+      "justificativa": "According to the text...",
+      "dica": "Think about the drug that...",
       "dificuldade": "médio",
-      "topico": "Cardiologia"
+      "topico": "Cardiology"
     }
   ]
 }
@@ -134,14 +139,15 @@ FORMATO JSON (OBRIGATÓRIO - SEM MARKDOWN):
 
         let result;
         try {
-            result = await callGeminiWithUsage(prompt, modelName, 8192, true);
+            // ✅ Aumentado para 32768 para acomodar "thinking tokens" do Gemini 2.5
+            result = await callGeminiWithUsage(prompt, modelName, 32768, true);
         } catch (error: any) {
             // 🔄 FALLBACK AUTOMÁTICO se o modelo falhar
             if (error.status === 404 || error.message.includes('not found')) {
                 console.warn('⚠️ Primary model failed, trying fallback...');
                 const fallbackModel = 'gemini-flash-latest'; // Safe fallback
                 console.log(`🤖 Using fallback model: ${fallbackModel}`);
-                result = await callGeminiWithUsage(prompt, fallbackModel, 8192, true);
+                result = await callGeminiWithUsage(prompt, fallbackModel, 32768, true);
             } else {
                 throw error;
             }

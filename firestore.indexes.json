@@ -205,6 +205,24 @@
                     "order": "DESCENDING"
                 }
             ]
+        },
+        {
+            "collectionGroup": "summary_highlights",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "project_id",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "summary_id",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "created_at",
+                    "order": "ASCENDING"
+                }
+            ]
         }
     ],
     "fieldOverrides": []

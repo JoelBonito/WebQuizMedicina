@@ -1,8 +1,7 @@
-import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
-import { onCall } from "firebase-functions/v2/https";
+import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { callGeminiWithUsage, parseJsonFromResponse } from "./shared/gemini";
-import { calculateBatchSizes, SAFE_OUTPUT_LIMIT } from "./shared/output_limits";
+import { calculateBatchSizes } from "./shared/output_limits";
 import { sanitizeString } from "./shared/sanitization";
 import { validateRequest, generateRecoveryFlashcardsSchema } from "./shared/validation";
 import { semanticSearchWithTokenLimit, hasAnyEmbeddings } from "./shared/embeddings";
@@ -10,7 +9,7 @@ import { calculateRecoveryStrategyForFlashcards, formatDifficultiesForLog, Diffi
 import { logTokenUsage } from "./shared/token_usage";
 import { getModelSelector } from "./shared/modelSelector";
 
-const db = admin.firestore();
+
 
 // Recovery Flashcards Token Limit (10k tokens - more focused than quiz)
 const RECOVERY_FLASHCARDS_TOKEN_LIMIT = 10000;
@@ -20,9 +19,10 @@ export const generate_recovery_flashcards = onCall({
     memory: "1GiB",
     region: "us-central1",
 }, async (request) => {
+    const db = admin.firestore();
     try {
         if (!request.auth) {
-            throw new functions.https.HttpsError("unauthenticated", "User must be authenticated");
+            throw new HttpsError("unauthenticated", "User must be authenticated");
         }
 
         const { project_id, count } = validateRequest(request.data, generateRecoveryFlashcardsSchema);
@@ -31,7 +31,7 @@ export const generate_recovery_flashcards = onCall({
         // 1. Get Project Information
         const projectDoc = await db.collection("projects").doc(project_id).get();
         if (!projectDoc.exists) {
-            throw new functions.https.HttpsError("not-found", "Project not found");
+            throw new HttpsError("not-found", "Project not found");
         }
         const project = projectDoc.data();
         const projectName = project?.name || 'Medicina';
@@ -69,7 +69,7 @@ export const generate_recovery_flashcards = onCall({
         const sources = sourcesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
 
         if (sources.length === 0) {
-            throw new functions.https.HttpsError("failed-precondition", "No sources found for this project");
+            throw new HttpsError("failed-precondition", "No sources found for this project");
         }
 
         const sourceIds = sources.map(s => s.id);
@@ -152,7 +152,7 @@ export const generate_recovery_flashcards = onCall({
         }
 
         if (!combinedContent.trim()) {
-            throw new functions.https.HttpsError("failed-precondition", "No content available for recovery flashcards.");
+            throw new HttpsError("failed-precondition", "No content available for recovery flashcards.");
         }
 
         // 6. Generate Flashcards with Atomization Prompt
@@ -237,7 +237,7 @@ Retorne APENAS o JSON válido.
                 result = await callGeminiWithUsage(
                     prompt,
                     modelName,
-                    SAFE_OUTPUT_LIMIT,
+                    32768,
                     true
                 );
             } catch (error: any) {
@@ -250,7 +250,7 @@ Retorne APENAS o JSON válido.
                     result = await callGeminiWithUsage(
                         prompt,
                         fallbackModel,
-                        SAFE_OUTPUT_LIMIT,
+                        32768,
                         true
                     );
                 } else {
@@ -325,6 +325,6 @@ Retorne APENAS o JSON válido.
 
     } catch (error: any) {
         console.error("❌ [Recovery Flashcards] Error:", error);
-        throw new functions.https.HttpsError("internal", error.message || "Failed to generate recovery flashcards");
+        throw new HttpsError("internal", error.message || "Failed to generate recovery flashcards");
     }
 });

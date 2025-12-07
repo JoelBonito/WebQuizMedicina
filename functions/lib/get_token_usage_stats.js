@@ -26,10 +26,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.get_token_usage_stats = void 0;
 const https_1 = require("firebase-functions/v2/https");
 const admin = __importStar(require("firebase-admin"));
-if (!admin.apps.length) {
-    admin.initializeApp();
-}
-const db = admin.firestore();
 // Taxa de conversão USD para BRL (aproximada, pode ser atualizada)
 const USD_TO_BRL_RATE = 5.5;
 function convertCostToBRL(costUSD) {
@@ -40,6 +36,7 @@ exports.get_token_usage_stats = (0, https_1.onCall)({
     memory: "256MiB",
     region: "us-central1"
 }, async (request) => {
+    const db = admin.firestore();
     if (!request.auth) {
         throw new https_1.HttpsError("unauthenticated", "User must be authenticated");
     }
@@ -65,11 +62,11 @@ exports.get_token_usage_stats = (0, https_1.onCall)({
         switch (action) {
             case "get_token_usage_by_user":
                 if (isAdmin) {
-                    return await calculateUsageGroupedByUser(usageData);
+                    return await calculateUsageGroupedByUser(usageData, db);
                 }
                 return calculateUserUsage(usageData, userId);
             case "get_token_usage_by_project":
-                return calculateProjectUsage(usageData);
+                return calculateProjectUsage(usageData, db);
             case "get_daily_usage":
                 return calculateDailyUsage(usageData);
             case "get_token_usage_summary":
@@ -83,7 +80,7 @@ exports.get_token_usage_stats = (0, https_1.onCall)({
         throw new https_1.HttpsError("internal", error.message);
     }
 });
-async function calculateUsageGroupedByUser(data) {
+async function calculateUsageGroupedByUser(data, db) {
     const userMap = {};
     // Agrupar dados
     data.forEach(item => {
@@ -159,7 +156,7 @@ function calculateUserUsage(data, userId) {
             last_active: lastActive ? lastActive.toISOString() : null
         }];
 }
-async function calculateProjectUsage(data) {
+async function calculateProjectUsage(data, db) {
     const projectMap = {};
     const projectIdsToFetch = new Set();
     data.forEach(item => {

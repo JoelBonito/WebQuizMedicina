@@ -1,13 +1,21 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getEmbedding = exports.parseJsonFromResponse = exports.callGeminiWithUsage = exports.SAFE_OUTPUT_LIMIT = void 0;
+exports.getEmbedding = exports.parseJsonFromResponse = exports.callGeminiWithUsage = exports.SAFE_OUTPUT_LIMIT = exports.getGenAI = void 0;
 const generative_ai_1 = require("@google/generative-ai");
-const API_KEY = process.env.GEMINI_API_KEY || "";
-const genAI = new generative_ai_1.GoogleGenerativeAI(API_KEY);
-exports.SAFE_OUTPUT_LIMIT = 8192;
+let genAI = null;
+function getGenAI() {
+    if (!genAI) {
+        const API_KEY = process.env.GEMINI_API_KEY || "";
+        genAI = new generative_ai_1.GoogleGenerativeAI(API_KEY);
+    }
+    return genAI;
+}
+exports.getGenAI = getGenAI;
+exports.SAFE_OUTPUT_LIMIT = 32768; // Increased for Gemini 2.5 thinking tokens
 async function callGeminiWithUsage(prompt, modelName = "gemini-2.5-flash", maxOutputTokens = exports.SAFE_OUTPUT_LIMIT, jsonMode = false, cacheName) {
     try {
-        const model = genAI.getGenerativeModel({
+        const ai = getGenAI();
+        const model = ai.getGenerativeModel({
             model: modelName,
             generationConfig: {
                 maxOutputTokens,
@@ -61,13 +69,27 @@ async function callGeminiWithUsage(prompt, modelName = "gemini-2.5-flash", maxOu
 }
 exports.callGeminiWithUsage = callGeminiWithUsage;
 function parseJsonFromResponse(text) {
+    // Helper to sanitize invalid escape sequences in JSON strings
+    // LaTeX commands like \downarrow, \rightarrow become \\d, \\r which are invalid JSON escapes
+    const sanitizeEscapes = (str) => {
+        // Replace invalid escape sequences with double-escaped versions
+        // Valid JSON escapes: \", \\, \/, \b, \f, \n, \r, \t, \uXXXX
+        // This regex finds backslashes NOT followed by valid escape chars
+        return str.replace(/\\(?!["\\/bfnrtu])/g, '\\\\');
+    };
     // Helper to attempt parsing
     const tryParse = (str) => {
         try {
             return JSON.parse(str);
         }
         catch (e) {
-            return null;
+            // Try with sanitized escapes
+            try {
+                return JSON.parse(sanitizeEscapes(str));
+            }
+            catch (e2) {
+                return null;
+            }
         }
     };
     // 1. Try parsing raw text first
@@ -128,7 +150,8 @@ function parseJsonFromResponse(text) {
 }
 exports.parseJsonFromResponse = parseJsonFromResponse;
 async function getEmbedding(text, modelName = "text-embedding-004") {
-    const model = genAI.getGenerativeModel({ model: modelName });
+    const ai = getGenAI();
+    const model = ai.getGenerativeModel({ model: modelName });
     const result = await model.embedContent(text);
     return result.embedding.values;
 }

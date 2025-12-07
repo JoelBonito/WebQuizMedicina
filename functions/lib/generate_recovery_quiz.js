@@ -24,7 +24,6 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.generate_recovery_quiz = void 0;
-const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
 const https_1 = require("firebase-functions/v2/https");
 const gemini_1 = require("./shared/gemini");
@@ -36,7 +35,6 @@ const recovery_strategies_1 = require("./shared/recovery_strategies");
 const token_usage_1 = require("./shared/token_usage");
 const modelSelector_1 = require("./shared/modelSelector");
 const language_helper_1 = require("./shared/language_helper");
-const db = admin.firestore();
 // Recovery Mode Token Limit (slightly less than normal quiz for focused content)
 const RECOVERY_TOKEN_LIMIT = 12000;
 exports.generate_recovery_quiz = (0, https_1.onCall)({
@@ -44,9 +42,10 @@ exports.generate_recovery_quiz = (0, https_1.onCall)({
     memory: "1GiB",
     region: "us-central1",
 }, async (request) => {
+    const db = admin.firestore();
     try {
         if (!request.auth) {
-            throw new functions.https.HttpsError("unauthenticated", "User must be authenticated");
+            throw new https_1.HttpsError("unauthenticated", "User must be authenticated");
         }
         const { project_id, count, difficulty } = (0, validation_1.validateRequest)(request.data, validation_1.generateRecoveryQuizSchema);
         const userId = request.auth.uid;
@@ -55,7 +54,7 @@ exports.generate_recovery_quiz = (0, https_1.onCall)({
         // 1. Get Project Information
         const projectDoc = await db.collection("projects").doc(project_id).get();
         if (!projectDoc.exists) {
-            throw new functions.https.HttpsError("not-found", "Project not found");
+            throw new https_1.HttpsError("not-found", "Project not found");
         }
         const project = projectDoc.data();
         const projectName = (project === null || project === void 0 ? void 0 : project.name) || 'Medicina';
@@ -85,7 +84,7 @@ exports.generate_recovery_quiz = (0, https_1.onCall)({
             .get();
         const sources = sourcesSnapshot.docs.map(doc => (Object.assign({ id: doc.id }, doc.data())));
         if (sources.length === 0) {
-            throw new functions.https.HttpsError("failed-precondition", "No sources found for this project");
+            throw new https_1.HttpsError("failed-precondition", "No sources found for this project");
         }
         const sourceIds = sources.map(s => s.id);
         // 5. Surgical Semantic Search
@@ -146,7 +145,7 @@ exports.generate_recovery_quiz = (0, https_1.onCall)({
             }
         }
         if (!combinedContent.trim()) {
-            throw new functions.https.HttpsError("failed-precondition", "No content available for recovery quiz.");
+            throw new https_1.HttpsError("failed-precondition", "No content available for recovery quiz.");
         }
         // 6. Generate Quiz with Strategy-Specific Prompt
         const batchSizes = (0, output_limits_1.calculateBatchSizes)('QUIZ_MULTIPLE_CHOICE', count || 10);
@@ -211,7 +210,7 @@ Retorne APENAS o JSON válido.
             `;
             let result;
             try {
-                result = await (0, gemini_1.callGeminiWithUsage)(prompt, modelName, output_limits_1.SAFE_OUTPUT_LIMIT, true);
+                result = await (0, gemini_1.callGeminiWithUsage)(prompt, modelName, 32768, true);
             }
             catch (error) {
                 // 🔄 FALLBACK AUTOMÁTICO se o modelo falhar
@@ -220,13 +219,33 @@ Retorne APENAS o JSON válido.
                     const fallbackModel = 'gemini-flash-latest'; // Safe fallback
                     console.log(`🤖 Using fallback model: ${fallbackModel}`);
                     modelName = fallbackModel; // Update for next batches and logging
-                    result = await (0, gemini_1.callGeminiWithUsage)(prompt, fallbackModel, output_limits_1.SAFE_OUTPUT_LIMIT, true);
+                    result = await (0, gemini_1.callGeminiWithUsage)(prompt, fallbackModel, 32768, true);
                 }
                 else {
                     throw error;
                 }
             }
-            const parsed = (0, gemini_1.parseJsonFromResponse)(result.text);
+            let parsed;
+            try {
+                parsed = (0, gemini_1.parseJsonFromResponse)(result.text);
+            }
+            catch (parseError) {
+                // Attempt to extract JSON substring if the response contains extra text or malformed characters
+                const jsonMatch = result.text.match(/\{[\s\S]*\}\s*$/);
+                if (jsonMatch) {
+                    try {
+                        parsed = JSON.parse(jsonMatch[0]);
+                    }
+                    catch (innerError) {
+                        console.warn('⚠️ Failed to parse extracted JSON, skipping batch.', innerError);
+                        parsed = { perguntas: [] };
+                    }
+                }
+                else {
+                    console.warn('⚠️ No JSON found in Gemini response, skipping batch.', parseError);
+                    parsed = { perguntas: [] };
+                }
+            }
             if (parsed.perguntas && Array.isArray(parsed.perguntas)) {
                 allQuestions.push(...parsed.perguntas);
                 totalInputTokens += result.usage.inputTokens;
@@ -294,7 +313,7 @@ Retorne APENAS o JSON válido.
     }
     catch (error) {
         console.error("❌ [Recovery Quiz] Error:", error);
-        throw new functions.https.HttpsError("internal", error.message || "Failed to generate recovery quiz");
+        throw new https_1.HttpsError("internal", error.message || "Failed to generate recovery quiz");
     }
 });
 //# sourceMappingURL=generate_recovery_quiz.js.map

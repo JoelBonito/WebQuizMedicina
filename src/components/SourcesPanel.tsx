@@ -21,6 +21,7 @@ import { motion } from "motion/react";
 import { useSources } from "../hooks/useSources";
 import { useAuth } from "../hooks/useAuth";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -109,6 +110,7 @@ const truncateFileName = (name: string, maxLength: number = 20): string => {
 };
 
 export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenMode = false }: SourcesPanelProps) {
+  const { t } = useTranslation();
   const { sources, loading, uploading, uploadSource, deleteSource, refetch } =
     useSources(projectId);
   const { user } = useAuth();
@@ -191,7 +193,7 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
 
   const handleFileInput = async (e: ChangeEvent<HTMLInputElement>) => {
     if (!projectId) {
-      toast.error("Selecione um projeto primeiro");
+      toast.error(t('toasts.selectProjectFirst'));
       return;
     }
 
@@ -220,7 +222,7 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
 
     for (const file of files) {
       if (!allowedTypes.includes(file.type) && !file.name.match(/\.(pdf|txt|md|mp3|wav|m4a|jpg|jpeg|png)$/i)) {
-        toast.error(`Tipo de arquivo não suportado: ${file.name}`);
+        toast.error(t('toasts.unsupportedFileType', { filename: file.name }));
         continue;
       }
 
@@ -230,11 +232,11 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
           uploadedIds.push(source.id);
           successCount++;
         }
-        toast.success(`${file.name} enviado com sucesso!`);
+        toast.success(t('toasts.fileUploaded', { filename: file.name }));
       } catch (error) {
         console.error("Upload error:", error);
         const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-        toast.error(`Erro ao enviar ${file.name}: ${errorMessage}`, {
+        toast.error(t('toasts.fileUploadError', { filename: file.name, error: errorMessage }), {
           duration: 6000, // Show for 6 seconds for longer messages
         });
       }
@@ -261,7 +263,7 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
       // Gerar resumo das fontes
       const sourcesText = processedSources.map(s => `📄 **${s.name}**`).join('\n');
 
-      const summaryMessage = `✨ **Novas fontes adicionadas ao seu projeto!**\n\n${sourcesText}\n\n${processedSources.length} ${processedSources.length === 1 ? 'fonte processada' : 'fontes processadas'} e ${processedSources.length === 1 ? 'pronta' : 'prontas'} para consulta. Você pode fazer perguntas sobre ${processedSources.length === 1 ? 'este conteúdo' : 'estes conteúdos'} agora!`;
+      const summaryMessage = `${t('sources.newSourcesTitle')}\n\n${sourcesText}\n\n${t('sources.sourceProcessed', { count: processedSources.length })}`;
 
       // Preparar dados para inserção
       const insertData = {
@@ -313,7 +315,7 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
       setShowSuccessModal(false);
 
       if (data?.processed > 0) {
-        toast.success(`Processamento iniciado! ${data.processed} arquivo(s) sendo processado(s).`);
+        toast.success(t('toasts.processingStarted', { count: data.processed }));
 
         // Refetch sources para garantir que o status está atualizado
         console.log('🔄 Fazendo refetch das fontes após processamento...');
@@ -322,14 +324,14 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
         // Adicionar resumo automático ao chat após processamento bem-sucedido
         await addSourcesSummaryToChat();
       } else {
-        toast.success('Processamento de embeddings iniciado com sucesso!');
+        toast.success(t('toasts.embeddingsStarted'));
       }
 
       // Limpar IDs
       setUploadedSourceIds([]);
     } catch (error) {
       console.error('❌ Error calling process-embeddings-queue:', error);
-      toast.error('Erro ao iniciar processamento. Tente novamente.');
+      toast.error(t('toasts.processingError'));
     } finally {
       setProcessingEmbeddings(false);
     }
@@ -340,11 +342,11 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
 
     try {
       await deleteSource(deletingSource.id);
-      toast.success(`${deletingSource.name} removido com sucesso`);
+      toast.success(t('toasts.fileRemoved', { filename: deletingSource.name }));
       setDeletingSource(null);
     } catch (error) {
       console.error("Delete error:", error);
-      toast.error("Erro ao remover arquivo");
+      toast.error(t('toasts.fileRemoveError'));
     }
   };
 
@@ -357,12 +359,12 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
       });
 
       await refetch();
-      toast.success("Nome alterado com sucesso");
+      toast.success(t('toasts.fileRenamed'));
       setRenamingSource(null);
       setNewSourceName('');
     } catch (error) {
       console.error("Rename error:", error);
-      toast.error("Erro ao renomear arquivo");
+      toast.error(t('toasts.fileRenameError'));
     }
   };
 
@@ -398,7 +400,7 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
         <div className="bg-muted/40 rounded-2xl mb-4 p-4 border border-border flex-shrink-0">
           {/* Linha 1: Título e botão expand */}
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-lg font-semibold text-foreground">Fontes</h3>
+            <h3 className="text-lg font-semibold text-foreground">{t('sources.title')}</h3>
             <button
               onClick={() => setIsFullscreen(true)}
               className="hidden md:flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
@@ -432,12 +434,12 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
               {processingEmbeddings ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Processando...
+                  {t('sources.processingAction')}
                 </>
               ) : (
                 <>
                   <Sparkles className="w-4 h-4 mr-2" />
-                  Processar Dados
+                  {t('sources.processData')}
                 </>
               )}
             </Button>
@@ -445,7 +447,7 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
 
           {/* File size info */}
           <p className="text-xs text-gray-500 mt-2">
-            Tamanho máximo: 50 MB por arquivo
+            {t('sources.maxSize')}
           </p>
         </div>
 
@@ -458,9 +460,9 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
           ) : sources.length === 0 ? (
             <div className="text-center py-8">
               <FileText className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-              <p className="text-gray-500 text-sm">Nenhuma fonte adicionada</p>
+              <p className="text-gray-500 text-sm">{t('sources.noSources')}</p>
               <p className="text-gray-400 text-xs mt-1">
-                Envie arquivos para começar
+                {t('sources.uploadToStart')}
               </p>
             </div>
           ) : (
@@ -515,7 +517,7 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
                           }}
                         >
                           <Edit className="w-4 h-4 mr-2" />
-                          Renomear
+                          {t('contentPanel.rename')}
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
@@ -526,7 +528,7 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
                           className="text-red-600 focus:text-red-600"
                         >
                           <Trash2 className="w-4 h-4 mr-2" />
-                          Deletar
+                          {t('contentPanel.delete')}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -572,10 +574,10 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
           <DialogContent className="rounded-3xl sm:max-w-md">
             <DialogHeader>
               <DialogTitle className="text-xl font-semibold text-foreground">
-                Renomear Fonte
+                {t('sources.renameSource')}
               </DialogTitle>
               <DialogDescription className="text-sm text-muted-foreground">
-                Digite o novo nome para "{renamingSource?.currentName}"
+                {t('contentPanel.enterNewName', { name: renamingSource?.currentName })}
               </DialogDescription>
             </DialogHeader>
             <div className="py-4">
@@ -602,14 +604,14 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
                 }}
                 className="rounded-xl"
               >
-                Cancelar
+                {t('contentPanel.cancel')}
               </Button>
               <Button
                 onClick={handleRenameConfirm}
                 disabled={!newSourceName.trim()}
                 className="rounded-xl bg-[#0891B2] hover:bg-[#0891B2]/90"
               >
-                Salvar
+                {t('contentPanel.save')}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -625,14 +627,14 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
                 </div>
               </div>
               <DialogTitle className="text-xl font-semibold text-foreground text-center">
-                Upload Concluído com Sucesso!
+                {t('sources.uploadSuccess')}
               </DialogTitle>
               <DialogDescription className="text-center text-muted-foreground">
                 {uploadedSourceIds.length === 1
-                  ? "Seu arquivo foi enviado com sucesso."
-                  : `${uploadedSourceIds.length} arquivos foram enviados com sucesso.`}
+                  ? t('sources.uploadSuccessSingle')
+                  : t('sources.uploadSuccessMultiple', { count: uploadedSourceIds.length })}
                 {" "}
-                Clique no botão abaixo para processar os arquivos e habilitar a busca semântica.
+                {t('sources.enableSearch')}
               </DialogDescription>
             </DialogHeader>
             <DialogFooter className="sm:justify-center gap-3">
@@ -644,12 +646,12 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
                 {processingEmbeddings ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin relative z-10" />
-                    <span className="relative z-10">Processando...</span>
+                    <span className="relative z-10">{t('sources.processingAction')}</span>
                   </>
                 ) : (
                   <>
                     <Sparkles className="w-4 h-4 mr-2 relative z-10 drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]" />
-                    <span className="relative z-10 drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]">Processar Arquivos</span>
+                    <span className="relative z-10 drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]">{t('sources.processFiles')}</span>
                   </>
                 )}
               </Button>
@@ -663,7 +665,7 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
             <DialogContent className="!fixed !inset-0 !top-0 !left-0 !right-0 !bottom-0 !translate-x-0 !translate-y-0 !max-w-none !w-screen !h-screen !max-h-none !m-0 !rounded-none !p-0 overflow-hidden supports-[height:100dvh]:!h-dvh">
               <div className="h-screen supports-[height:100dvh]:h-dvh w-full flex flex-col bg-muted">
                 <div className="flex items-center justify-between p-6 border-b bg-background">
-                  <h2 className="text-2xl font-bold text-foreground">Fontes</h2>
+                  <h2 className="text-2xl font-bold text-foreground">{t('sources.title')}</h2>
                   <Button
                     size="sm"
                     variant="ghost"

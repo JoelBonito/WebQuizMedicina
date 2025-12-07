@@ -3,6 +3,7 @@ import { db, functions } from '../lib/firebase';
 import { collection, query, where, orderBy, getDocs, onSnapshot } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { useAuth } from './useAuth';
+import { useProfile } from './useProfile';
 import { CONTENT_REFRESH_EVENT } from '../lib/events';
 
 export interface Flashcard {
@@ -20,6 +21,7 @@ export interface Flashcard {
 
 export const useFlashcards = (projectId: string | null) => {
   const { user } = useAuth();
+  const { profile } = useProfile();
   const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -89,10 +91,11 @@ export const useFlashcards = (projectId: string | null) => {
 
       const generateFlashcardsFn = httpsCallable(functions, 'generate_flashcards');
       const result = await generateFlashcardsFn({
-        source_ids,
         project_id: projectId,
-        count,
-        difficulty
+        source_ids,
+        dificuldade: difficulty,
+        qtd_flashcards: count,
+        language: profile?.response_language || 'pt'
       });
 
       return result.data;
@@ -118,7 +121,8 @@ export const useFlashcards = (projectId: string | null) => {
       const result = await generateRecoveryFlashcardsFn({
         project_id: projectId,
         difficulties,
-        count
+        count,
+        language: profile?.response_language || 'pt'
       });
 
       return result.data;

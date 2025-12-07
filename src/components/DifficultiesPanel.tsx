@@ -10,6 +10,7 @@ import { useSummaries } from "../hooks/useSummaries";
 import { toast } from "sonner";
 import { ScrollArea } from "./ui/scroll-area";
 import { triggerContentRefresh } from "../lib/events";
+import { useTranslation } from "react-i18next";
 
 interface DifficultiesPanelProps {
   projectId: string | null;
@@ -61,6 +62,7 @@ import { StarProgress } from "./StarProgress";
 
 export function DifficultiesPanel({ projectId, isFullscreenMode = false }: DifficultiesPanelProps) {
   const [generatingContent, setGeneratingContent] = useState(false);
+  const { t } = useTranslation();
 
   const { difficulties, loading, markAsResolved } = useDifficulties(projectId);
   const { generateRecoveryQuiz } = useQuestions(projectId);
@@ -86,15 +88,15 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
   const handleMarkAsResolved = async (difficultyId: string, topico: string) => {
     try {
       await markAsResolved(difficultyId);
-      toast.success(`Tópico "${topico}" marcado como resolvido!`);
+      toast.success(t('difficulties.topicResolved', { topic: topico }));
     } catch (error) {
-      toast.error("Erro ao marcar como resolvido");
+      toast.error(t('difficulties.errorResolving'));
     }
   };
 
   const handleGenerateFocusedSummary = async () => {
     if (topDifficulties.length === 0) {
-      toast.error("Nenhuma dificuldade encontrada");
+      toast.error(t('difficulties.noDifficultyFound'));
       return;
     }
 
@@ -106,9 +108,9 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
       await toast.promise(
         generateFocusedSummary(),
         {
-          loading: `Criando resumo focado em: ${topicsText}...`,
-          success: "📚 Resumo Focado gerado! Estude-o na aba Resumos antes de fazer quiz/flashcards.",
-          error: "Erro ao gerar resumo focado",
+          loading: t('difficulties.generatingSummary', { topics: topicsText }),
+          success: t('difficulties.summaryGenerated'),
+          error: t('difficulties.errorGeneratingSummary'),
         }
       );
 
@@ -129,7 +131,7 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
   // Phase 4C: Generate Recovery Quiz
   const handleGenerateRecoveryQuiz = async () => {
     if (topDifficulties.length === 0) {
-      toast.error("Nenhuma dificuldade encontrada");
+      toast.error(t('difficulties.noDifficultyFound'));
       return;
     }
 
@@ -141,15 +143,15 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
       const result = await toast.promise(
         generateRecoveryQuiz(undefined, 10), // difficulties will be fetched by backend if undefined
         {
-          loading: `🎯 Gerando Recovery Quiz sobre: ${topicsText}...`,
+          loading: t('difficulties.generatingQuiz', { topics: topicsText }),
           success: (data: any) => {
             const metadata = data?.recovery_metadata;
             const strategy = metadata?.strategy || 'focused';
             const focus = metadata?.focus_percentage || 100;
 
-            return `✅ Recovery Quiz gerado! Estratégia: ${strategy.toUpperCase()} (${focus}% foco)`;
+            return t('difficulties.quizGenerated', { strategy: strategy.toUpperCase(), focus });
           },
-          error: "Erro ao gerar Recovery Quiz",
+          error: t('difficulties.errorGeneratingQuiz'),
         }
       );
 
@@ -176,7 +178,7 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
   // Phase 4C: Generate Recovery Flashcards
   const handleGenerateRecoveryFlashcards = async () => {
     if (topDifficulties.length === 0) {
-      toast.error("Nenhuma dificuldade encontrada");
+      toast.error(t('difficulties.noDifficultyFound'));
       return;
     }
 
@@ -188,14 +190,14 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
       const result = await toast.promise(
         generateRecoveryFlashcards(undefined, 20), // difficulties will be fetched by backend if undefined
         {
-          loading: `🎯 Gerando Recovery Flashcards sobre: ${topicsText}...`,
+          loading: t('difficulties.generatingSummary', { topics: topicsText }),
           success: (data: any) => {
             const metadata = data?.recovery_metadata;
             const strategy = metadata?.strategy || 'focused';
 
-            return `✅ Recovery Flashcards gerados! Estratégia: ${strategy.toUpperCase()} (atomizado)`;
+            return t('difficulties.flashcardsGenerated', { strategy: strategy.toUpperCase() });
           },
-          error: "Erro ao gerar Recovery Flashcards",
+          error: t('difficulties.errorGeneratingFlashcards'),
         }
       );
 
@@ -228,7 +230,7 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <TrendingUp className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-            <p className="text-muted-foreground">Selecione um projeto para ver suas dificuldades</p>
+            <p className="text-muted-foreground">{t('difficulties.selectProject')}</p>
           </div>
         </div>
       </div>
@@ -247,26 +249,26 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center">
               <TrendingUp className="w-4 h-4 text-white" />
             </div>
-            <h3 className="text-foreground font-semibold">Dashboard de Dificuldades</h3>
+            <h3 className="text-foreground font-semibold">{t('difficulties.dashboard')}</h3>
           </div>
         </div>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-4 gap-3">
           <div className="glass rounded-xl p-3 border border-border">
-            <p className="text-xs text-muted-foreground mb-1">Total</p>
+            <p className="text-xs text-muted-foreground mb-1">{t('difficulties.total')}</p>
             <p className="text-2xl font-bold text-foreground">{stats.total}</p>
           </div>
           <div className="glass rounded-xl p-3 border border-red-200 bg-red-50/50">
-            <p className="text-xs text-red-600 mb-1">Críticas</p>
+            <p className="text-xs text-red-600 mb-1">{t('difficulties.critical')}</p>
             <p className="text-2xl font-bold text-red-700">{stats.critical}</p>
           </div>
           <div className="glass rounded-xl p-3 border border-orange-200 bg-orange-50/50">
-            <p className="text-xs text-orange-600 mb-1">Moderadas</p>
+            <p className="text-xs text-orange-600 mb-1">{t('difficulties.moderate')}</p>
             <p className="text-2xl font-bold text-orange-700">{stats.moderate}</p>
           </div>
           <div className="glass rounded-xl p-3 border border-green-200 bg-green-50/50">
-            <p className="text-xs text-green-600 mb-1">Resolvidas</p>
+            <p className="text-xs text-green-600 mb-1">{t('difficulties.resolved')}</p>
             <p className="text-2xl font-bold text-green-700">{stats.resolved}</p>
           </div>
         </div>
@@ -280,10 +282,9 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center max-w-sm">
             <CheckCircle className="w-16 h-16 mx-auto mb-4 text-green-500" />
-            <h4 className="text-foreground font-semibold mb-2">Nenhuma dificuldade encontrada!</h4>
+            <h4 className="text-foreground font-semibold mb-2">{t('difficulties.noDifficulties')}</h4>
             <p className="text-sm text-muted-foreground">
-              Continue estudando com quiz e flashcards. Quando você clicar em "NÃO SEI" ou avaliar como "Difícil",
-              os tópicos aparecerão aqui.
+              {t('difficulties.noDifficultiesDesc')}
             </p>
           </div>
         </div>
@@ -295,10 +296,10 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
               <div className="mb-3">
                 <h4 className="text-foreground font-semibold mb-1 flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-orange-600" />
-                  Conteúdo Personalizado
+                  {t('difficulties.personalizedContent')}
                 </h4>
                 <p className="text-sm text-muted-foreground mb-2">
-                  Focado nos seus {topDifficulties.length} tópicos mais difíceis
+                  {t('difficulties.focusedOn', { count: topDifficulties.length })}
                 </p>
                 <div className="flex flex-wrap gap-1 mb-3">
                   {topDifficulties.slice(0, 3).map((d, idx) => (
@@ -325,8 +326,8 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
                   ) : (
                     <BookOpen className="w-5 h-5 mb-1" />
                   )}
-                  <span className="text-sm font-semibold">Resumo Focado</span>
-                  <span className="text-xs opacity-90 mt-1">Estude primeiro</span>
+                  <span className="text-sm font-semibold">{t('difficulties.focusedSummary')}</span>
+                  <span className="text-xs opacity-90 mt-1">{t('difficulties.studyFirst')}</span>
                 </Button>
 
                 <Button
@@ -340,8 +341,8 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
                   ) : (
                     <Target className="w-5 h-5 mb-1" />
                   )}
-                  <span className="text-sm font-semibold">Recovery Quiz</span>
-                  <span className="text-xs opacity-90 mt-1">Adaptativo</span>
+                  <span className="text-sm font-semibold">{t('difficulties.recoveryQuiz')}</span>
+                  <span className="text-xs opacity-90 mt-1">{t('difficulties.adaptive')}</span>
                 </Button>
 
                 <Button
@@ -355,8 +356,8 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
                   ) : (
                     <Brain className="w-5 h-5 mb-1" />
                   )}
-                  <span className="text-sm font-semibold">Recovery Flashcards</span>
-                  <span className="text-xs opacity-90 mt-1">Atomizado</span>
+                  <span className="text-sm font-semibold">{t('difficulties.recoveryFlashcards')}</span>
+                  <span className="text-xs opacity-90 mt-1">{t('difficulties.atomized')}</span>
                 </Button>
               </div>
             </div>
@@ -367,7 +368,7 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
             <div className="space-y-3 pr-2">
               <h4 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 text-orange-600" />
-                Dificuldades Ativas ({activeDifficulties.length})
+                {t('difficulties.activeDifficulties', { count: activeDifficulties.length })}
               </h4>
 
               {activeDifficulties
@@ -385,7 +386,7 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
                         <div className="flex items-center gap-2 mb-2">
                           <h5 className="text-foreground font-semibold">{difficulty.topico}</h5>
                           <Badge className={`rounded-lg ${getLevelBadgeColor(difficulty.nivel)}`}>
-                            Nível {difficulty.nivel}
+                            {t('difficulties.level', { level: difficulty.nivel })}
                           </Badge>
                           <Badge className={`rounded-lg ${getOriginColor(difficulty.tipo_origem)}`}>
                             {getOriginIcon(difficulty.tipo_origem)}
@@ -411,7 +412,7 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
                         </div>
 
                         <p className="text-xs text-gray-500">
-                          Identificada em{" "}
+                          {t('difficulties.identifiedOn')}{" "}
                           {new Date(difficulty.created_at).toLocaleDateString("pt-BR", {
                             day: "2-digit",
                             month: "short",
@@ -428,7 +429,7 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
                           className="rounded-lg border-green-300 text-green-700 hover:bg-green-50 w-full"
                         >
                           <CheckCircle className="w-4 h-4 mr-1" />
-                          Resolver
+                          {t('difficulties.resolve')}
                         </Button>
 
                         {/* Star Progress Inline */}
@@ -445,7 +446,7 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
                 <>
                   <h4 className="text-sm font-semibold text-muted-foreground flex items-center gap-2 mt-6">
                     <CheckCircle className="w-4 h-4 text-green-600" />
-                    Resolvidas ({resolvedDifficulties.length})
+                    {t('difficulties.resolved')} ({resolvedDifficulties.length})
                   </h4>
 
                   {resolvedDifficulties
@@ -464,7 +465,7 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
                             <CheckCircle className="w-4 h-4 text-green-600" />
                             <p className="text-sm text-muted-foreground font-medium">{difficulty.topico}</p>
                             <Badge variant="outline" className="text-xs text-green-700">
-                              Era nível {difficulty.nivel}
+                              {t('difficulties.wasLevel', { level: difficulty.nivel })}
                             </Badge>
                             {/* Badge Inline se Auto-Resolvido */}
                             {difficulty.auto_resolved_at ? (
@@ -477,7 +478,7 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
                             ) : (
                               <Badge className="text-xs bg-muted text-muted-foreground border-border mt-2">
                                 <CheckCircle className="w-3 h-3 mr-1" />
-                                Resolvido manualmente
+                                {t('difficulties.resolvedManually')}
                               </Badge>
                             )}
                           </div>

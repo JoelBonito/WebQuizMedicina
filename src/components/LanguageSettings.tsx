@@ -12,6 +12,7 @@ import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 import { Languages, BookOpen, MessageSquare, Brain, FileText, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 
 interface LanguageSettingsProps {
   open: boolean;
@@ -20,6 +21,7 @@ interface LanguageSettingsProps {
 
 export function LanguageSettings({ open, onOpenChange }: LanguageSettingsProps) {
   const { language, setLanguage, getLanguageName, isLoading } = useLanguage();
+  const { t } = useTranslation();
   const [isSaving, setIsSaving] = useState(false);
   const [initialLanguage, setInitialLanguage] = useState(language);
 
@@ -43,7 +45,7 @@ export function LanguageSettings({ open, onOpenChange }: LanguageSettingsProps) 
     try {
       // setLanguage já salva no perfil
       const languageName = getLanguageName(language);
-      toast.success(`Idioma atualizado para ${languageName}!`, {
+      toast.success(t('toasts.languageUpdated', { language: languageName }), {
         duration: 4000,
       });
 
@@ -52,13 +54,14 @@ export function LanguageSettings({ open, onOpenChange }: LanguageSettingsProps) 
         setIsSaving(false);
       }, 500);
     } catch (error) {
-      toast.error('Erro ao salvar idioma');
+      toast.error(t('toasts.languageError'));
       setIsSaving(false);
     }
   };
 
   const languages = [
     { value: "pt" as const, label: "Português (Brasil)", flag: "🇧🇷" },
+    { value: "pt-PT" as const, label: "Português (Portugal)", flag: "🇵🇹" },
     { value: "en" as const, label: "English", flag: "🇬🇧" },
     { value: "es" as const, label: "Español", flag: "🇪🇸" },
     { value: "fr" as const, label: "Français", flag: "🇫🇷" },
@@ -69,6 +72,7 @@ export function LanguageSettings({ open, onOpenChange }: LanguageSettingsProps) 
     { value: "ru" as const, label: "Русский", flag: "🇷🇺" },
     { value: "ar" as const, label: "العربية", flag: "🇸🇦" },
   ];
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -94,11 +98,10 @@ export function LanguageSettings({ open, onOpenChange }: LanguageSettingsProps) 
                 {languages.map((lang) => (
                   <div
                     key={lang.value}
-                    className={`flex items-center space-x-3 rounded-xl p-4 border-2 transition-colors cursor-pointer ${
-                      language === lang.value
-                        ? "border-primary bg-primary/10"
-                        : "border-border hover:border-muted-foreground/30"
-                    }`}
+                    className={`flex items-center space-x-3 rounded-xl p-4 border-2 transition-colors cursor-pointer ${language === lang.value
+                      ? "border-primary bg-primary/10"
+                      : "border-border hover:border-muted-foreground/30"
+                      }`}
                     onClick={() => setLanguage(lang.value)}
                   >
                     <RadioGroupItem value={lang.value} id={lang.value} className="text-primary" />

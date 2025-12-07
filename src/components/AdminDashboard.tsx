@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useProfile } from '../hooks/useProfile';
 import { useTokenUsage, formatCostBRL, formatTokens, getOperationLabel } from '../hooks/useTokenUsage';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import {
@@ -16,9 +16,8 @@ import {
 import {
   ChartContainer,
   ChartTooltip,
-  ChartTooltipContent,
 } from './ui/chart';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
 import {
   Shield,
   DollarSign,
@@ -36,6 +35,7 @@ import { Badge } from './ui/badge';
 import { Alert, AlertDescription } from './ui/alert';
 
 export function AdminDashboard() {
+  const { t } = useTranslation();
   const { profile } = useProfile();
   const [startDate, setStartDate] = useState<Date>(
     new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
@@ -113,11 +113,11 @@ export function AdminDashboard() {
   // If not admin, show access denied
   if (!isAdmin) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center p-6">
-        <Alert className="max-w-md border-red-200 bg-red-50">
+      <div className="min-h-screen bg-background flex items-center justify-center p-6">
+        <Alert className="max-w-md border-destructive/20 bg-destructive/10">
           <AlertCircle className="h-5 w-5 text-red-600" />
-          <AlertDescription className="text-red-800 font-medium">
-            Acesso negado. Esta página é restrita a administradores.
+          <AlertDescription className="text-red-800 dark:text-red-400 font-medium">
+            {t('admin.notAuthorized')}
           </AlertDescription>
         </Alert>
       </div>
@@ -125,7 +125,7 @@ export function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
+    <div className="min-h-screen bg-background">
       <div className="container mx-auto px-6 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -134,8 +134,8 @@ export function AdminDashboard() {
               <Shield className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-foreground">Admin Dashboard</h1>
-              <p className="text-muted-foreground">Monitoramento de consumo de tokens</p>
+              <h1 className="text-3xl font-bold text-foreground">{t('admin.title')}</h1>
+              <p className="text-muted-foreground">{t('admin.subtitle')}</p>
             </div>
           </div>
         </div>
@@ -145,14 +145,14 @@ export function AdminDashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <Calendar className="w-5 h-5 text-[#0891B2]" />
-              Filtros
+              {t('admin.filter')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="startDate" className="text-sm font-medium text-muted-foreground">
-                  Data Inicial
+                  {t('admin.startDate')}
                 </Label>
                 <Input
                   id="startDate"
@@ -164,7 +164,7 @@ export function AdminDashboard() {
               </div>
               <div>
                 <Label htmlFor="endDate" className="text-sm font-medium text-muted-foreground">
-                  Data Final
+                  {t('admin.endDate')}
                 </Label>
                 <Input
                   id="endDate"
@@ -187,9 +187,9 @@ export function AdminDashboard() {
 
         {/* Error State */}
         {error && !loading && (
-          <Alert className="mb-6 border-red-200 bg-red-50">
+          <Alert className="mb-6 border-destructive/20 bg-destructive/10">
             <AlertCircle className="h-5 w-5 text-red-600" />
-            <AlertDescription className="text-red-800">
+            <AlertDescription className="text-red-800 dark:text-red-400">
               Erro ao carregar dados: {error.message}
             </AlertDescription>
           </Alert>
@@ -198,11 +198,11 @@ export function AdminDashboard() {
         {/* Summary Cards */}
         {!loading && summary && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            {/* Total Tokens */}
+            {/* {t('admin.totalTokensLabel')} */}
             <Card className="glass-hover border-border transition-all duration-300">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Total de Tokens (Mês Atual)
+                  {t('admin.totalTokens')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -215,7 +215,7 @@ export function AdminDashboard() {
                       {formatTokens(summary.total_tokens || 0)}
                     </p>
                     <p className="text-xs text-gray-500 mt-1">
-                      {formatTokens(summary.total_operations || 0)} operações
+                      {formatTokens(summary.total_operations || 0)} {t('admin.operations')}
                     </p>
                   </div>
                 </div>
@@ -226,7 +226,7 @@ export function AdminDashboard() {
             <Card className="glass-hover border-border transition-all duration-300">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Custo Total (BRL)
+                  {t('admin.totalCost')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -239,7 +239,7 @@ export function AdminDashboard() {
                       {formatCostBRL(summary.total_cost_brl || 0)}
                     </p>
                     <p className="text-xs text-gray-500 mt-1">
-                      Operação mais usada: {getOperationLabel(summary.most_used_operation || '')}
+                      {t('admin.mostUsedOperation', { operation: getOperationLabel(summary.most_used_operation || '') })}
                     </p>
                   </div>
                 </div>
@@ -250,7 +250,7 @@ export function AdminDashboard() {
             <Card className="glass-hover border-border transition-all duration-300">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Usuários Ativos
+                  {t('admin.activeUsers')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -276,89 +276,88 @@ export function AdminDashboard() {
         {!loading && dailyUsage.length > 0 && (
           <Card className="mb-8 glass border-border">
             <CardHeader>
-              <CardTitle className="text-lg">Consumo Diário (Últimos 30 Dias)</CardTitle>
+              <CardTitle className="text-lg">{t('admin.dailyUsage')}</CardTitle>
               <CardDescription>Evolução do uso de tokens ao longo do tempo</CardDescription>
             </CardHeader>
             <CardContent>
-              <div style={{ width: '100%', height: 300 }}>
+              <div className="w-full h-[300px]">
                 <ChartContainer
                   config={{
                     total_tokens: {
-                      label: 'Total Tokens',
+                      label: t('admin.totalTokensLabel'),
                       color: 'hsl(var(--chart-1))',
                     },
                     total_cost_brl: {
-                      label: 'Custo (BRL)',
+                      label: t('admin.costLabel'),
                       color: 'hsl(var(--chart-2))',
                     },
                   }}
+                  className="h-full w-full"
                 >
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={dailyUsage}>
-                      <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200" />
-                      <XAxis
-                        dataKey="date"
-                        tickFormatter={(value) => {
-                          const date = new Date(value);
-                          return `${date.getDate()}/${date.getMonth() + 1}`;
-                        }}
-                        className="text-xs"
-                      />
-                      <YAxis
-                        yAxisId="left"
-                        tickFormatter={(value) => formatTokens(value)}
-                        className="text-xs"
-                      />
-                      <YAxis
-                        yAxisId="right"
-                        orientation="right"
-                        tickFormatter={(value) => `R$ ${value.toFixed(2)}`}
-                        className="text-xs"
-                      />
-                      <ChartTooltip
-                        content={({ active, payload }) => {
-                          if (!active || !payload || payload.length === 0) return null;
-                          const data = payload[0].payload;
-                          return (
-                            <div className="glass-dark rounded-xl p-3 border border-border shadow-xl">
-                              <p className="text-sm font-semibold text-foreground mb-2">
-                                {new Date(data.date).toLocaleDateString('pt-BR')}
+                  <LineChart data={dailyUsage}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200" />
+                    <XAxis
+                      dataKey="date"
+                      tickFormatter={(value) => {
+                        const date = new Date(value);
+                        return `${date.getDate()}/${date.getMonth() + 1}`;
+                      }}
+                      className="text-xs"
+                    />
+                    <YAxis
+                      yAxisId="left"
+                      tickFormatter={(value) => formatTokens(value)}
+                      className="text-xs"
+                    />
+                    <YAxis
+                      yAxisId="right"
+                      orientation="right"
+                      tickFormatter={(value) => `R$ ${value.toFixed(2)}`}
+                      className="text-xs"
+                    />
+                    <ChartTooltip
+                      content={({ active, payload }) => {
+                        if (!active || !payload || payload.length === 0) return null;
+                        const data = payload[0].payload;
+                        return (
+                          <div className="bg-background/95 backdrop-blur-sm rounded-xl p-3 border border-border shadow-xl">
+                            <p className="text-sm font-semibold text-foreground mb-2">
+                              {new Date(data.date).toLocaleDateString('pt-BR')}
+                            </p>
+                            <div className="space-y-1">
+                              <p className="text-xs text-muted-foreground">
+                                <span className="font-medium">Tokens:</span> {formatTokens(data.total_tokens)}
                               </p>
-                              <div className="space-y-1">
-                                <p className="text-xs text-muted-foreground">
-                                  <span className="font-medium">Tokens:</span> {formatTokens(data.total_tokens)}
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  <span className="font-medium">Custo:</span> {formatCostBRL(data.total_cost_brl)}
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  <span className="font-medium">Usuários:</span> {data.unique_users}
-                                </p>
-                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                <span className="font-medium">Custo:</span> {formatCostBRL(data.total_cost_brl)}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                <span className="font-medium">Usuários:</span> {data.unique_users}
+                              </p>
                             </div>
-                          );
-                        }}
-                      />
-                      <Line
-                        yAxisId="left"
-                        type="monotone"
-                        dataKey="total_tokens"
-                        stroke="hsl(var(--chart-1))"
-                        strokeWidth={2}
-                        dot={{ fill: 'hsl(var(--chart-1))', r: 4 }}
-                        activeDot={{ r: 6 }}
-                      />
-                      <Line
-                        yAxisId="right"
-                        type="monotone"
-                        dataKey="total_cost_brl"
-                        stroke="hsl(var(--chart-2))"
-                        strokeWidth={2}
-                        dot={{ fill: 'hsl(var(--chart-2))', r: 4 }}
-                        activeDot={{ r: 6 }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
+                          </div>
+                        );
+                      }}
+                    />
+                    <Line
+                      yAxisId="left"
+                      type="monotone"
+                      dataKey="total_tokens"
+                      stroke="hsl(var(--chart-1))"
+                      strokeWidth={2}
+                      dot={{ fill: 'hsl(var(--chart-1))', r: 4 }}
+                      activeDot={{ r: 6 }}
+                    />
+                    <Line
+                      yAxisId="right"
+                      type="monotone"
+                      dataKey="total_cost_brl"
+                      stroke="hsl(var(--chart-2))"
+                      strokeWidth={2}
+                      dot={{ fill: 'hsl(var(--chart-2))', r: 4 }}
+                      activeDot={{ r: 6 }}
+                    />
+                  </LineChart>
                 </ChartContainer>
               </div>
             </CardContent>
@@ -371,15 +370,15 @@ export function AdminDashboard() {
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Users className="w-5 h-5 text-[#0891B2]" />
-                Consumo por Usuário
+                {t('admin.userUsage')}
                 <Badge variant="outline" className="ml-auto text-xs">
-                  {userUsage.length} usuários
+                  {t('admin.userCount', { count: userUsage.length })}
                 </Badge>
               </CardTitle>
               <CardDescription className="flex items-center gap-2 text-sm">
                 <span className="inline-flex items-center gap-1">
                   <ChevronRight className="w-3 h-3" />
-                  Clique em um usuário para ver breakdown por projeto/matéria
+                  {t('admin.clickUserBreakdown')}
                 </span>
               </CardDescription>
 
@@ -387,7 +386,7 @@ export function AdminDashboard() {
               <div className="mt-4 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <Input
-                  placeholder="Buscar por nome ou email..."
+                  placeholder={t('admin.search')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -399,11 +398,11 @@ export function AdminDashboard() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-10"></TableHead>
-                    <TableHead>Usuário</TableHead>
-                    <TableHead className="text-right">Total Tokens</TableHead>
-                    <TableHead className="text-right">Custo (BRL)</TableHead>
-                    <TableHead className="text-center">Último Acesso</TableHead>
-                    <TableHead className="text-center">Operações</TableHead>
+                    <TableHead>{t('admin.user')}</TableHead>
+                    <TableHead className="text-right">{t('admin.totalTokensShort')}</TableHead>
+                    <TableHead className="text-right">{t('admin.costLabel')}</TableHead>
+                    <TableHead className="text-center">{t('admin.lastAccess')}</TableHead>
+                    <TableHead className="text-center">{t('admin.operationsColumn')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -473,7 +472,7 @@ export function AdminDashboard() {
                               <div className="flex items-center justify-between mb-4">
                                 <h4 className="text-base font-bold text-foreground flex items-center gap-2">
                                   <FolderKanban className="w-5 h-5 text-[#0891B2]" />
-                                  Consumo por Projeto / Matéria
+                                  {t('admin.projectUsage')}
                                 </h4>
                                 <Badge className="bg-[#0891B2] text-white">
                                   {projectUsage.length} projetos
@@ -500,8 +499,8 @@ export function AdminDashboard() {
                                     <TableRow>
                                       <TableHead>Projeto</TableHead>
                                       <TableHead className="text-right">Tokens</TableHead>
-                                      <TableHead className="text-right">Custo</TableHead>
-                                      <TableHead className="text-center">Operações</TableHead>
+                                      <TableHead className="text-right">{t('admin.cost')}</TableHead>
+                                      <TableHead className="text-center">{t('admin.operationsColumn')}</TableHead>
                                     </TableRow>
                                   </TableHeader>
                                   <TableBody>
@@ -562,7 +561,7 @@ export function AdminDashboard() {
               <div className="text-center">
                 <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <p className="text-muted-foreground font-medium">
-                  Nenhum dado disponível para o período selecionado
+                  {t('admin.noData')}
                 </p>
                 <p className="text-sm text-gray-500 mt-2">
                   Tente ajustar os filtros de data ou aguarde o registro de uso de tokens

@@ -3,12 +3,7 @@ import * as admin from "firebase-admin";
 import { z } from "zod";
 import { validateRequest, sanitizeString } from "./shared/validation";
 
-// Initialize Firebase Admin if not already initialized
-if (!admin.apps.length) {
-    admin.initializeApp();
-}
 
-const db = admin.firestore();
 
 const manageDifficultiesSchema = z.object({
     action: z.enum(["add", "resolve", "list", "check_auto_resolve", "statistics", "normalize_topic"]),
@@ -24,6 +19,7 @@ export const manage_difficulties = onCall({
     memory: "256MiB",
     region: "us-central1"
 }, async (request) => {
+    const db = admin.firestore();
     // Auth Check
     if (!request.auth) {
         throw new HttpsError("unauthenticated", "User must be authenticated");

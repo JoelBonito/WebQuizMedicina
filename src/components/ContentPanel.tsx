@@ -33,6 +33,8 @@ import { useUserPreferences } from "../hooks/useUserPreferences";
 import { db } from "../lib/firebase";
 import { collection, query, where, getDocs, updateDoc, doc, writeBatch } from "firebase/firestore";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
+type TFunction = ReturnType<typeof useTranslation>['t'];
 import { isRecoverySession } from "../lib/recoverySessionTracker";
 import { triggerContentRefresh } from "../lib/events";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "./ui/dialog";
@@ -73,7 +75,7 @@ interface GeneratedContent {
 const ACTION_CARDS = [
   {
     id: 'quiz',
-    title: 'Teste',
+    titleKey: 'study.teste',
     icon: HelpCircle,
     bgColor: 'bg-gradient-to-br from-blue-600 to-blue-500',
     textColor: 'text-white',
@@ -81,7 +83,7 @@ const ACTION_CARDS = [
   },
   {
     id: 'flashcards',
-    title: 'Cartões de Estudo',
+    titleKey: 'study.flashcards',
     icon: Layers,
     bgColor: 'bg-gradient-to-br from-red-600 to-rose-500',
     textColor: 'text-white',
@@ -89,7 +91,7 @@ const ACTION_CARDS = [
   },
   {
     id: 'summary',
-    title: 'Resumo',
+    titleKey: 'study.summary',
     icon: FileText,
     bgColor: 'bg-gradient-to-br from-purple-600 to-purple-500',
     textColor: 'text-white',
@@ -97,7 +99,7 @@ const ACTION_CARDS = [
   },
   {
     id: 'mindmap',
-    title: 'Mapa Mental',
+    titleKey: 'study.mindMap',
     icon: Network,
     bgColor: 'bg-gradient-to-br from-teal-600 to-cyan-500',
     textColor: 'text-white',
@@ -145,12 +147,12 @@ const getContentStyle = (type: string) => {
   }
 };
 
-const formatTimeAgo = (date: Date) => {
+const formatTimeAgo = (date: Date, t: TFunction) => {
   const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
-  if (seconds < 60) return 'agora';
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}min atrás`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h atrás`;
-  return `${Math.floor(seconds / 86400)}d atrás`;
+  if (seconds < 60) return t('contentPanel.now');
+  if (seconds < 3600) return t('contentPanel.minutesAgo', { count: Math.floor(seconds / 60) });
+  if (seconds < 86400) return t('contentPanel.hoursAgo', { count: Math.floor(seconds / 3600) });
+  return t('contentPanel.daysAgo', { count: Math.floor(seconds / 86400) });
 };
 
 // Helper function to get badge color based on difficulty
@@ -182,6 +184,7 @@ const getDifficultyIcon = (difficulty: 'fácil' | 'médio' | 'difícil' | 'misto
 };
 
 export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMode = false, onViewStats }: ContentPanelProps) {
+  const { t } = useTranslation();
   const [generatedContent, setGeneratedContent] = useState<GeneratedContent[]>([]);
   const [selectedSummary, setSelectedSummary] = useState<any>(null);
   const [selectedMindMap, setSelectedMindMap] = useState<any>(null);
@@ -224,7 +227,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
     localStorage.setItem('chat_question', `Explique melhor: "${selectedText}"`);
     window.dispatchEvent(new CustomEvent('ask-chat', { detail: selectedText }));
     setSelectedSummary(null);
-    toast.success("Pergunta enviada para o Chat! Alterne para a aba Chat.");
+    toast.success(t('toasts.questionSentToChat'));
   };
 
   const { questions, loading: loadingQuiz, generating: generatingQuiz, generateQuiz, refetch: fetchQuestions } = useQuestions(projectId);
@@ -289,8 +292,8 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
       const isRecovery = mostRecent.content_type === 'recovery' ||
         (mostRecent.content_type === undefined && isRecoverySession(sessionId));
       const defaultTitle = isRecovery
-        ? `Quiz Recovery - ${sessionQuestions.length} questões`
-        : `Quiz - ${sessionQuestions.length} questões`;
+        ? `${t('contentPanel.quiz')} ${t('contentPanel.recovery')} - ${t('contentPanel.questions', { count: sessionQuestions.length })}`
+        : `${t('contentPanel.quiz')} - ${t('contentPanel.questions', { count: sessionQuestions.length })}`;
       // Use customName only if it exists and is not empty, otherwise use default
       const customName = customNames[contentId];
       const finalTitle = (customName && customName.trim()) ? customName : defaultTitle;
@@ -324,8 +327,8 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
       const isRecovery = mostRecent.content_type === 'recovery' ||
         (mostRecent.content_type === undefined && isRecoverySession(sessionId));
       const defaultTitle = isRecovery
-        ? `Flashcards Recovery - ${sessionFlashcards.length} cards`
-        : `Flashcards - ${sessionFlashcards.length} cards`;
+        ? `${t('contentPanel.flashcards')} ${t('contentPanel.recovery')} - ${t('contentPanel.cards', { count: sessionFlashcards.length })}`
+        : `${t('contentPanel.flashcards')} - ${t('contentPanel.cards', { count: sessionFlashcards.length })}`;
       // Use customName only if it exists and is not empty, otherwise use default
       const customName = customNames[contentId];
       const finalTitle = (customName && customName.trim()) ? customName : defaultTitle;
@@ -402,7 +405,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
 
   const handleGenerateContent = async (type: 'quiz' | 'flashcards' | 'summary' | 'mindmap') => {
     if (selectedSourceIds.length === 0) {
-      toast.error("Selecione pelo menos uma fonte para gerar conteúdo");
+      toast.error(t('toasts.selectSourceFirst'));
       return;
     }
 
@@ -412,8 +415,8 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
           const quizDiff = quizDifficulty !== 'todos' ? quizDifficulty : undefined;
           const quizResult = (await generateQuiz(selectedSourceIds, 20, quizDiff)) as any;
           toast.success(quizDiff
-            ? `Quiz gerado com sucesso (nível ${quizDiff})!`
-            : "Quiz gerado com sucesso!"
+            ? t('toasts.quizGeneratedWithDiff', { difficulty: quizDiff })
+            : t('toasts.quizGenerated')
           );
 
           // Trigger content refresh for all hooks (fallback for Realtime)
@@ -431,8 +434,8 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
           const flashcardDiff = flashcardDifficulty !== 'todos' ? flashcardDifficulty : undefined;
           await generateFlashcards(selectedSourceIds, 20, flashcardDiff);
           toast.success(flashcardDiff
-            ? `Flashcards gerados com sucesso (nível ${flashcardDiff})!`
-            : "Flashcards gerados com sucesso!"
+            ? t('toasts.flashcardsGeneratedWithDiff', { difficulty: flashcardDiff })
+            : t('toasts.flashcardsGenerated')
           );
 
           // Trigger content refresh for all hooks (fallback for Realtime)
@@ -440,18 +443,18 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
           break;
         case 'summary':
           await generateSummary(selectedSourceIds);
-          toast.success("Resumo gerado com sucesso!");
+          toast.success(t('toasts.summaryGenerated'));
 
           // Trigger content refresh for all hooks (fallback for Realtime)
           triggerContentRefresh();
           break;
         case 'mindmap':
           await generateMindMap(selectedSourceIds, 'standard');
-          toast.success("Mapa mental gerado com sucesso!");
+          toast.success(t('toasts.mindmapGenerated'));
           break;
       }
     } catch (error) {
-      toast.error("Erro ao gerar conteúdo. Verifique se há fontes disponíveis.");
+      toast.error(t('toasts.contentGenerationError'));
       console.error(error);
     }
   };
@@ -488,9 +491,9 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
   const handleDeleteSummary = async (id: string) => {
     try {
       await deleteSummary(id);
-      toast.success("Resumo removido");
+      toast.success(t('toasts.summaryRemoved'));
     } catch (error) {
-      toast.error("Erro ao remover resumo");
+      toast.error(t('toasts.summaryRemoveError'));
     }
   };
 
@@ -509,10 +512,10 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
 
       // Refetch questions to update UI
       await fetchQuestions();
-      toast.success("Quiz removido");
+      toast.success(t('toasts.quizRemoved'));
     } catch (error) {
       console.error('Error deleting quiz:', error);
-      toast.error("Erro ao remover quiz");
+      toast.error(t('toasts.quizRemoveError'));
     }
   };
 
@@ -529,19 +532,19 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
 
       // Refetch flashcards to update UI
       await fetchFlashcards();
-      toast.success("Flashcards removidos");
+      toast.success(t('toasts.flashcardsRemoved'));
     } catch (error) {
       console.error('Error deleting flashcards:', error);
-      toast.error("Erro ao remover flashcards");
+      toast.error(t('toasts.flashcardsRemoveError'));
     }
   };
 
   const handleDeleteMindMap = async (id: string) => {
     try {
       await deleteMindMap(id);
-      toast.success("Mapa mental removido");
+      toast.success(t('toasts.mindmapRemoved'));
     } catch (error) {
-      toast.error("Erro ao remover mapa mental");
+      toast.error(t('toasts.mindmapRemoveError'));
     }
   };
 
@@ -574,7 +577,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
         delete newCustomNames[renamingContent.id];
         setCustomNames(newCustomNames);
 
-        toast.success("Resumo renomeado");
+        toast.success(t('toasts.summaryRenamed'));
       } else if (renamingContent.type === 'mindmap') {
         // For mind maps, update in database
         await updateDoc(doc(db, 'mindmaps', renamingContent.id), {
@@ -586,7 +589,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
         delete newCustomNames[renamingContent.id];
         setCustomNames(newCustomNames);
 
-        toast.success("Mapa mental renomeado");
+        toast.success(t('toasts.mindmapRenamed'));
       } else {
         // For quiz/flashcards, store in local state (visualization only)
         setCustomNames({
@@ -600,7 +603,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
       setNewContentName('');
     } catch (error) {
       console.error('Error renaming content:', error);
-      toast.error("Erro ao renomear");
+      toast.error(t('toasts.renameError'));
     }
   };
 
@@ -632,7 +635,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
           {/* Header - Oculto em fullscreen para evitar duplicidade */}
           {!isFullscreenMode && (
             <div className="flex items-center justify-between mb-6">
-              <h1 className="text-lg font-semibold text-foreground">Estudo</h1>
+              <h1 className="text-lg font-semibold text-foreground">{t('contentPanel.study')}</h1>
               <button
                 onClick={() => setIsFullscreen(true)}
                 className="hidden md:flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
@@ -693,7 +696,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
 
                     {/* Título */}
                     <span className={`font-semibold text-sm md:text-xs ${card.textColor} relative z-10 drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]`}>
-                      {card.title}
+                      {t(card.titleKey)}
                     </span>
 
                     {/* Loading indicator - only for this specific button */}
@@ -711,7 +714,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
                     return (
                       <div className="absolute bottom-2 md:bottom-2 right-2 md:right-2 text-[9px] md:text-[8px] font-bold text-white/90 flex items-center gap-0.5 md:gap-1 z-10 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
                         <DiffIcon className="w-2 h-2 md:w-2 md:h-2" />
-                        <span>{currentDifficulty === 'todos' ? 'misto' : currentDifficulty}</span>
+                        <span>{currentDifficulty === 'todos' ? t('contentPanel.mixed') : t(`contentPanel.${currentDifficulty === 'fácil' ? 'easy' : currentDifficulty === 'médio' ? 'medium' : 'hard'}`)}</span>
                       </div>
                     );
                   })()}
@@ -729,23 +732,23 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
                         </button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-48">
-                        <DropdownMenuLabel>Nível de Dificuldade</DropdownMenuLabel>
+                        <DropdownMenuLabel>{t('contentPanel.difficultyLevel')}</DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         <DropdownMenuRadioGroup
                           value={currentDifficulty}
                           onValueChange={(value) => setDifficulty(value as typeof currentDifficulty)}
                         >
                           <DropdownMenuRadioItem value="todos">
-                            Todos os níveis
+                            {t('contentPanel.allLevels')}
                           </DropdownMenuRadioItem>
                           <DropdownMenuRadioItem value="fácil">
-                            Fácil
+                            {t('contentPanel.easy')}
                           </DropdownMenuRadioItem>
                           <DropdownMenuRadioItem value="médio">
-                            Médio
+                            {t('contentPanel.medium')}
                           </DropdownMenuRadioItem>
                           <DropdownMenuRadioItem value="difícil">
-                            Difícil
+                            {t('contentPanel.hard')}
                           </DropdownMenuRadioItem>
                         </DropdownMenuRadioGroup>
                       </DropdownMenuContent>
@@ -764,12 +767,12 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
             >
               <div className="flex items-center justify-center gap-2 mb-1 relative z-10">
                 <TrendingUp className="w-4 h-4 drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]" />
-                <span className="font-medium drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]">Análise das Dificuldades</span>
+                <span className="font-medium drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]">{t('study.difficulties')}</span>
               </div>
               {difficulties.length > 0 && (
                 <div className="flex items-center justify-center gap-1 text-[10px] opacity-90 relative z-10">
                   <Lightbulb className="w-3 h-3" />
-                  <span>{difficulties.length} dificuldade{difficulties.length !== 1 ? 's' : ''} rastreada{difficulties.length !== 1 ? 's' : ''}</span>
+                  <span>{t('difficulties.trackedCount', { count: difficulties.length })}</span>
                 </div>
               )}
             </button>
@@ -781,10 +784,10 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
               >
                 <div className="flex items-center justify-center gap-2 mb-1 relative z-10">
                   <BarChart3 className="w-4 h-4 drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]" />
-                  <span className="font-medium drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]">Estatísticas</span>
+                  <span className="font-medium drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]">{t('study.statistics')}</span>
                 </div>
                 <div className="flex items-center justify-center gap-1 text-[10px] opacity-90 relative z-10">
-                  <span>Ver desempenho geral</span>
+                  <span>{t('study.viewPerformance')}</span>
                 </div>
               </button>
             )}
@@ -802,8 +805,8 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
             ) : generatedContent.length === 0 ? (
               <div className="text-center py-12 text-gray-500">
                 <Sparkles className="w-12 h-12 mx-auto mb-3 text-gray-400" />
-                <p className="font-medium mb-1">Nenhum conteúdo gerado ainda</p>
-                <p className="text-sm">Clique em um dos botões acima para começar</p>
+                <p className="font-medium mb-1">{t('contentPanel.noContent')}</p>
+                <p className="text-sm">{t('contentPanel.clickToStart')}</p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -835,12 +838,12 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
                           {content.isRecovery && (
                             <Badge className="text-xs px-2 py-0.5 rounded-md bg-gradient-to-r from-orange-100 to-amber-100 text-orange-700 border border-orange-200 shrink-0 flex items-center gap-1">
                               <TrendingUp className="w-3 h-3" />
-                              Recovery
+                              {t('contentPanel.recovery')}
                             </Badge>
                           )}
                         </div>
                         <p className="text-sm text-gray-500">
-                          {style.label} · {content.sourceCount} fontes · {formatTimeAgo(content.createdAt)}
+                          {style.label} · {t('contentPanel.sources', { count: content.sourceCount })} · {formatTimeAgo(content.createdAt, t)}
                         </p>
                       </div>
 
@@ -850,7 +853,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
                         return (
                           <Badge className={`text-xs px-2.5 py-1 rounded-lg font-medium shadow-sm shrink-0 flex items-center gap-1 ${getDifficultyBadgeStyle(content.difficulty)}`}>
                             <DiffIcon className="w-3 h-3" />
-                            {content.difficulty}
+                            {t(`contentPanel.${content.difficulty === 'fácil' ? 'easy' : content.difficulty === 'médio' ? 'medium' : content.difficulty === 'difícil' ? 'hard' : 'mixed'}`)}
                           </Badge>
                         );
                       })()}
@@ -881,7 +884,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
                             }}
                           >
                             <Edit className="w-4 h-4 mr-2" />
-                            Renomear
+                            {t('contentPanel.rename')}
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
@@ -892,7 +895,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
                             className="text-red-600 focus:text-red-600"
                           >
                             <Trash2 className="w-4 h-4 mr-2" />
-                            Deletar
+                            {t('contentPanel.delete')}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -1005,7 +1008,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
         <DialogContent className="!fixed !inset-0 !top-0 !left-0 !right-0 !bottom-0 !translate-x-0 !translate-y-0 !max-w-none !w-screen !h-screen !max-h-none !m-0 !rounded-none !p-0 overflow-hidden supports-[height:100dvh]:!h-dvh">
           <div className="h-screen supports-[height:100dvh]:h-dvh w-full flex flex-col bg-muted">
             <div className="flex items-center justify-between p-6 border-b bg-background gap-6">
-              <h2 className="text-2xl font-bold text-foreground">Análise das Dificuldades</h2>
+              <h2 className="text-2xl font-bold text-foreground">{t('study.difficulties')}</h2>
               <div className="flex items-center gap-4">
                 {/* Toggle Auto-Remove - Compacto */}
                 <div className="flex items-center gap-3 px-3 py-1.5 bg-background rounded-lg border border-border">
@@ -1014,10 +1017,10 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
                       htmlFor="difficulty-auto-remove"
                       className="text-xs font-medium text-muted-foreground cursor-pointer"
                     >
-                      Auto-remoção de Dificuldades
+                      {t('contentPanel.autoRemoveTitle')}
                     </label>
                     <span className="text-[10px] text-gray-500">
-                      Remove ao dominar (3 acertos)
+                      {t('contentPanel.autoRemoveDesc')}
                     </span>
                   </div>
 
@@ -1032,12 +1035,12 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
                         await updateAutoRemove(newValue);
                         toast.success(
                           newValue
-                            ? 'Remoção automática ativada'
-                            : 'Remoção automática desativada'
+                            ? t('contentPanel.autoRemoveEnabled')
+                            : t('contentPanel.autoRemoveDisabled')
                         );
                       } catch (error) {
                         console.error('Error toggling auto-remove:', error);
-                        toast.error('Erro ao atualizar. Verifique sua conexão.');
+                        toast.error(t('contentPanel.autoRemoveError'));
                       }
                     }}
                     className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 ${preferences.autoRemoveDifficulties
@@ -1066,9 +1069,9 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
                 </Button>
               </div>
             </div>
-            <DialogTitle className="sr-only">Análise das Dificuldades</DialogTitle>
+            <DialogTitle className="sr-only">{t('study.difficulties')}</DialogTitle>
             <DialogDescription className="sr-only">
-              Visualize e gerencie suas dificuldades de aprendizado identificadas durante quizzes e flashcards.
+              {t('difficulties.noDifficultiesDesc')}
             </DialogDescription>
             <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 md:p-6 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-6">
               <DifficultiesPanel projectId={projectId} isFullscreenMode={true} />
@@ -1086,10 +1089,12 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
       }}>
         <DialogContent className="rounded-3xl max-w-md">
           <DialogTitle className="text-xl font-semibold text-foreground">
-            Renomear {renamingContent?.type === 'quiz' ? 'Quiz' : renamingContent?.type === 'flashcards' ? 'Flashcards' : 'Resumo'}
+            {t('contentPanel.renameContent', {
+              type: renamingContent?.type === 'quiz' ? 'Quiz' : renamingContent?.type === 'flashcards' ? 'Flashcards' : 'Resumo'
+            })}
           </DialogTitle>
           <DialogDescription className="text-sm text-muted-foreground">
-            Digite o novo nome para "{renamingContent?.currentName}"
+            {t('contentPanel.enterNewName', { name: renamingContent?.currentName })}
           </DialogDescription>
           <div className="py-4">
             <Input
@@ -1115,14 +1120,14 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
               }}
               className="rounded-xl border-gray-300 hover:bg-muted text-muted-foreground"
             >
-              Cancelar
+              {t('contentPanel.cancel')}
             </Button>
             <Button
               onClick={handleRenameConfirm}
               disabled={!newContentName.trim()}
               className="rounded-xl bg-[#0891B2] hover:bg-[#0891B2]/90"
             >
-              Salvar
+              {t('contentPanel.save')}
             </Button>
           </div>
         </DialogContent>
@@ -1134,7 +1139,7 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
           <DialogContent className="!fixed !inset-0 !top-0 !left-0 !right-0 !bottom-0 !translate-x-0 !translate-y-0 !max-w-none !w-screen !h-screen !max-h-none !m-0 !rounded-none !p-0 overflow-hidden supports-[height:100dvh]:!h-dvh">
             <div className="h-screen supports-[height:100dvh]:h-dvh w-full flex flex-col bg-muted">
               <div className="flex items-center justify-between p-6 border-b bg-background">
-                <h2 className="text-2xl font-bold text-foreground">Estudo</h2>
+                <h2 className="text-2xl font-bold text-foreground">{t('contentPanel.study')}</h2>
                 <Button
                   size="sm"
                   variant="ghost"

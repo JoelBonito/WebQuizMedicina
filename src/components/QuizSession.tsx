@@ -20,6 +20,7 @@ import { useDifficulties } from "../hooks/useDifficulties";
 import { useQuizPersistence } from "../hooks/useQuizPersistence";
 import { useUserPreferences } from "../hooks/useUserPreferences";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 interface QuizSessionProps {
   questions: Question[];
@@ -85,6 +86,7 @@ export function QuizSession({
   const [elapsedTime, setElapsedTime] = useState(0);
   const [showTimer, setShowTimer] = useState(true);
   const [hasLoadedProgress, setHasLoadedProgress] = useState(false);
+  const { t } = useTranslation();
 
   const { saveQuizProgress } = useProgress();
   const { addDifficulty, checkAutoResolve } = useDifficulties(projectId);
@@ -181,14 +183,14 @@ export function QuizSession({
 
           if (result.auto_resolved) {
             // 🎉 Feedback de conquista via Toast
-            toast.success(`Parabéns! O tópico "${currentQuestion.topico}" foi dominado e removido das dificuldades!`, {
+            toast.success(t('quizSession.topicMastered', { topic: currentQuestion.topico }), {
               icon: <Trophy className="w-5 h-5 text-yellow-500" />,
               duration: 4000,
             });
           } else if (progress > 0) {
             // Mostrar progresso parcial
-            toast.info(`Progresso: ${progress}/3 acertos sobre "${currentQuestion.topico}"`, {
-              description: `Mais ${3 - progress} acerto(s) para remover das dificuldades!`,
+            toast.info(t('quizSession.progressUpdate', { progress, topic: currentQuestion.topico }), {
+              description: t('quizSession.moreToGo', { remaining: 3 - progress }),
               duration: 3000,
             });
           }
@@ -240,9 +242,7 @@ export function QuizSession({
       if (currentQuestion.topico) {
 
         await addDifficulty(currentQuestion.topico, "quiz");
-        toast.info(
-          `Tópico "${currentQuestion.topico}" adicionado às dificuldades`
-        );
+        toast.info(t('quizSession.topicAdded', { topic: currentQuestion.topico }));
       }
 
     } catch (error) {
@@ -350,9 +350,9 @@ export function QuizSession({
               exit={{ opacity: 0, scale: 0.95 }}
               className="p-4 md:p-8 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-8 overflow-y-auto overscroll-contain h-screen supports-[height:100dvh]:h-dvh w-full"
             >
-              <DialogTitle className="sr-only">Resumo do Quiz</DialogTitle>
+              <DialogTitle className="sr-only">{t('quizSession.sessionComplete')}</DialogTitle>
               <DialogDescription className="sr-only">
-                Visualização dos resultados do quiz completo com estatísticas de desempenho
+                {t('quizSession.score', { score: Math.round((stats.corretas / questions.length) * 100) })}
               </DialogDescription>
               {/* Summary */}
               <div className="text-center mb-8">
@@ -360,10 +360,10 @@ export function QuizSession({
                   <Trophy className="w-10 h-10 text-white" />
                 </div>
                 <h2 className="text-3xl font-bold text-foreground mb-2">
-                  Quiz Concluído!
+                  {t('quizSession.sessionComplete')}
                 </h2>
                 <p className="text-muted-foreground">
-                  Você completou {questions.length} questões
+                  {t('quizSession.correctAnswers', { correct: stats.corretas, total: questions.length })}
                 </p>
               </div>
 
@@ -374,7 +374,7 @@ export function QuizSession({
                   <p className="text-3xl font-bold text-foreground">
                     {stats.corretas}
                   </p>
-                  <p className="text-sm text-muted-foreground">Corretas</p>
+                  <p className="text-sm text-muted-foreground">{t('quizSession.correct')}</p>
                 </div>
 
                 <div className="glass-dark rounded-2xl p-6 text-center border border-border">
@@ -382,7 +382,7 @@ export function QuizSession({
                   <p className="text-3xl font-bold text-foreground">
                     {stats.erradas}
                   </p>
-                  <p className="text-sm text-muted-foreground">Erradas</p>
+                  <p className="text-sm text-muted-foreground">{t('quizSession.incorrect')}</p>
                 </div>
 
                 <div className="glass-dark rounded-2xl p-6 text-center border border-border">
@@ -390,7 +390,7 @@ export function QuizSession({
                   <p className="text-3xl font-bold text-foreground">
                     {stats.naoSei}
                   </p>
-                  <p className="text-sm text-muted-foreground">Não Sei</p>
+                  <p className="text-sm text-muted-foreground">{t('quizSession.dontKnow')}</p>
                 </div>
 
                 <div className="glass-dark rounded-2xl p-6 text-center border border-border">
@@ -398,7 +398,7 @@ export function QuizSession({
                   <p className="text-3xl font-bold text-foreground">
                     {Math.round(stats.tempoMedio)}s
                   </p>
-                  <p className="text-sm text-muted-foreground">Tempo Médio</p>
+                  <p className="text-sm text-muted-foreground">{t('quizSession.time')}</p>
                 </div>
               </div>
 
@@ -407,7 +407,7 @@ export function QuizSession({
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground mb-1">
-                      Pontuação Final
+                      {t('quizSession.score', { score: '' }).replace(': %', '')}
                     </p>
                     <p className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                       {Math.round((stats.corretas / questions.length) * 100)}%
@@ -423,7 +423,7 @@ export function QuizSession({
                   onClick={handleClose}
                   className="flex-1 rounded-xl border-gray-300 hover:bg-muted text-muted-foreground"
                 >
-                  Fechar
+                  {t('flashcardSession.close')}
                 </Button>
                 <Button
                   onClick={() => {
@@ -435,7 +435,7 @@ export function QuizSession({
                   }}
                   className="flex-1 rounded-xl bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white shadow-lg"
                 >
-                  Tentar Novamente
+                  {t('quizSession.restart')}
                 </Button>
               </div>
             </motion.div>
@@ -448,19 +448,19 @@ export function QuizSession({
               className="flex flex-col h-screen supports-[height:100dvh]:h-dvh w-full"
             >
               <DialogTitle className="sr-only">
-                Questão {currentIndex + 1} de {questions.length}
+                {t('quizSession.question', { current: currentIndex + 1, total: questions.length })}
               </DialogTitle>
               <DialogDescription className="sr-only">
                 {state === "feedback"
-                  ? "Feedback da resposta selecionada com explicação detalhada"
-                  : "Responda a questão selecionando uma das alternativas ou clique em 'Não Sei'"}
+                  ? t('quizSession.explanation')
+                  : t('quizSession.question', { current: currentIndex + 1, total: questions.length })}
               </DialogDescription>
               {/* Header */}
               <div className="p-6 border-b border-border">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <h3 className="text-xl font-semibold text-foreground">
-                      Questão {currentIndex + 1} de {questions.length}
+                      {t('quizSession.question', { current: currentIndex + 1, total: questions.length })}
                     </h3>
                     {currentQuestion.dificuldade && (
                       <Badge
@@ -471,7 +471,7 @@ export function QuizSession({
                             : "bg-red-50 text-red-700 border-red-200"
                           }`}
                       >
-                        {currentQuestion.dificuldade}
+                        {t(`contentPanel.${currentQuestion.dificuldade === 'fácil' ? 'easy' : currentQuestion.dificuldade === 'médio' ? 'medium' : 'hard'}`)}
                       </Badge>
                     )}
                   </div>
@@ -548,7 +548,7 @@ export function QuizSession({
                     >
                       <p className="text-sm font-semibold text-primary mb-1 flex items-center gap-2">
                         <HelpCircle className="w-4 h-4" />
-                        Dica:
+                        {t('quizSession.hint')}
                       </p>
                       <p className="text-sm text-primary">
                         {currentQuestion.dica}
@@ -571,10 +571,10 @@ export function QuizSession({
                               <CheckCircle2 className="w-6 h-6 text-green-600 dark:text-green-400" />
                               <div>
                                 <p className="font-semibold text-green-900 dark:text-green-100">
-                                  Resposta Correta!
+                                  {t('quizSession.correct')}!
                                 </p>
                                 <p className="text-sm text-green-700 dark:text-green-300">
-                                  Parabéns, você acertou!
+                                  {t('quizSession.correct')}!
                                 </p>
                               </div>
                             </div>
@@ -585,11 +585,10 @@ export function QuizSession({
                               <XCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
                               <div>
                                 <p className="font-semibold text-red-900 dark:text-red-100">
-                                  Resposta Incorreta
+                                  {t('quizSession.incorrect')}
                                 </p>
                                 <p className="text-sm text-red-700 dark:text-red-300">
-                                  A resposta correta é{" "}
-                                  {getCorrectAnswerLetter()}
+                                  {t('quizSession.correctAnswer', { answer: getCorrectAnswerLetter() })}
                                 </p>
                               </div>
                             </div>
@@ -601,11 +600,10 @@ export function QuizSession({
                             <HelpCircle className="w-6 h-6 text-orange-600 dark:text-orange-400" />
                             <div>
                               <p className="font-semibold text-orange-900 dark:text-orange-100">
-                                Não Sei
+                                {t('quizSession.dontKnow')}
                               </p>
                               <p className="text-sm text-orange-700 dark:text-orange-300">
-                                Tópico adicionado às dificuldades. A resposta
-                                correta é {getCorrectAnswerLetter()}
+                                {t('quizSession.correctAnswer', { answer: getCorrectAnswerLetter() })}
                               </p>
                             </div>
                           </div>
@@ -616,7 +614,7 @@ export function QuizSession({
                       {currentQuestion.justificativa && (
                         <div className="glass-dark rounded-2xl p-4 border border-border">
                           <p className="text-sm font-semibold text-foreground mb-2">
-                            💡 Explicação:
+                            💡 {t('quizSession.explanation')}:
                           </p>
                           <p className="text-sm text-muted-foreground">
                             {currentQuestion.justificativa}
@@ -627,7 +625,7 @@ export function QuizSession({
                       {/* Tópico */}
                       {currentQuestion.topico && (
                         <div className="flex items-center gap-2">
-                          <span className="text-sm text-muted-foreground">Tópico:</span>
+                          <span className="text-sm text-muted-foreground">{t('quizSession.topicLabel')}</span>
                           <Badge variant="outline" className="rounded-lg">
                             {currentQuestion.topico}
                           </Badge>
@@ -649,7 +647,7 @@ export function QuizSession({
                         className="flex-1 rounded-xl border-gray-300 hover:bg-muted text-muted-foreground font-semibold"
                       >
                         <HelpCircle className="w-5 h-5 mr-2" />
-                        NÃO SEI
+                        {t('quizSession.dontKnow')}
                       </Button>
                     </div>
                   ) : (
@@ -658,8 +656,8 @@ export function QuizSession({
                       className="w-full rounded-xl bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white shadow-lg"
                     >
                       {currentIndex < questions.length - 1
-                        ? "Próxima Questão"
-                        : "Ver Resultado"}
+                        ? t('quizSession.next')
+                        : t('quizSession.finish')}
                     </Button>
                   )}
                 </div>

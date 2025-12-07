@@ -22,7 +22,7 @@ import {
 import { Mail, Calendar, Loader2, Upload, Languages, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Switch } from "./ui/switch";
-
+import { useTranslation } from "react-i18next";
 import { useUserPreferences } from "../hooks/useUserPreferences";
 
 interface ProfileSettingsProps {
@@ -31,7 +31,8 @@ interface ProfileSettingsProps {
 }
 
 const LANGUAGES = [
-  { value: 'pt', label: 'Português' },
+  { value: 'pt', label: 'Português (Brasil)' },
+  { value: 'pt-PT', label: 'Português (Portugal)' },
   { value: 'en', label: 'English' },
   { value: 'es', label: 'Español' },
   { value: 'fr', label: 'Français' },
@@ -44,6 +45,7 @@ const LANGUAGES = [
 ];
 
 export function ProfileSettings({ open, onOpenChange }: ProfileSettingsProps) {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { profile, loading, updating, updateProfile, uploadAvatar } = useProfile();
   const { preferences, updateAutoRemove } = useUserPreferences();
@@ -106,27 +108,27 @@ export function ProfileSettings({ open, onOpenChange }: ProfileSettingsProps) {
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      toast.error('Por favor, selecione uma imagem válida');
+      toast.error(t('toasts.invalidImage'));
       return;
     }
 
     // Validate file size (max 2MB)
     if (file.size > 2 * 1024 * 1024) {
-      toast.error('A imagem deve ter no máximo 2MB');
+      toast.error(t('toasts.imageTooLarge'));
       return;
     }
 
     const { error } = await uploadAvatar(file);
     if (error) {
-      toast.error('Erro ao fazer upload da foto');
+      toast.error(t('toasts.photoUploadError'));
     } else {
-      toast.success('Foto atualizada com sucesso!');
+      toast.success(t('toasts.photoUpdated'));
     }
   };
 
   const handleSave = async () => {
     if (!displayName.trim()) {
-      toast.error('Nome de exibição não pode estar vazio');
+      toast.error(t('toasts.displayNameEmpty'));
       return;
     }
 
@@ -143,11 +145,10 @@ export function ProfileSettings({ open, onOpenChange }: ProfileSettingsProps) {
     console.log('Resultado do save:', { data, error });
 
     if (error) {
-      toast.error('Erro ao atualizar perfil: ' + (error.message || 'Erro desconhecido'));
+      toast.error(t('toasts.profileUpdateError', { error: error.message || 'Erro desconhecido' }));
       console.error('Erro detalhado:', error);
     } else {
-      const selectedLang = LANGUAGES.find(l => l.value === responseLanguage)?.label;
-      toast.success(`Perfil atualizado! Idioma: ${selectedLang}`, {
+      toast.success(t('toasts.success.updated'), {
         duration: 4000,
       });
       // Não fechar o dialog imediatamente para mostrar o feedback visual
@@ -162,10 +163,10 @@ export function ProfileSettings({ open, onOpenChange }: ProfileSettingsProps) {
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle className="text-foreground text-xl">
-            Meu Perfil
+            {t('profile.title')}
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
-            Visualize e edite suas informações pessoais
+            {t('profile.subtitle')}
           </DialogDescription>
         </DialogHeader>
 
@@ -199,7 +200,7 @@ export function ProfileSettings({ open, onOpenChange }: ProfileSettingsProps) {
               ) : (
                 <Upload className="w-4 h-4 mr-2" />
               )}
-              Alterar foto
+              {t('profile.changePhoto')}
             </Button>
           </div>
 
@@ -207,21 +208,21 @@ export function ProfileSettings({ open, onOpenChange }: ProfileSettingsProps) {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="displayName" className="text-foreground font-medium">
-                Nome de exibição
+                {t('profile.displayName')}
               </Label>
               <Input
                 id="displayName"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 className="rounded-lg bg-background border-border text-foreground"
-                placeholder="Como deseja ser chamado?"
+                placeholder={t('profile.displayName')}
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="email" className="text-foreground font-medium flex items-center gap-2">
                 <Mail className="w-4 h-4" />
-                Email
+                {t('profile.email')}
               </Label>
               <Input
                 id="email"
@@ -230,18 +231,18 @@ export function ProfileSettings({ open, onOpenChange }: ProfileSettingsProps) {
                 className="rounded-lg bg-muted border-border text-muted-foreground"
               />
               <p className="text-xs text-muted-foreground">
-                Email não pode ser alterado
+                {t('profile.emailReadonly')}
               </p>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="language" className="text-foreground font-medium flex items-center gap-2">
                 <Languages className="w-4 h-4" />
-                Idioma de resposta
+                {t('profile.responseLanguage')}
               </Label>
               <Select value={responseLanguage} onValueChange={setResponseLanguage}>
                 <SelectTrigger id="language" className="rounded-lg bg-background border-border text-foreground">
-                  <SelectValue placeholder="Selecione um idioma" />
+                  <SelectValue placeholder={t('language.selectLanguage')} />
                 </SelectTrigger>
                 <SelectContent
                   className="bg-background rounded-lg border-border max-h-[300px] overflow-y-auto"
@@ -261,30 +262,30 @@ export function ProfileSettings({ open, onOpenChange }: ProfileSettingsProps) {
               </Select>
               <div className="space-y-1">
                 <p className="text-xs text-muted-foreground">
-                  Idioma usado nas respostas geradas pela IA
+                  {t('profile.languageDescription')}
                 </p>
                 {profile?.response_language && (
                   <p className="text-xs text-primary font-medium">
-                    Idioma salvo: {LANGUAGES.find(l => l.value === profile.response_language)?.label || 'Português'}
+                    {t('profile.languageSaved', {
+                      language: LANGUAGES.find(l => l.value === profile.response_language)?.label || 'Português'
+                    })}
                   </p>
                 )}
               </div>
             </div>
 
-
-
             <div className="space-y-2">
               <Label htmlFor="autoRemove" className="text-foreground font-medium flex items-center gap-2">
                 <Sparkles className="w-4 h-4" />
-                Auto-remoção de Dificuldades
+                {t('profile.autoRemoveDifficulties')}
               </Label>
               <div className="flex items-center justify-between glass rounded-lg p-3 border border-border">
                 <div className="flex-1">
                   <p className="text-sm text-foreground font-medium">
-                    Remover automaticamente ao dominar
+                    {t('profile.autoRemoveDescription')}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Remove tópicos da lista de dificuldades após dominá-los
+                    {t('profile.autoRemoveSubtext')}
                   </p>
                 </div>
                 <Switch
@@ -292,7 +293,7 @@ export function ProfileSettings({ open, onOpenChange }: ProfileSettingsProps) {
                   checked={preferences.autoRemoveDifficulties}
                   onCheckedChange={(checked) => {
                     updateAutoRemove(checked);
-                    toast.success(`Auto-remoção ${checked ? 'ativada' : 'desativada'}!`, { duration: 2000 });
+                    toast.success(t('toasts.success.updated'), { duration: 2000 });
                   }}
                 />
               </div>
@@ -301,7 +302,7 @@ export function ProfileSettings({ open, onOpenChange }: ProfileSettingsProps) {
             <div className="space-y-2">
               <Label className="text-foreground font-medium flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
-                Membro desde
+                {t('profile.memberSince')}
               </Label>
               <div className="glass rounded-lg p-3 border border-border">
                 <p className="text-sm text-foreground">{getJoinDate()}</p>
@@ -310,10 +311,9 @@ export function ProfileSettings({ open, onOpenChange }: ProfileSettingsProps) {
           </div>
 
           {/* Actions */}
-          {/* Actions */}
           <div className="flex justify-between items-center pt-4 w-full">
             <p className="text-xs text-muted-foreground italic">
-              * Preferências salvas automaticamente
+              * {t('toasts.success.saved').replace('!', '')}
             </p>
             <div className="flex gap-3">
               <Button
@@ -322,22 +322,22 @@ export function ProfileSettings({ open, onOpenChange }: ProfileSettingsProps) {
                 className="rounded-lg text-foreground border-border hover:bg-muted"
                 disabled={updating}
               >
-                Fechar
+                {t('profile.cancel')}
               </Button>
               <Button
                 onClick={handleSave}
                 className="rounded-lg bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white relative disabled:opacity-50"
                 disabled={updating || loading || !hasUnsavedChanges}
-                title={!hasUnsavedChanges ? "Faça alterações no nome ou idioma para salvar" : "Salvar alterações de perfil"}
+                title={!hasUnsavedChanges ? t('toasts.success.saved') : t('profile.save')}
               >
                 {updating ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Salvando...
+                    {t('sources.processing')}...
                   </>
                 ) : (
                   <>
-                    Salvar alterações
+                    {t('profile.save')}
                     {hasUnsavedChanges && (
                       <span className="ml-2 inline-flex h-2 w-2 rounded-full bg-background/80 animate-pulse" />
                     )}

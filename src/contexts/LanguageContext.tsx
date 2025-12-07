@@ -1,7 +1,8 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useProfile } from "../hooks/useProfile";
+import i18n from "../lib/i18n";
 
-type Language = "pt" | "en" | "es" | "fr" | "de" | "it" | "ja" | "zh" | "ru" | "ar";
+type Language = "pt" | "pt-PT" | "en" | "es" | "fr" | "de" | "it" | "ja" | "zh" | "ru" | "ar";
 
 interface LanguageContextType {
   language: Language;
@@ -18,6 +19,7 @@ interface LanguageProviderProps {
 
 const LANGUAGE_NAMES: Record<Language, string> = {
   "pt": "Português (Brasil)",
+  "pt-PT": "Português (Portugal)",
   "en": "English",
   "es": "Español",
   "fr": "Français",
@@ -37,12 +39,17 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
   useEffect(() => {
     if (profile?.response_language) {
       setLanguageState(profile.response_language as Language);
+      // CRITICAL: Sync i18n when profile loads
+      i18n.changeLanguage(profile.response_language);
     }
   }, [profile]);
 
   const setLanguage = async (newLanguage: Language) => {
     // Update local state immediately for responsiveness
     setLanguageState(newLanguage);
+
+    // Sync with i18n for UI translation
+    i18n.changeLanguage(newLanguage);
 
     // Save to profile (Supabase)
     if (profile) {

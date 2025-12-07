@@ -1,11 +1,7 @@
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
 
-if (!admin.apps.length) {
-    admin.initializeApp();
-}
 
-const db = admin.firestore();
 
 // Taxa de conversão USD para BRL (aproximada, pode ser atualizada)
 const USD_TO_BRL_RATE = 5.5;
@@ -19,6 +15,7 @@ export const get_token_usage_stats = onCall({
     memory: "256MiB",
     region: "us-central1"
 }, async (request) => {
+    const db = admin.firestore();
     if (!request.auth) {
         throw new HttpsError("unauthenticated", "User must be authenticated");
     }
@@ -51,12 +48,12 @@ export const get_token_usage_stats = onCall({
         switch (action) {
             case "get_token_usage_by_user":
                 if (isAdmin) {
-                    return await calculateUsageGroupedByUser(usageData);
+                    return await calculateUsageGroupedByUser(usageData, db);
                 }
                 return calculateUserUsage(usageData, userId);
 
             case "get_token_usage_by_project":
-                return calculateProjectUsage(usageData);
+                return calculateProjectUsage(usageData, db);
 
             case "get_daily_usage":
                 return calculateDailyUsage(usageData);
@@ -74,7 +71,7 @@ export const get_token_usage_stats = onCall({
     }
 });
 
-async function calculateUsageGroupedByUser(data: any[]) {
+async function calculateUsageGroupedByUser(data: any[], db: admin.firestore.Firestore) {
     const userMap: Record<string, {
         total_tokens: number,
         total_cost: number,
@@ -163,7 +160,7 @@ function calculateUserUsage(data: any[], userId: string) {
     }];
 }
 
-async function calculateProjectUsage(data: any[]) {
+async function calculateProjectUsage(data: any[], db: admin.firestore.Firestore) {
     const projectMap: Record<string, {
         total_tokens: number,
         total_cost: number,

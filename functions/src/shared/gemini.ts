@@ -1,9 +1,16 @@
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai";
 
-const API_KEY = process.env.GEMINI_API_KEY || "";
-const genAI = new GoogleGenerativeAI(API_KEY);
+let genAI: GoogleGenerativeAI | null = null;
 
-export const SAFE_OUTPUT_LIMIT = 8192;
+export function getGenAI(): GoogleGenerativeAI {
+    if (!genAI) {
+        const API_KEY = process.env.GEMINI_API_KEY || "";
+        genAI = new GoogleGenerativeAI(API_KEY);
+    }
+    return genAI;
+}
+
+export const SAFE_OUTPUT_LIMIT = 32768; // Increased for Gemini 2.5 thinking tokens
 
 export async function callGeminiWithUsage(
     prompt: string | Array<string | any>,
@@ -13,7 +20,8 @@ export async function callGeminiWithUsage(
     cacheName?: string
 ) {
     try {
-        const model = genAI.getGenerativeModel({
+        const ai = getGenAI();
+        const model = ai.getGenerativeModel({
             model: modelName,
             generationConfig: {
                 maxOutputTokens,
@@ -70,12 +78,26 @@ export async function callGeminiWithUsage(
 }
 
 export function parseJsonFromResponse(text: string): any {
+    // Helper to sanitize invalid escape sequences in JSON strings
+    // LaTeX commands like \downarrow, \rightarrow become \\d, \\r which are invalid JSON escapes
+    const sanitizeEscapes = (str: string): string => {
+        // Replace invalid escape sequences with double-escaped versions
+        // Valid JSON escapes: \", \\, \/, \b, \f, \n, \r, \t, \uXXXX
+        // This regex finds backslashes NOT followed by valid escape chars
+        return str.replace(/\\(?!["\\/bfnrtu])/g, '\\\\');
+    };
+
     // Helper to attempt parsing
     const tryParse = (str: string) => {
         try {
             return JSON.parse(str);
         } catch (e) {
-            return null;
+            // Try with sanitized escapes
+            try {
+                return JSON.parse(sanitizeEscapes(str));
+            } catch (e2) {
+                return null;
+            }
         }
     };
 
@@ -88,6 +110,7 @@ export function parseJsonFromResponse(text: string): any {
     cleanText = cleanText.replace(/^```\s*/, "");
     result = tryParse(cleanText);
     if (result) return result;
+
 
     // 3. Try finding the first '{' and last '}' (or '[' and ']')
     const firstOpenBrace = text.indexOf('{');
@@ -139,7 +162,8 @@ export function parseJsonFromResponse(text: string): any {
 }
 
 export async function getEmbedding(text: string, modelName: string = "text-embedding-004"): Promise<number[]> {
-    const model = genAI.getGenerativeModel({ model: modelName });
+    const ai = getGenAI();
+    const model = ai.getGenerativeModel({ model: modelName });
     const result = await model.embedContent(text);
     return result.embedding.values;
 }

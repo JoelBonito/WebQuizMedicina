@@ -6,18 +6,14 @@ import { logTokenUsage } from "./shared/token_usage";
 import { getModelSelector } from "./shared/modelSelector";
 import { getLanguageFromRequest, getLanguageInstruction } from "./shared/language_helper";
 
-// Initialize Firebase Admin if not already initialized
-if (!admin.apps.length) {
-    admin.initializeApp();
-}
 
-const db = admin.firestore();
 
 export const generate_flashcards = onCall({
     timeoutSeconds: 300,
     memory: "1GiB",
     region: "us-central1"
 }, async (request) => {
+    const db = admin.firestore();
     // 1. Auth Check
     if (!request.auth) {
         throw new HttpsError("unauthenticated", "User must be authenticated");
@@ -80,27 +76,29 @@ export const generate_flashcards = onCall({
 
         // 5. Generate Flashcards
         const prompt = `
-Você é um especialista em criar Flashcards de Medicina para Anki.
-Crie ${count} flashcards baseados no CONTEÚDO abaixo.
+${getLanguageInstruction(language)}
 
-CONTEÚDO BASE:
+You are a specialist in creating Medicine Flashcards for Anki.
+Create ${count} flashcards based on the CONTENT below.
+
+BASE CONTENT:
 ${combinedContent.substring(0, 30000)}
 
-REGRAS DE CRIAÇÃO:
-1. FOCO EM CONCEITOS CHAVE: Definições, tratamentos, diagnósticos, valores de referência.
-2. PERGUNTAS DIRETAS: "Qual o tratamento de...", "O que caracteriza...", "Qual a dose de...".
-3. RESPOSTAS CONCISAS: Vá direto ao ponto. Evite textos longos no verso.
-4. ATOMICIDADE: Cada flashcard deve testar UM único conceito.
+CREATION RULES:
+1. FOCUS ON KEY CONCEPTS: Definitions, treatments, diagnoses, reference values.
+2. DIRECT QUESTIONS: "What is the treatment for...", "What characterizes...", "What is the dose of...".
+3. CONCISE ANSWERS: Get straight to the point. Avoid long texts on the back.
+4. ATOMICITY: Each flashcard should test ONE single concept.
 5. ${getLanguageInstruction(language)}
 
-FORMATO JSON OBRIGATÓRIO (SEM MARKDOWN):
-Retorne APENAS o JSON cru, sem blocos de código (\`\`\`).
+MANDATORY JSON FORMAT (NO MARKDOWN):
+Return ONLY raw JSON, without code blocks (\`\`\`).
 {
   "flashcards": [
     {
-      "frente": "Qual o tratamento de primeira linha para Hipertensão em negros?",
-      "verso": "Tiazídicos ou Bloqueadores de Canal de Cálcio (BCC).",
-      "topico": "Cardiologia",
+      "frente": "What is the first-line treatment for Hypertension in blacks?",
+      "verso": "Thiazides or Calcium Channel Blockers (CCB).",
+      "topico": "Cardiology",
       "dificuldade": "médio"
     }
   ]
@@ -117,14 +115,14 @@ Retorne APENAS o JSON cru, sem blocos de código (\`\`\`).
 
         try {
             try {
-                result = await callGeminiWithUsage(prompt, modelName, 8192, true);
+                result = await callGeminiWithUsage(prompt, modelName, 32768, true);
             } catch (error: any) {
                 // 🔄 FALLBACK AUTOMÁTICO se o modelo falhar
                 if (error.status === 404 || error.message.includes('not found')) {
                     console.warn('⚠️ Primary model failed, trying fallback...');
                     const fallbackModel = 'gemini-flash-latest'; // Safe fallback
                     console.log(`🤖 Using fallback model: ${fallbackModel}`);
-                    result = await callGeminiWithUsage(prompt, fallbackModel, 8192, true);
+                    result = await callGeminiWithUsage(prompt, fallbackModel, 32768, true);
                 } else {
                     throw error;
                 }

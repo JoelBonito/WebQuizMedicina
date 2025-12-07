@@ -26,7 +26,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.get_token_usage_stats = exports.generate_recovery_quiz = exports.generate_recovery_flashcards = exports.generate_focused_summary = exports.generate_mindmap = exports.process_embeddings_queue = exports.manage_difficulties = exports.generate_summary = exports.chat = exports.generate_flashcards = exports.generate_quiz = void 0;
 const admin = __importStar(require("firebase-admin"));
 // Initialize Firebase Admin SDK once
-admin.initializeApp();
+if (!admin.apps.length) {
+    admin.initializeApp();
+}
 // Export functions
 var generate_quiz_1 = require("./generate_quiz");
 Object.defineProperty(exports, "generate_quiz", { enumerable: true, get: function () { return generate_quiz_1.generate_quiz; } });

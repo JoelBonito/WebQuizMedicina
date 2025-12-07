@@ -31,16 +31,12 @@ const gemini_1 = require("./shared/gemini");
 const token_usage_1 = require("./shared/token_usage");
 const modelSelector_1 = require("./shared/modelSelector");
 const language_helper_1 = require("./shared/language_helper");
-// Initialize Firebase Admin if not already initialized
-if (!admin.apps.length) {
-    admin.initializeApp();
-}
-const db = admin.firestore();
 exports.chat = (0, https_1.onCall)({
     timeoutSeconds: 120,
     memory: "512MiB",
     region: "us-central1"
 }, async (request) => {
+    const db = admin.firestore();
     // 1. Auth Check
     if (!request.auth) {
         throw new https_1.HttpsError("unauthenticated", "User must be authenticated");

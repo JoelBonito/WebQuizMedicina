@@ -1,5 +1,5 @@
 import { z } from "zod";
-import * as functions from "firebase-functions";
+import { HttpsError } from "firebase-functions/v2/https";
 
 // Relaxed ID validation to support both UUIDs (Supabase) and Firestore IDs
 const idSchema = z.string().min(1);
@@ -50,7 +50,7 @@ export const generateRecoveryQuizSchema = z.object({
 export function validateRequest<T>(data: any, schema: z.ZodSchema<T>): T {
     const result = schema.safeParse(data);
     if (!result.success) {
-        throw new functions.https.HttpsError(
+        throw new HttpsError(
             "invalid-argument",
             "Invalid request data",
             result.error.flatten()

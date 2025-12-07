@@ -7,6 +7,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.getLanguageFromRequest = exports.getUserLanguage = exports.getLanguageInstruction = exports.LANGUAGE_NAMES = void 0;
 exports.LANGUAGE_NAMES = {
     pt: 'Português do Brasil',
+    'pt-PT': 'Português de Portugal',
     en: 'English',
     es: 'Español',
     fr: 'Français',

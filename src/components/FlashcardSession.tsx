@@ -8,6 +8,7 @@ import { Progress } from "./ui/progress";
 import { useProgress } from "../hooks/useProgress";
 import { useDifficulties } from "../hooks/useDifficulties";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 interface Flashcard {
   id: string;
@@ -86,6 +87,7 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
   const [isFlipped, setIsFlipped] = useState(false);
   const [progress, setProgress] = useState<CardProgress[]>([]);
   const [startTime] = useState<number>(Date.now());
+  const { t } = useTranslation();
 
   const { saveFlashcardProgress } = useProgress();
   const { addDifficulty } = useDifficulties(projectId);
@@ -121,7 +123,7 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
       // Add to difficulties if marked as difficult
       if (clicouNaoSei && currentCard.topico) {
         await addDifficulty(currentCard.topico, "flashcard");
-        toast.success(`Tópico "${currentCard.topico}" adicionado às dificuldades`);
+        toast.success(t('flashcardSession.topicAdded', { topic: currentCard.topico }));
       }
     } catch (error) {
       console.error("Error saving flashcard progress:", error);
@@ -189,16 +191,16 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
         {sessionState === "studying" ? (
           <div className="flex flex-col h-screen supports-[height:100dvh]:h-dvh w-full overflow-hidden">
             <DialogTitle className="sr-only">
-              Flashcard {currentIndex + 1} de {flashcards.length}
+              {t('flashcardSession.title')} {currentIndex + 1} de {flashcards.length}
             </DialogTitle>
             <DialogDescription className="sr-only">
-              Estude os flashcards virando as cartas e avalie seu conhecimento
+              {t('flashcardSession.flipCard')}
             </DialogDescription>
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-border">
               <div className="flex items-center gap-4">
                 <h3 className="text-xl font-semibold text-foreground">
-                  Flashcard {currentIndex + 1} de {flashcards.length}
+                  {t('flashcardSession.title')} {currentIndex + 1} de {flashcards.length}
                 </h3>
                 {currentCard && (
                   <Badge className={`rounded-lg ${getDifficultyColor(currentCard.dificuldade)}`}>
@@ -218,7 +220,7 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
             <div className="px-6 pt-4">
               <Progress value={progressPercentage} className="h-2" />
               <p className="text-xs text-muted-foreground mt-2 text-center">
-                {Math.round(progressPercentage)}% completo
+                {t('flashcardSession.complete', { percent: Math.round(progressPercentage) })}
               </p>
             </div>
 
@@ -260,7 +262,7 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
                     <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2">
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <RotateCw className="w-4 h-4" />
-                        <span>Clique para virar</span>
+                        <span>{t('flashcardSession.flipCard')}</span>
                       </div>
                     </div>
                   </motion.div>
@@ -276,7 +278,7 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
                 className="sticky bottom-0 p-4 md:p-6 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-6 border-t border-border bg-background shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-10"
               >
                 <p className="text-sm text-muted-foreground mb-4 text-center font-medium">
-                  Como foi a dificuldade deste flashcard?
+                  {t('flashcardSession.difficulty')}?
                 </p>
                 <div className="grid grid-cols-3 gap-4">
                   <Button
@@ -285,8 +287,8 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
                     className="h-auto py-4 rounded-xl border-2 border-border text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 hover:border-red-400 flex flex-col gap-2"
                   >
                     <Frown className="w-6 h-6" />
-                    <span className="font-semibold">Difícil</span>
-                    <span className="text-xs text-red-600 dark:text-red-400">Revisar em 1 dia</span>
+                    <span className="font-semibold">{t('flashcardSession.hard')}</span>
+                    <span className="text-xs text-red-600 dark:text-red-400">{t('flashcardSession.reviewInDays', { count: 1 })}</span>
                   </Button>
                   <Button
                     onClick={() => handleRating("medio")}
@@ -294,8 +296,8 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
                     className="h-auto py-4 rounded-xl border-2 border-border text-yellow-700 dark:text-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-950 hover:border-yellow-400 flex flex-col gap-2"
                   >
                     <Meh className="w-6 h-6" />
-                    <span className="font-semibold">Médio</span>
-                    <span className="text-xs text-yellow-600 dark:text-yellow-400">Revisar em 6 dias</span>
+                    <span className="font-semibold">{t('flashcardSession.medium')}</span>
+                    <span className="text-xs text-yellow-600 dark:text-yellow-400">{t('flashcardSession.reviewInDays', { count: 6 })}</span>
                   </Button>
                   <Button
                     onClick={() => handleRating("facil")}
@@ -303,8 +305,8 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
                     className="h-auto py-4 rounded-xl border-2 border-border text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950 hover:border-green-400 flex flex-col gap-2"
                   >
                     <Smile className="w-6 h-6" />
-                    <span className="font-semibold">Fácil</span>
-                    <span className="text-xs text-green-600 dark:text-green-400">Revisar quando precisar</span>
+                    <span className="font-semibold">{t('flashcardSession.easy')}</span>
+                    <span className="text-xs text-green-600 dark:text-green-400">{t('flashcardSession.reviewWhenNeeded')}</span>
                   </Button>
                 </div>
               </motion.div>
@@ -314,7 +316,7 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
             {cardState === "front" && (
               <div className="sticky bottom-0 p-4 md:p-6 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-6 border-t border-border bg-background shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-10">
                 <p className="text-sm text-muted-foreground text-center">
-                  Vire o card para ver a resposta e avaliar sua compreensão
+                  {t('flashcardSession.showAnswer')}
                 </p>
               </div>
             )}
@@ -322,9 +324,9 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
         ) : (
           // Summary Screen
           <div className="flex flex-col items-center justify-center p-4 md:p-12 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-12 overflow-y-auto overscroll-contain h-screen supports-[height:100dvh]:h-dvh w-full">
-            <DialogTitle className="sr-only">Resumo da Sessão de Flashcards</DialogTitle>
+            <DialogTitle className="sr-only">{t('flashcardSession.sessionComplete')}</DialogTitle>
             <DialogDescription className="sr-only">
-              Visualização dos resultados da sessão de flashcards com estatísticas de desempenho
+              {t('flashcardSession.cardsStudied', { count: flashcards.length })}
             </DialogDescription>
             <motion.div
               initial={{ scale: 0 }}
@@ -337,8 +339,8 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
               </div>
             </motion.div>
 
-            <h2 className="text-3xl font-bold text-foreground mb-2">Sessão Concluída!</h2>
-            <p className="text-muted-foreground mb-8">Você revisou todos os flashcards</p>
+            <h2 className="text-3xl font-bold text-foreground mb-2">{t('flashcardSession.sessionComplete')}</h2>
+            <p className="text-muted-foreground mb-8">{t('flashcardSession.cardsStudied', { count: flashcards.length })}</p>
 
             <div className="grid grid-cols-3 gap-6 w-full max-w-2xl mb-8">
               <motion.div
@@ -349,7 +351,7 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
               >
                 <Smile className="w-8 h-8 mx-auto mb-2 text-green-600" />
                 <p className="text-3xl font-bold text-green-700 mb-1">{stats.facil}</p>
-                <p className="text-sm text-muted-foreground">Fácil</p>
+                <p className="text-sm text-muted-foreground">{t('flashcardSession.easy')}</p>
               </motion.div>
 
               <motion.div
@@ -360,7 +362,7 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
               >
                 <Meh className="w-8 h-8 mx-auto mb-2 text-yellow-600" />
                 <p className="text-3xl font-bold text-yellow-700 mb-1">{stats.medio}</p>
-                <p className="text-sm text-muted-foreground">Médio</p>
+                <p className="text-sm text-muted-foreground">{t('flashcardSession.medium')}</p>
               </motion.div>
 
               <motion.div
@@ -371,7 +373,7 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
               >
                 <Frown className="w-8 h-8 mx-auto mb-2 text-red-600" />
                 <p className="text-3xl font-bold text-red-700 mb-1">{stats.dificil}</p>
-                <p className="text-sm text-muted-foreground">Difícil</p>
+                <p className="text-sm text-muted-foreground">{t('flashcardSession.hard')}</p>
               </motion.div>
             </div>
 
@@ -403,19 +405,19 @@ export function FlashcardSession({ flashcards, projectId, open, onClose }: Flash
                 className="rounded-xl border-gray-300 hover:bg-muted text-muted-foreground"
               >
                 <RotateCw className="w-4 h-4 mr-2" />
-                Revisar Novamente
+                {t('flashcardSession.restart')}
               </Button>
               <Button
                 onClick={handleClose}
                 className="rounded-xl bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white shadow-lg"
               >
-                Concluir
+                {t('flashcardSession.close')}
                 <ChevronRight className="w-4 h-4 ml-2" />
               </Button>
             </div>
           </div>
         )}
       </DialogContent>
-    </Dialog>
+    </Dialog >
   );
 }

@@ -7,6 +7,9 @@ import { Loader2 } from "lucide-react";
 import { Toaster } from "./components/ui/sonner";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { LanguageProvider } from "./contexts/LanguageContext";
+import { AuthProvider } from "./contexts/AuthContext";
+import { ProfileProvider } from "./contexts/ProfileContext";
+import "./lib/i18n"; // Initialize i18n
 
 // Lazy load heavy components
 const SourcesPanel = lazy(() => import("./components/SourcesPanel").then(module => ({ default: module.SourcesPanel })));
@@ -28,7 +31,8 @@ const LoadingFallback = () => (
   </div>
 );
 
-export default function App() {
+// Inner app component that uses auth context
+function AppContent() {
   const { user, loading } = useAuth();
   const { projects } = useProjects();
   const isMobile = useIsMobile();
@@ -65,58 +69,45 @@ export default function App() {
   };
 
   if (loading) {
-    return (
-      <ThemeProvider>
-        <LanguageProvider>
-          <LoadingFallback />
-        </LanguageProvider>
-      </ThemeProvider>
-    );
+    return <LoadingFallback />;
   }
 
   if (!user) {
     return (
-      <ThemeProvider>
-        <LanguageProvider>
-          <Suspense fallback={<LoadingFallback />}>
-            <Auth />
-          </Suspense>
-
-          <Toaster />
-        </LanguageProvider>
-      </ThemeProvider>
+      <>
+        <Suspense fallback={<LoadingFallback />}>
+          <Auth />
+        </Suspense>
+        <Toaster />
+      </>
     );
   }
 
   if (view === "dashboard") {
     return (
-      <ThemeProvider>
-        <LanguageProvider>
-          <Navbar onAdminClick={handleAdminClick} />
-          <div className="min-h-screen bg-background pt-16">
-            <Suspense fallback={<LoadingFallback />}>
-              <Dashboard onSelectSubject={handleSelectProject} />
-            </Suspense>
-          </div>
-          <Toaster />
-        </LanguageProvider>
-      </ThemeProvider>
+      <>
+        <Navbar onAdminClick={handleAdminClick} />
+        <div className="min-h-screen bg-background pt-16">
+          <Suspense fallback={<LoadingFallback />}>
+            <Dashboard onSelectSubject={handleSelectProject} />
+          </Suspense>
+        </div>
+        <Toaster />
+      </>
     );
   }
 
   if (view === "admin") {
     return (
-      <ThemeProvider>
-        <LanguageProvider>
-          <Navbar onBackClick={handleBackToDashboard} onAdminClick={handleAdminClick} />
-          <div className="min-h-screen bg-background pt-16">
-            <Suspense fallback={<LoadingFallback />}>
-              <AdminDashboard />
-            </Suspense>
-          </div>
-          <Toaster />
-        </LanguageProvider>
-      </ThemeProvider>
+      <>
+        <Navbar onBackClick={handleBackToDashboard} onAdminClick={handleAdminClick} />
+        <div className="min-h-screen bg-background pt-16">
+          <Suspense fallback={<LoadingFallback />}>
+            <AdminDashboard />
+          </Suspense>
+        </div>
+        <Toaster />
+      </>
     );
   }
 
@@ -125,70 +116,83 @@ export default function App() {
   const projectName = currentProject?.name || 'Matéria';
 
   return (
-    <ThemeProvider>
-      <LanguageProvider>
-        <Suspense fallback={<LoadingFallback />}>
-          {isMobile ? (
-            // Layout mobile com tabs em tela inteira
-            <>
-              <Navbar
-                onBackClick={handleBackToDashboard}
-                onAdminClick={handleAdminClick}
-              />
-              <MobileProjectLayout
-                projectId={selectedProjectId!}
-                projectName={projectName}
-                onBack={handleBackToDashboard}
-                onViewStats={() => setShowStats(true)}
-              />
-            </>
-          ) : (
-            // Layout desktop com 3 colunas
-            <div className="min-h-screen bg-background">
-              <Navbar
-                onBackClick={handleBackToDashboard}
-                projectName={projectName}
-                onAdminClick={handleAdminClick}
-              />
+    <>
+      <Suspense fallback={<LoadingFallback />}>
+        {isMobile ? (
+          // Layout mobile com tabs em tela inteira
+          <>
+            <Navbar
+              onBackClick={handleBackToDashboard}
+              onAdminClick={handleAdminClick}
+            />
+            <MobileProjectLayout
+              projectId={selectedProjectId!}
+              projectName={projectName}
+              onBack={handleBackToDashboard}
+              onViewStats={() => setShowStats(true)}
+            />
+          </>
+        ) : (
+          // Layout desktop com 3 colunas
+          <div className="min-h-screen bg-background">
+            <Navbar
+              onBackClick={handleBackToDashboard}
+              projectName={projectName}
+              onAdminClick={handleAdminClick}
+            />
 
-              {/* Main Content */}
-              <div className="pt-20 px-6 pb-6 h-screen overflow-hidden">
-                <div className="h-full overflow-hidden gap-4">
-                  <ResizableLayout
-                    leftPanel={
-                      <SourcesPanel
-                        projectId={selectedProjectId}
-                        onSelectedSourcesChange={handleSelectedSourcesChange}
-                      />
-                    }
-                    centerPanel={
-                      <ContentPanel
-                        projectId={selectedProjectId}
-                        selectedSourceIds={selectedSourceIds}
-                        onViewStats={() => setShowStats(true)}
-                      />
-                    }
-                    rightPanel={
-                      <RightPanel projectId={selectedProjectId} />
-                    }
-                  />
-                </div>
+            {/* Main Content */}
+            <div className="pt-20 px-6 pb-6 h-screen overflow-hidden">
+              <div className="h-full overflow-hidden gap-4">
+                <ResizableLayout
+                  leftPanel={
+                    <SourcesPanel
+                      projectId={selectedProjectId}
+                      onSelectedSourcesChange={handleSelectedSourcesChange}
+                    />
+                  }
+                  centerPanel={
+                    <ContentPanel
+                      projectId={selectedProjectId}
+                      selectedSourceIds={selectedSourceIds}
+                      onViewStats={() => setShowStats(true)}
+                    />
+                  }
+                  rightPanel={
+                    <RightPanel projectId={selectedProjectId} />
+                  }
+                />
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Project Stats Modal */}
-          {showStats && selectedProjectId && (
-            <ProjectStats
-              projectId={selectedProjectId}
-              projectName={projectName}
-              open={showStats}
-              onClose={() => setShowStats(false)}
-            />
-          )}
-        </Suspense>
-        <Toaster />
-      </LanguageProvider>
+        {/* Project Stats Modal */}
+        {showStats && selectedProjectId && (
+          <ProjectStats
+            projectId={selectedProjectId}
+            projectName={projectName}
+            open={showStats}
+            onClose={() => setShowStats(false)}
+          />
+        )}
+      </Suspense>
+      <Toaster />
+    </>
+  );
+}
+
+// Main App component - wraps everything with providers
+export default function App() {
+  return (
+    <ThemeProvider>
+      <AuthProvider>
+        <ProfileProvider>
+          <LanguageProvider>
+            <AppContent />
+          </LanguageProvider>
+        </ProfileProvider>
+      </AuthProvider>
     </ThemeProvider>
   );
 }

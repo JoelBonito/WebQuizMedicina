@@ -6,18 +6,14 @@ import { logTokenUsage } from "./shared/token_usage";
 import { getModelSelector } from "./shared/modelSelector";
 import { getLanguageFromRequest, getLanguageInstruction } from "./shared/language_helper";
 
-// Initialize Firebase Admin if not already initialized
-if (!admin.apps.length) {
-    admin.initializeApp();
-}
 
-const db = admin.firestore();
 
 export const chat = onCall({
     timeoutSeconds: 120,
     memory: "512MiB",
     region: "us-central1"
 }, async (request) => {
+    const db = admin.firestore();
     // 1. Auth Check
     if (!request.auth) {
         throw new HttpsError("unauthenticated", "User must be authenticated");

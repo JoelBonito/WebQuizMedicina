@@ -3,6 +3,7 @@ import { db, functions } from '../lib/firebase';
 import { collection, query, where, orderBy, getDocs, onSnapshot, writeBatch } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { useAuth } from './useAuth';
+import { useProfile } from './useProfile';
 
 // Database message format (new schema with role + content)
 interface DbChatMessage {
@@ -129,6 +130,7 @@ function convertDbMessagesToUiFormat(dbMessages: DbChatMessage[]): ChatMessage[]
 
 export const useChat = (projectId: string | null) => {
   const { user } = useAuth();
+  const { profile } = useProfile();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
@@ -176,7 +178,8 @@ export const useChat = (projectId: string | null) => {
       const chatFn = httpsCallable(functions, 'chat');
       const result = await chatFn({
         message,
-        project_id: projectId
+        project_id: projectId,
+        language: profile?.response_language || 'pt'
       });
 
       return result.data as ChatResponse;

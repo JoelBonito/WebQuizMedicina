@@ -3,6 +3,7 @@ import { db, functions } from '../lib/firebase';
 import { collection, query, where, orderBy, getDocs, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { useAuth } from './useAuth';
+import { useProfile } from './useProfile';
 import { CONTENT_REFRESH_EVENT } from '../lib/events';
 
 export interface Summary {
@@ -18,6 +19,7 @@ export interface Summary {
 
 export const useSummaries = (projectId: string | null) => {
   const { user } = useAuth();
+  const { profile } = useProfile();
   const [summaries, setSummaries] = useState<Summary[]>([]);
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -94,6 +96,10 @@ export const useSummaries = (projectId: string | null) => {
       }
 
       requestBody.project_id = projectId;
+      requestBody.language = profile?.response_language || 'pt';
+
+      // Debug log
+      console.log('[useSummaries] Generating summary with language:', profile?.response_language);
 
       const generateSummaryFn = httpsCallable(functions, 'generate_summary', { timeout: 540000 });
       const result = await generateSummaryFn(requestBody);
@@ -119,7 +125,8 @@ export const useSummaries = (projectId: string | null) => {
 
       const generateFocusedSummaryFn = httpsCallable(functions, 'generate_focused_summary');
       const result = await generateFocusedSummaryFn({
-        project_id: projectId
+        project_id: projectId,
+        language: profile?.response_language || 'pt'
       });
 
       return result.data;

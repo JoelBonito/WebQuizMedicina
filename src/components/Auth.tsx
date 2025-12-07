@@ -10,6 +10,7 @@ import { Loader2, Mail, Lock, ArrowRight, Github } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "motion/react";
 import { Logo } from "./Logo";
+import { useTranslation } from "react-i18next";
 
 export function Auth() {
   const { signIn, signUp, signInWithGoogle } = useAuth();
@@ -18,6 +19,7 @@ export function Auth() {
   const [password, setPassword] = useState("");
   const [activeTab, setActiveTab] = useState("signin");
   const [rememberMe, setRememberMe] = useState(false);
+  const { t } = useTranslation();
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,10 +30,10 @@ export function Auth() {
       if (error) {
         toast.error(error.message);
       } else {
-        toast.success("Login realizado com sucesso!");
+        toast.success(t('toasts.loginSuccess'));
       }
     } catch (error) {
-      toast.error("Erro ao fazer login");
+      toast.error(t('toasts.loginError'));
     } finally {
       setLoading(false);
     }
@@ -46,10 +48,10 @@ export function Auth() {
       if (error) {
         toast.error(error.message);
       } else {
-        toast.success("Conta criada! Verifique seu email.");
+        toast.success(t('toasts.accountCreated'));
       }
     } catch (error) {
-      toast.error("Erro ao criar conta");
+      toast.error(t('toasts.accountError'));
     } finally {
       setLoading(false);
     }
@@ -63,14 +65,14 @@ export function Auth() {
         toast.error(error.message);
       }
     } catch (error) {
-      toast.error("Erro ao fazer login com Google");
+      toast.error(t('toasts.googleLoginError'));
     } finally {
       setLoading(false);
     }
   };
 
   const handleGitHubSignIn = async () => {
-    toast.info("Login com GitHub em desenvolvimento!");
+    toast.info(t('toasts.githubLoginWip'));
   };
 
   return (
@@ -89,22 +91,22 @@ export function Auth() {
 
         <Card className="glass-dark border-border shadow-2xl">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Bem-vindo</CardTitle>
+            <CardTitle className="text-base">{t('auth.welcome')}</CardTitle>
             <CardDescription className="text-xs">
-              Entre ou crie sua conta para começar
+              {t('auth.subtitle')}
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-0">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="grid w-full grid-cols-2 mb-3">
-                <TabsTrigger value="signin">Entrar</TabsTrigger>
-                <TabsTrigger value="signup">Cadastrar</TabsTrigger>
+                <TabsTrigger value="signin">{t('auth.signIn')}</TabsTrigger>
+                <TabsTrigger value="signup">{t('auth.signUp')}</TabsTrigger>
               </TabsList>
 
               <TabsContent value="signin">
                 <form onSubmit={handleSignIn} className="space-y-2">
                   <div className="space-y-1">
-                    <Label htmlFor="email-signin" className="text-xs">Email</Label>
+                    <Label htmlFor="email-signin" className="text-xs">{t('auth.email')}</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <Input
@@ -119,7 +121,7 @@ export function Auth() {
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <Label htmlFor="password-signin" className="text-xs">Senha</Label>
+                    <Label htmlFor="password-signin" className="text-xs">{t('auth.password')}</Label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <Input
@@ -145,7 +147,7 @@ export function Auth() {
                       </Label>
                     </div>
                     <a href="#" className="text-xs text-[#0891B2] hover:text-[#2B3E6F] hover:underline">
-                      Esqueceu a senha?
+                      {t('auth.forgotPassword')}
                     </a>
                   </div>
                   <Button
@@ -158,7 +160,7 @@ export function Auth() {
                     ) : (
                       <Mail className="w-4 h-4 mr-2" />
                     )}
-                    Entrar
+                    {t('auth.signIn')}
                     {!loading && <ArrowRight className="w-4 h-4 ml-2" />}
                   </Button>
                 </form>
@@ -167,7 +169,7 @@ export function Auth() {
               <TabsContent value="signup">
                 <form onSubmit={handleSignUp} className="space-y-2">
                   <div className="space-y-1">
-                    <Label htmlFor="email-signup" className="text-xs">Email</Label>
+                    <Label htmlFor="email-signup" className="text-xs">{t('auth.email')}</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <Input
@@ -182,7 +184,7 @@ export function Auth() {
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <Label htmlFor="password-signup" className="text-xs">Senha</Label>
+                    <Label htmlFor="password-signup" className="text-xs">{t('auth.password')}</Label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <Input
@@ -207,7 +209,7 @@ export function Auth() {
                     ) : (
                       <Mail className="w-4 h-4 mr-2" />
                     )}
-                    Criar Conta
+                    {t('auth.createAccount')}
                     {!loading && <ArrowRight className="w-4 h-4 ml-2" />}
                   </Button>
                 </form>

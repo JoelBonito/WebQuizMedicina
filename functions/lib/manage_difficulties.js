@@ -28,11 +28,6 @@ const https_1 = require("firebase-functions/v2/https");
 const admin = __importStar(require("firebase-admin"));
 const zod_1 = require("zod");
 const validation_1 = require("./shared/validation");
-// Initialize Firebase Admin if not already initialized
-if (!admin.apps.length) {
-    admin.initializeApp();
-}
-const db = admin.firestore();
 const manageDifficultiesSchema = zod_1.z.object({
     action: zod_1.z.enum(["add", "resolve", "list", "check_auto_resolve", "statistics", "normalize_topic"]),
     project_id: zod_1.z.string().uuid().optional(),
@@ -47,6 +42,7 @@ exports.manage_difficulties = (0, https_1.onCall)({
     region: "us-central1"
 }, async (request) => {
     var _a;
+    const db = admin.firestore();
     // Auth Check
     if (!request.auth) {
         throw new https_1.HttpsError("unauthenticated", "User must be authenticated");

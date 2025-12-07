@@ -24,7 +24,6 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.generate_focused_summary = void 0;
-const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
 const https_1 = require("firebase-functions/v2/https");
 const gemini_1 = require("./shared/gemini");
@@ -32,23 +31,45 @@ const sanitization_1 = require("./shared/sanitization");
 const validation_1 = require("./shared/validation");
 const token_usage_1 = require("./shared/token_usage");
 const modelSelector_1 = require("./shared/modelSelector");
-const db = admin.firestore();
+const language_helper_1 = require("./shared/language_helper");
+/**
+ * Generate the focused summary title based on the user's language preference
+ */
+function getFocusedSummaryTitle(language) {
+    const titles = {
+        "pt": "🎯 Resumo Focado nas Suas Dificuldades",
+        "pt-PT": "🎯 Resumo Focado nas Suas Dificuldades",
+        "en": "🎯 Focused Summary on Your Difficulties",
+        "es": "🎯 Resumen Enfocado en Tus Dificultades",
+        "fr": "🎯 Résumé Ciblé sur Vos Difficultés",
+        "de": "🎯 Fokussierte Zusammenfassung Ihrer Schwierigkeiten",
+        "it": "🎯 Riepilogo Mirato sulle Tue Difficoltà",
+        "ja": "🎯 あなたの難点に焦点を当てた要約",
+        "zh": "🎯 针对您难点的重点总结",
+        "ru": "🎯 Сводка по Вашим Сложностям",
+        "ar": "🎯 ملخص مركز على صعوباتك"
+    };
+    return titles[language] || titles["en"]; // Default to English
+}
 exports.generate_focused_summary = (0, https_1.onCall)({
     timeoutSeconds: 120,
     memory: "1GiB",
     region: "us-central1",
 }, async (request) => {
     var _a;
+    const db = admin.firestore();
     try {
         if (!request.auth) {
-            throw new functions.https.HttpsError("unauthenticated", "User must be authenticated");
+            throw new https_1.HttpsError("unauthenticated", "User must be authenticated");
         }
         const { project_id } = (0, validation_1.validateRequest)(request.data, validation_1.generateFocusedSummarySchema);
         const userId = request.auth.uid;
+        // Get user's language preference
+        const language = await (0, language_helper_1.getLanguageFromRequest)(request.data, db, userId);
         // 1. Verify project ownership and get name
         const projectDoc = await db.collection("projects").doc(project_id).get();
         if (!projectDoc.exists || ((_a = projectDoc.data()) === null || _a === void 0 ? void 0 : _a.user_id) !== userId) {
-            throw new functions.https.HttpsError("not-found", "Project not found or unauthorized");
+            throw new https_1.HttpsError("not-found", "Project not found or unauthorized");
         }
         const project = projectDoc.data();
         // 2. Get user's difficulties (not resolved, ordered by level)
@@ -61,7 +82,7 @@ exports.generate_focused_summary = (0, https_1.onCall)({
             .get();
         const difficulties = difficultiesSnapshot.docs.map(doc => (Object.assign({ id: doc.id }, doc.data())));
         if (difficulties.length === 0) {
-            throw new functions.https.HttpsError("failed-precondition", "No difficulties found. Study with quiz and flashcards first to identify your weak points.");
+            throw new https_1.HttpsError("failed-precondition", "No difficulties found. Study with quiz and flashcards first to identify your weak points.");
         }
         // 3. Get all sources for this project
         const sourcesSnapshot = await db.collection("sources")
@@ -72,7 +93,7 @@ exports.generate_focused_summary = (0, https_1.onCall)({
             .map(doc => (Object.assign({ id: doc.id }, doc.data())))
             .filter((s) => s.extracted_content); // Ensure content exists
         if (sources.length === 0) {
-            throw new functions.https.HttpsError("failed-precondition", "No sources available. Please upload and process sources first.");
+            throw new https_1.HttpsError("failed-precondition", "No sources available. Please upload and process sources first.");
         }
         // 4. Build difficulty list for context
         const difficultiesList = difficulties
@@ -94,208 +115,181 @@ exports.generate_focused_summary = (0, https_1.onCall)({
         })
             .join('\n\n---\n\n');
         console.log(`📊 [FULL-SOURCES] ${sources.length} sources, ~${Math.ceil(combinedContext.length / 4)} tokens`);
-        // 6. Construct Prompt
-        const prompt = `Você é um professor médico EXPERIENTE e DIDÁTICO criando material de estudo personalizado.
+        // 6. Construct Prompt (English base + dynamic language instruction)
+        const prompt = `${(0, language_helper_1.getLanguageInstruction)(language)}
 
-SEU OBJETIVO: Criar resumos que REALMENTE ajudem alunos que NÃO entenderam o tópico na primeira vez.
+You are an EXPERIENCED and DIDACTIC medical professor creating personalized study material.
 
-PERFIL DO ALUNO:
-- Estudando: "${(0, sanitization_1.sanitizeString)((project === null || project === void 0 ? void 0 : project.name) || '')}"
-- Identificou ${difficulties.length} dificuldades durante estudos com quiz/flashcards
-- Precisa de explicações SIMPLES, não muito técnicas
-- Aprende melhor com analogias, exemplos práticos e conexões
-- Está buscando COMPREENDER, não decorar
+YOUR GOAL: Create summaries that REALLY help students who did NOT understand the topic the first time.
 
-MATERIAL DE ESTUDO COMPLETO:
+STUDENT PROFILE:
+- Studying: "${(0, sanitization_1.sanitizeString)((project === null || project === void 0 ? void 0 : project.name) || '')}"
+- Identified ${difficulties.length} difficulties during quiz/flashcard studies
+- Needs SIMPLE explanations, not overly technical
+- Learns better with analogies, practical examples, and connections
+- Is looking to UNDERSTAND, not memorize
+
+COMPLETE STUDY MATERIAL:
 ${combinedContext}
 
-🎯 DIFICULDADES IDENTIFICADAS (ordenadas por prioridade):
+🎯 IDENTIFIED DIFFICULTIES (ordered by priority):
 ${difficultiesList}
 
 ---
 
-TAREFA: Criar resumo didático FOCADO EXCLUSIVAMENTE nos tópicos de dificuldade acima.
+TASK: Create a didactic summary FOCUSED EXCLUSIVELY on the difficulty topics above.
 
-Para CADA tópico de dificuldade, você DEVE incluir as 5 seções abaixo:
+For EACH difficulty topic, you MUST include the 5 sections below:
 
-📖 SEÇÃO 1 - Explicação Simples e Clara
-Objetivo: Fazer o aluno ENTENDER, não decorar
-- Nível de linguagem: Como explicaria para um colega que está aprendendo
-- Evite jargões técnicos sem explicação
-- Use frases curtas e diretas
-- Comece com "Em termos simples..." ou "Basicamente..." ou "O que acontece é..."
-- Dê contexto: POR QUE isso importa? QUANDO acontece?
-- 2-3 parágrafos curtos
+📖 SECTION 1 - Simple and Clear Explanation
+Goal: Help the student UNDERSTAND, not memorize
+- Language level: As you would explain to a learning colleague
+- Avoid technical jargon without explanation
+- Use short, direct sentences
+- Start with "Simply put..." or "Basically..." or "What happens is..."
+- Give context: WHY does this matter? WHEN does it happen?
+- 2-3 short paragraphs
 
-💡 SEÇÃO 2 - Analogia ou Exemplo Prático
-Objetivo: Tornar o conceito MEMORÁVEL e VISUAL
-- Compare com situações do cotidiano
-- Use metáforas que criam imagens mentais
-- Exemplo clínico prático quando aplicável
-- Formato sugerido: "Pense nisso como..." ou "É como quando..." ou "Imagine que..."
-- Seja criativo mas preciso
-- 1-2 parágrafos
+💡 SECTION 2 - Analogy or Practical Example
+Goal: Make the concept MEMORABLE and VISUAL
+- Compare with everyday situations
+- Use metaphors that create mental images
+- Practical clinical example when applicable
+- Suggested format: "Think of it like..." or "It's like when..." or "Imagine that..."
+- Be creative but accurate
+- 1-2 paragraphs
 
-📌 SEÇÃO 3 - Pontos-Chave para Memorizar
-Objetivo: Dar "ganchos" para fixação
-- 3-5 bullet points essenciais
-- Cada ponto: MÁXIMO 1 linha
-- Use negrito para palavras-chave
-- Inclua números, valores, critérios específicos
-- Se possível, crie dica mnemônica ou frase de efeito
-- Formato: <li><strong>[Conceito]:</strong> [Explicação curta]</li>
+📌 SECTION 3 - Key Points to Memorize
+Goal: Provide "hooks" for retention
+- 3-5 essential bullet points
+- Each point: MAXIMUM 1 line
+- Use bold for keywords
+- Include numbers, values, specific criteria
+- If possible, create mnemonic or catchy phrase
+- Format: <li><strong>[Concept]:</strong> [Short explanation]</li>
 
-🏥 SEÇÃO 4 - Aplicação Clínica (se aplicável)
-Objetivo: Mostrar QUANDO e COMO usar na prática
-- Em que situações você precisa lembrar disso?
-- Qual a importância prática desse conhecimento?
-- Exemplos de casos reais ou questões de prova
-- Como evitar erros comuns?
-- Por que isso cai em concursos/residência?
-- 1-2 parágrafos
+🏥 SECTION 4 - Clinical Application (if applicable)
+Goal: Show WHEN and HOW to use in practice
+- In what situations do you need to remember this?
+- What is the practical importance of this knowledge?
+- Examples of real cases or exam questions
+- How to avoid common mistakes?
+- Why does this appear on exams/board certifications?
+- 1-2 paragraphs
 
-🔗 SEÇÃO 5 - Conexões com Outros Conceitos
-Objetivo: Integrar conhecimento, não isolar
-- Como este tópico se conecta com outros assuntos?
-- Relações de causa-efeito
-- Quadro geral: onde isso se encaixa?
-- O que estudar em seguida para consolidar?
-- Use lista de bullet points para clareza
+🔗 SECTION 5 - Connections with Other Concepts
+Goal: Integrate knowledge, not isolate it
+- How does this topic connect with other subjects?
+- Cause-effect relationships
+- Big picture: where does this fit?
+- What to study next to consolidate?
+- Use bullet point list for clarity
 
 ---
 
-FORMATO HTML - Estrutura Semântica:
+HTML FORMAT - Semantic Structure:
 
-ESTRUTURA GERAL:
+GENERAL STRUCTURE:
 <div class="focused-summary">
   <div class="summary-header">
-    <h1>🎯 Resumo Focado nas Suas Dificuldades</h1>
-    <p class="subtitle">Material personalizado para ${(0, sanitization_1.sanitizeString)((project === null || project === void 0 ? void 0 : project.name) || '')}</p>
-    <p class="meta">Baseado em ${difficulties.length} tópicos identificados durante seus estudos</p>
+    <h1>🎯 Focused Summary on Your Difficulties</h1>
+    <p class="subtitle">Personalized material for ${(0, sanitization_1.sanitizeString)((project === null || project === void 0 ? void 0 : project.name) || '')}</p>
+    <p class="meta">Based on ${difficulties.length} topics identified during your studies</p>
   </div>
 
-  <!-- Repetir seção abaixo para CADA tópico de dificuldade -->
-  <section class="difficulty-topic" data-nivel="[nível]">
+  <!-- Repeat section below for EACH difficulty topic -->
+  <section class="difficulty-topic" data-nivel="[level]">
     ...
   </section>
 </div>
 
-ESTRUTURA DE CADA TÓPICO:
-<section class="difficulty-topic" data-nivel="[nível]">
+STRUCTURE FOR EACH TOPIC:
+<section class="difficulty-topic" data-nivel="[level]">
   <div class="topic-header">
-    <h2>[número]. [Nome do Tópico] [⚠️ símbolos correspondentes ao nível]</h2>
-    <span class="origin-badge">[origem: quiz/flashcard/chat]</span>
+    <h2>[number]. [Topic Name] [⚠️ symbols corresponding to level]</h2>
+    <span class="origin-badge">[origin: quiz/flashcard/chat]</span>
   </div>
 
   <div class="explanation">
-    <h3>🔍 Explicação Simples</h3>
-    <p>[Primeiro parágrafo: conceito básico]</p>
-    <p>[Segundo parágrafo: por que importa]</p>
+    <h3>🔍 Simple Explanation</h3>
+    <p>[First paragraph: basic concept]</p>
+    <p>[Second paragraph: why it matters]</p>
   </div>
 
   <div class="analogy">
-    <h3>💡 Analogia/Exemplo Prático</h3>
-    <p>[Analogia concreta e memorável]</p>
+    <h3>💡 Analogy/Practical Example</h3>
+    <p>[Concrete and memorable analogy]</p>
   </div>
 
   <div class="key-points">
-    <h3>📌 Pontos-Chave</h3>
+    <h3>📌 Key Points</h3>
     <ul>
-      <li><strong>Conceito 1:</strong> Explicação curta</li>
-      <li><strong>Conceito 2:</strong> Explicação curta</li>
-      <li><strong>Conceito 3:</strong> Explicação curta</li>
-      <li>💡 <strong>Dica:</strong> Mnemônico ou frase de efeito (se aplicável)</li>
+      <li><strong>Concept 1:</strong> Short explanation</li>
+      <li><strong>Concept 2:</strong> Short explanation</li>
+      <li><strong>Concept 3:</strong> Short explanation</li>
+      <li>💡 <strong>Tip:</strong> Mnemonic or catchy phrase (if applicable)</li>
     </ul>
   </div>
 
   <div class="clinical-application">
-    <h3>🏥 Aplicação Clínica</h3>
-    <p>[Quando/como isso importa na prática médica]</p>
+    <h3>🏥 Clinical Application</h3>
+    <p>[When/how this matters in medical practice]</p>
   </div>
 
   <div class="connections">
-    <h3>🔗 Conexões com Outros Conceitos</h3>
+    <h3>🔗 Connections with Other Concepts</h3>
     <ul>
-      <li><strong>[Tópico relacionado 1]:</strong> Como se conecta</li>
-      <li><strong>[Tópico relacionado 2]:</strong> Como se conecta</li>
+      <li><strong>[Related topic 1]:</strong> How it connects</li>
+      <li><strong>[Related topic 2]:</strong> How it connects</li>
     </ul>
   </div>
 </section>
 
 ---
 
-INSTRUÇÕES CRÍTICAS - LEIA COM ATENÇÃO:
+CRITICAL INSTRUCTIONS - READ CAREFULLY:
 
-✅ QUALIDADE DO HTML:
-- HTML VÁLIDO e bem estruturado
-- Feche todas as tags corretamente
-- Use classes CSS descritivas (explanation, analogy, key-points, clinical-application, connections)
-- Estrutura bem indentada e organizada
-- Não use atributos inline style
+✅ HTML QUALITY:
+- VALID and well-structured HTML
+- Close all tags correctly
+- Use descriptive CSS classes (explanation, analogy, key-points, clinical-application, connections)
+- Well-indented and organized structure
+- Do not use inline style attributes
 
-✅ PRIORIZAÇÃO:
-- Tópicos com MAIS ⚠️ (maior nível) devem vir PRIMEIRO
-- Dedique mais detalhes e exemplos aos tópicos mais difíceis
-- Se tópicos forem relacionados, mencione as conexões
+✅ PRIORITIZATION:
+- Topics with MORE ⚠️ (higher level) should come FIRST
+- Dedicate more details and examples to the most difficult topics
+- If topics are related, mention the connections
 
-✅ TOM E LINGUAGEM:
-- Tom ENCORAJADOR e POSITIVO
-- "Você consegue entender isso!" não "Isso é complicado"
-- Linguagem ACESSÍVEL, não muito técnica
-- Explique termos médicos quando usá-los
-- Use negrito <strong> para dar ênfase
-- Emojis apenas nos títulos das seções (🔍💡📌🏥🔗)
+✅ TONE AND LANGUAGE:
+- ENCOURAGING and POSITIVE tone
+- "You can understand this!" not "This is complicated"
+- ACCESSIBLE language, not too technical
+- Explain medical terms when using them
+- Use bold <strong> for emphasis
+- Emojis only in section titles (🔍💡📌🏥🔗)
 
-✅ FOCO:
-- COMPREENSÃO > memorização mecânica
-- POR QUÊ e QUANDO > decoreba de fatos
-- APLICAÇÃO PRÁTICA > teoria abstrata
-- CONEXÕES > tópicos isolados
+✅ FOCUS:
+- COMPREHENSION > mechanical memorization
+- WHY and WHEN > rote facts
+- PRACTICAL APPLICATION > abstract theory
+- CONNECTIONS > isolated topics
 
-❌ NÃO FAÇA:
-- Não use jargão médico sem explicar
-- Não presuma que o aluno já sabe conceitos básicos
-- Não seja vago ou genérico ("isso é importante", "estude bem")
-- Não ignore nenhum tópico da lista de dificuldades
-- Não copie texto do material sem adaptar para linguagem didática
-- Não crie seções vazias
-
-EXEMPLO DE BOA EXPLICAÇÃO (para você seguir):
-
-❌ RUIM (técnico demais, sem contexto):
-"A fibrilação atrial é uma arritmia cardíaca caracterizada por despolarização atrial descoordenada resultante de múltiplos focos ectópicos."
-
-✅ BOM (simples, com contexto, memorável):
-
-<div class="explanation">
-  <h3>🔍 Explicação Simples</h3>
-  <p>Em termos simples: A fibrilação atrial (FA) acontece quando as câmaras superiores do coração (os átrios) começam a bater de forma completamente descoordenada e muito rápida - tipo um motor falhando. Em vez de contrair de forma organizada, eles "tremem" ou "fibrilam", daí o nome.</p>
-  <p>Por que isso importa? Quando os átrios não contraem direito, o sangue fica "parado" lá dentro e pode formar coágulos. Esses coágulos podem soltar e ir para o cérebro, causando AVC. Essa é a complicação mais temida da FA!</p>
-</div>
-
-<div class="analogy">
-  <h3>💡 Analogia Prática</h3>
-  <p>Pense nos átrios como uma orquestra. Normalmente, todos os músicos tocam em sincronia perfeita, seguindo o maestro (nó sinusal). Na fibrilação atrial, cada músico resolve tocar no seu próprio ritmo - vira uma bagunça total! O coração até continua funcionando, mas de forma muito ineficiente.</p>
-</div>
-
-<div class="key-points">
-  <h3>📌 Pontos-Chave</h3>
-  <ul>
-    <li><strong>Ritmo:</strong> Irregularmente irregular (sem nenhum padrão)</li>
-    <li><strong>Principal risco:</strong> Formação de coágulos → AVC (15-20% ao ano sem anticoagulação)</li>
-    <li><strong>Sintomas comuns:</strong> Palpitações, cansaço, falta de ar</li>
-    <li><strong>ECG clássico:</strong> Ausência de onda P + intervalos R-R completamente irregulares</li>
-    <li>💡 <strong>Mnemônico:</strong> "FA = Falta de Atividade atrial coordenada"</li>
-  </ul>
-</div>
+❌ DO NOT:
+- Don't use medical jargon without explaining
+- Don't assume the student already knows basic concepts
+- Don't be vague or generic ("this is important", "study well")
+- Don't ignore any topic from the difficulties list
+- Don't copy text from material without adapting to didactic language
+- Don't create empty sections
 
 ---
 
-AGORA É COM VOCÊ:
+NOW IT'S YOUR TURN:
 
-Crie o resumo focado seguindo EXATAMENTE o formato acima para TODOS os ${difficulties.length} tópicos de dificuldade listados.
+Create the focused summary following EXACTLY the format above for ALL ${difficulties.length} difficulty topics listed.
 
-Responda APENAS com o HTML completo e bem formatado. Não adicione explicações fora do HTML.`;
+Respond ONLY with complete, well-formatted HTML. Do not add explanations outside the HTML.`;
         // 7. Call Gemini
         // ✅ Seleção automática e inteligente
         const selector = (0, modelSelector_1.getModelSelector)();
@@ -303,7 +297,7 @@ Responda APENAS com o HTML completo e bem formatado. Não adicione explicações
         console.log(`🤖 Using model: ${modelName} for focused summary`);
         let result;
         try {
-            result = await (0, gemini_1.callGeminiWithUsage)(prompt, modelName, undefined, // maxOutputTokens (use default)
+            result = await (0, gemini_1.callGeminiWithUsage)(prompt, modelName, 32768, // Increased for comprehensive summaries
             false // jsonMode (we want HTML)
             );
         }
@@ -313,7 +307,7 @@ Responda APENAS com o HTML completo e bem formatado. Não adicione explicações
                 console.warn('⚠️ Primary model failed, trying fallback...');
                 const fallbackModel = 'gemini-flash-latest'; // Safe fallback
                 console.log(`🤖 Using fallback model: ${fallbackModel}`);
-                result = await (0, gemini_1.callGeminiWithUsage)(prompt, fallbackModel, undefined, false);
+                result = await (0, gemini_1.callGeminiWithUsage)(prompt, fallbackModel, 32768, false);
             }
             else {
                 throw error;
@@ -325,7 +319,7 @@ Responda APENAS com o HTML completo e bem formatado. Não adicione explicações
         const summaryData = {
             project_id,
             user_id: userId,
-            titulo: `🎯 Resumo Focado nas Suas Dificuldades`,
+            titulo: getFocusedSummaryTitle(language),
             conteudo_html: sanitizedHtml,
             topicos: topTopics,
             created_at: admin.firestore.FieldValue.serverTimestamp(),
@@ -346,7 +340,7 @@ Responda APENAS com o HTML completo e bem formatado. Não adicione explicações
     }
     catch (error) {
         console.error("❌ Error generating focused summary:", error);
-        throw new functions.https.HttpsError("internal", error.message || "Failed to generate focused summary");
+        throw new https_1.HttpsError("internal", error.message || "Failed to generate focused summary");
     }
 });
 //# sourceMappingURL=generate_focused_summary.js.map

@@ -1,5 +1,6 @@
 import { Star, Trophy } from "lucide-react";
 import { motion } from "motion/react";
+import { useTranslation } from "react-i18next";
 
 interface StarProgressProps {
     consecutiveCorrect: number; // 0, 1, 2, ou 3
@@ -7,6 +8,7 @@ interface StarProgressProps {
 }
 
 export function StarProgress({ consecutiveCorrect, showBadge }: StarProgressProps) {
+    const { t } = useTranslation();
     // Badge inline ao atingir 3 acertos
     if (showBadge) {
         return (
@@ -31,8 +33,8 @@ export function StarProgress({ consecutiveCorrect, showBadge }: StarProgressProp
                     </motion.div>
 
                     <div className="flex-1">
-                        <p className="font-semibold text-green-900">Tema Dominado!</p>
-                        <p className="text-sm text-green-700">3 acertos consecutivos</p>
+                        <p className="font-semibold text-green-900">{t('quizSession.topicMasteredTitle')}</p>
+                        <p className="text-sm text-green-700">{t('quizSession.consecutiveCorrects', { count: 3 })}</p>
                     </div>
 
                     <div className="flex gap-1">
@@ -59,7 +61,7 @@ export function StarProgress({ consecutiveCorrect, showBadge }: StarProgressProp
     // Estrelas de progresso normais
     return (
         <div className="flex items-center gap-2 mt-2">
-            <span className="text-xs text-gray-500">Progresso:</span>
+            <span className="text-xs text-gray-500">{t('quizSession.progressLabel')}</span>
             <div className="flex gap-1">
                 {[1, 2, 3].map(i => {
                     const isFilled = i <= consecutiveCorrect;

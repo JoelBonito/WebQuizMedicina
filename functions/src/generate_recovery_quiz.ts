@@ -1,8 +1,7 @@
-import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
-import { onCall } from "firebase-functions/v2/https";
+import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { callGeminiWithUsage, parseJsonFromResponse } from "./shared/gemini";
-import { calculateBatchSizes, SAFE_OUTPUT_LIMIT } from "./shared/output_limits";
+import { calculateBatchSizes } from "./shared/output_limits";
 import { sanitizeString } from "./shared/sanitization";
 import { validateRequest, generateRecoveryQuizSchema } from "./shared/validation";
 import { semanticSearchWithTokenLimit, hasAnyEmbeddings } from "./shared/embeddings";
@@ -11,7 +10,7 @@ import { logTokenUsage } from "./shared/token_usage";
 import { getModelSelector } from "./shared/modelSelector";
 import { getLanguageFromRequest, getLanguageInstruction } from "./shared/language_helper";
 
-const db = admin.firestore();
+
 
 // Recovery Mode Token Limit (slightly less than normal quiz for focused content)
 const RECOVERY_TOKEN_LIMIT = 12000;
@@ -21,9 +20,10 @@ export const generate_recovery_quiz = onCall({
     memory: "1GiB",
     region: "us-central1",
 }, async (request) => {
+    const db = admin.firestore();
     try {
         if (!request.auth) {
-            throw new functions.https.HttpsError("unauthenticated", "User must be authenticated");
+            throw new HttpsError("unauthenticated", "User must be authenticated");
         }
 
         const { project_id, count, difficulty } = validateRequest(request.data, generateRecoveryQuizSchema);
@@ -35,7 +35,7 @@ export const generate_recovery_quiz = onCall({
         // 1. Get Project Information
         const projectDoc = await db.collection("projects").doc(project_id).get();
         if (!projectDoc.exists) {
-            throw new functions.https.HttpsError("not-found", "Project not found");
+            throw new HttpsError("not-found", "Project not found");
         }
         const project = projectDoc.data();
         const projectName = project?.name || 'Medicina';
@@ -74,7 +74,7 @@ export const generate_recovery_quiz = onCall({
         const sources = sourcesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
 
         if (sources.length === 0) {
-            throw new functions.https.HttpsError("failed-precondition", "No sources found for this project");
+            throw new HttpsError("failed-precondition", "No sources found for this project");
         }
 
         const sourceIds = sources.map(s => s.id);
@@ -156,7 +156,7 @@ export const generate_recovery_quiz = onCall({
         }
 
         if (!combinedContent.trim()) {
-            throw new functions.https.HttpsError("failed-precondition", "No content available for recovery quiz.");
+            throw new HttpsError("failed-precondition", "No content available for recovery quiz.");
         }
 
         // 6. Generate Quiz with Strategy-Specific Prompt
@@ -230,7 +230,7 @@ Retorne APENAS o JSON válido.
                 result = await callGeminiWithUsage(
                     prompt,
                     modelName,
-                    SAFE_OUTPUT_LIMIT,
+                    32768,
                     true
                 );
             } catch (error: any) {
@@ -243,7 +243,7 @@ Retorne APENAS o JSON válido.
                     result = await callGeminiWithUsage(
                         prompt,
                         fallbackModel,
-                        SAFE_OUTPUT_LIMIT,
+                        32768,
                         true
                     );
                 } else {
@@ -251,7 +251,24 @@ Retorne APENAS o JSON válido.
                 }
             }
 
-            const parsed = parseJsonFromResponse(result.text);
+            let parsed;
+            try {
+                parsed = parseJsonFromResponse(result.text);
+            } catch (parseError) {
+                // Attempt to extract JSON substring if the response contains extra text or malformed characters
+                const jsonMatch = result.text.match(/\{[\s\S]*\}\s*$/);
+                if (jsonMatch) {
+                    try {
+                        parsed = JSON.parse(jsonMatch[0]);
+                    } catch (innerError) {
+                        console.warn('⚠️ Failed to parse extracted JSON, skipping batch.', innerError);
+                        parsed = { perguntas: [] };
+                    }
+                } else {
+                    console.warn('⚠️ No JSON found in Gemini response, skipping batch.', parseError);
+                    parsed = { perguntas: [] };
+                }
+            }
 
             if (parsed.perguntas && Array.isArray(parsed.perguntas)) {
                 allQuestions.push(...parsed.perguntas);
@@ -336,6 +353,6 @@ Retorne APENAS o JSON válido.
 
     } catch (error: any) {
         console.error("❌ [Recovery Quiz] Error:", error);
-        throw new functions.https.HttpsError("internal", error.message || "Failed to generate recovery quiz");
+        throw new HttpsError("internal", error.message || "Failed to generate recovery quiz");
     }
 });

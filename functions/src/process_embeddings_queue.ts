@@ -1,5 +1,5 @@
-import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
+import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { z } from "zod";
 import { validateRequest } from "./shared/validation";
 import { chunkText, generateEmbeddings } from "./shared/embeddings";
@@ -8,13 +8,7 @@ import { logTokenUsage } from "./shared/token_usage";
 import { getModelSelector } from "./shared/modelSelector";
 import { callGeminiWithUsage } from "./shared/gemini";
 
-// Initialize Firebase Admin if not already initialized
-if (!admin.apps.length) {
-    admin.initializeApp();
-}
 
-const db = admin.firestore();
-const storage = admin.storage();
 
 const processEmbeddingsSchema = z.object({
     source_id: z.string().optional(), // Firestore IDs não são UUIDs estritos
@@ -22,14 +16,19 @@ const processEmbeddingsSchema = z.object({
     max_items: z.number().optional(),
 });
 
-export const process_embeddings_queue = functions.runWith({
+export const process_embeddings_queue = onCall({
     timeoutSeconds: 540,
-    memory: '2GB'
-}).https.onCall(async (data, context) => {
+    memory: '2GiB',
+    region: 'us-central1'
+}, async (request) => {
+    const db = admin.firestore();
+    const storage = admin.storage();
     // 1. Auth Check
-    if (!context.auth) {
-        throw new functions.https.HttpsError("unauthenticated", "User must be authenticated");
+    if (!request.auth) {
+        throw new HttpsError("unauthenticated", "User must be authenticated");
     }
+
+    const data = request.data;
 
     try {
         // 2. Validation
@@ -43,12 +42,12 @@ export const process_embeddings_queue = functions.runWith({
             const sourceDoc = await sourceRef.get();
 
             if (!sourceDoc.exists) {
-                throw new functions.https.HttpsError("not-found", "Source not found");
+                throw new HttpsError("not-found", "Source not found");
             }
 
             const source = sourceDoc.data();
             if (source?.project_id !== project_id) {
-                throw new functions.https.HttpsError("permission-denied", "Source does not belong to project");
+                throw new HttpsError("permission-denied", "Source does not belong to project");
             }
             sourcesToProcess.push({ ref: sourceRef, data: source });
         } else {
@@ -204,7 +203,7 @@ export const process_embeddings_queue = functions.runWith({
                 // 5. Log Token Usage
                 const totalTokens = chunksWithEmbeddings.reduce((sum, chunk) => sum + chunk.tokenCount, 0);
                 await logTokenUsage(
-                    context.auth.uid,
+                    request.auth.uid,
                     project_id,
                     "embedding",
                     totalTokens,
@@ -234,6 +233,6 @@ export const process_embeddings_queue = functions.runWith({
 
     } catch (error: any) {
         console.error("Error in process_embeddings_queue:", error);
-        throw new functions.https.HttpsError("internal", error.message);
+        throw new HttpsError("internal", error.message);
     }
 });

@@ -104,7 +104,15 @@ const sanitizeText = (text: string): string => {
 export const extractTextFromPDF = async (file: File): Promise<string> => {
   try {
     const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+    // Configure PDF.js with CMap for better font support
+    // Use dynamic version from installed pdfjs-dist
+    const pdf = await pdfjsLib.getDocument({
+      data: arrayBuffer,
+      cMapUrl: `https://cdn.jsdelivr.net/npm/pdfjs-dist@${PDFJS_VERSION}/cmaps/`,
+      cMapPacked: true,
+    }).promise;
+
     let fullText = '';
 
     for (let i = 1; i <= pdf.numPages; i++) {
