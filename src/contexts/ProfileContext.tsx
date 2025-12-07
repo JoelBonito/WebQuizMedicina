@@ -3,6 +3,7 @@ import { db, storage } from '../lib/firebase';
 import { doc, setDoc, updateDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuth } from '../hooks/useAuth';
+import { getInitialLanguage } from '../lib/languageUtils';
 
 // Profile interface
 export interface Profile {
@@ -67,9 +68,14 @@ export function ProfileProvider({ children }: ProfileProviderProps) {
             } else {
                 // Create profile if it doesn't exist
                 const displayName = user.email?.split('@')[0] || 'Usuário';
+
+                // Detect the user's language preference
+                const detectedLanguage = getInitialLanguage();
+                console.log('[ProfileContext] Creating new profile with detected language:', detectedLanguage);
+
                 const newProfile = {
                     display_name: displayName,
-                    response_language: 'pt',
+                    response_language: detectedLanguage,
                     role: 'user', // Default role
                     avatar_url: user.photoURL || null,
                     created_at: serverTimestamp(),

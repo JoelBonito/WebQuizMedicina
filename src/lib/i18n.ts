@@ -32,7 +32,7 @@ i18n
             ru: { translation: ru },
             ar: { translation: ar },
         },
-        fallbackLng: 'pt', // Default language
+        fallbackLng: 'en', // Default language (English for universal compatibility)
         interpolation: {
             escapeValue: false, // React already escapes
         },

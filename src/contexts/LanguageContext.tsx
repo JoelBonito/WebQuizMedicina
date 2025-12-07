@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useProfile } from "../hooks/useProfile";
 import i18n from "../lib/i18n";
+import { getInitialLanguage } from "../lib/languageUtils";
 
 type Language = "pt" | "pt-PT" | "en" | "es" | "fr" | "de" | "it" | "ja" | "zh" | "ru" | "ar";
 
@@ -33,16 +34,33 @@ const LANGUAGE_NAMES: Record<Language, string> = {
 
 export function LanguageProvider({ children }: LanguageProviderProps) {
   const { profile, updateProfile, loading } = useProfile();
-  const [language, setLanguageState] = useState<Language>("pt");
 
-  // Sync with profile when it loads
+  // Initialize with detected language from browser or localStorage
+  const [language, setLanguageState] = useState<Language>(() => {
+    const initialLang = getInitialLanguage();
+    // Set i18n immediately to avoid any delay
+    i18n.changeLanguage(initialLang);
+    return initialLang;
+  });
+
+  const [hasHydrated, setHasHydrated] = useState(false);
+
+  // Sync with profile when it loads (ONLY ONCE after initial load)
   useEffect(() => {
-    if (profile?.response_language) {
-      setLanguageState(profile.response_language as Language);
-      // CRITICAL: Sync i18n when profile loads
-      i18n.changeLanguage(profile.response_language);
+    if (profile?.response_language && !hasHydrated) {
+      const profileLang = profile.response_language as Language;
+
+      // Only update if different from current language
+      if (profileLang !== language) {
+        console.log('[LanguageContext] Hydrating from profile:', profileLang);
+        setLanguageState(profileLang);
+        i18n.changeLanguage(profileLang);
+        localStorage.setItem("language", profileLang);
+      }
+
+      setHasHydrated(true);
     }
-  }, [profile]);
+  }, [profile, hasHydrated, language]);
 
   const setLanguage = async (newLanguage: Language) => {
     // Update local state immediately for responsiveness
@@ -51,7 +69,7 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
     // Sync with i18n for UI translation
     i18n.changeLanguage(newLanguage);
 
-    // Save to profile (Supabase)
+    // Save to profile (Firestore)
     if (profile) {
       await updateProfile({ response_language: newLanguage });
     }

@@ -22,4 +22,8 @@ export const db = getFirestore(app);
 export const storage = getStorage(app);
 export const functions = getFunctions(app);
 
+// Configura o Firebase Auth para usar o idioma do dispositivo
+// Isso garante que emails de sistema (reset de senha, verificação) sejam enviados no idioma correto
+auth.useDeviceLanguage();
+
 export default app;
