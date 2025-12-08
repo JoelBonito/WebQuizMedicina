@@ -93,6 +93,66 @@
             ]
         },
         {
+            "collectionGroup": "sources",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "project_id",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "user_id",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "created_at",
+                    "order": "DESCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "questions",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "project_id",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "user_id",
+                    "order": "ASCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "flashcards",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "project_id",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "user_id",
+                    "order": "ASCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "summaries",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "project_id",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "user_id",
+                    "order": "ASCENDING"
+                }
+            ]
+        },
+        {
             "collectionGroup": "flashcards",
             "queryScope": "COLLECTION",
             "fields": [

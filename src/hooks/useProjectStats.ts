@@ -81,19 +81,21 @@ export const useProjectStats = (projectId: string | null) => {
       try {
         setLoading(true);
 
-        // Buscar fontes
+        // Buscar fontes (precisa incluir user_id para cumprir regras de segurança)
         const qSources = query(
           collection(db, 'sources'),
-          where('project_id', '==', projectId)
+          where('project_id', '==', projectId),
+          where('user_id', '==', user.uid)
         );
         const sourcesSnap = await getDocs(qSources);
         const totalSources = sourcesSnap.size;
         const readySources = sourcesSnap.docs.filter(d => d.data().status === 'ready').length;
 
-        // Buscar questões
+        // Buscar questões (precisa incluir user_id para cumprir regras de segurança)
         const qQuestions = query(
           collection(db, 'questions'),
-          where('project_id', '==', projectId)
+          where('project_id', '==', projectId),
+          where('user_id', '==', user.uid)
         );
         const questionsSnap = await getDocs(qQuestions);
         // Store IDs to filter progress later
@@ -131,10 +133,11 @@ export const useProjectStats = (projectId: string | null) => {
         const correctAttempts = progress.filter(p => p.acertou === true).length;
         const quizAccuracy = totalQuizAttempts > 0 ? Math.round((correctAttempts / totalQuizAttempts) * 100) : 0;
 
-        // Buscar flashcards
+        // Buscar flashcards (precisa incluir user_id para cumprir regras de segurança)
         const qFlashcards = query(
           collection(db, 'flashcards'),
-          where('project_id', '==', projectId)
+          where('project_id', '==', projectId),
+          where('user_id', '==', user.uid)
         );
         const flashcardsSnap = await getDocs(qFlashcards);
         const flashcards = flashcardsSnap.docs.map(d => d.data());
@@ -152,10 +155,11 @@ export const useProjectStats = (projectId: string | null) => {
           { fácil: 0, médio: 0, difícil: 0 }
         );
 
-        // Buscar resumos
+        // Buscar resumos (precisa incluir user_id para cumprir regras de segurança)
         const qSummaries = query(
           collection(db, 'summaries'),
-          where('project_id', '==', projectId)
+          where('project_id', '==', projectId),
+          where('user_id', '==', user.uid)
         );
         const summariesSnap = await getCountFromServer(qSummaries);
         const totalSummaries = summariesSnap.data().count;

@@ -43,7 +43,7 @@ export const useSources = (projectId: string | null) => {
   const [error, setError] = useState<string | null>(null);
 
   const fetchSources = async () => {
-    if (!projectId) {
+    if (!projectId || !user) {
       setSources([]);
       setLoading(false);
       return;
@@ -54,6 +54,7 @@ export const useSources = (projectId: string | null) => {
       const q = query(
         collection(db, 'sources'),
         where('project_id', '==', projectId),
+        where('user_id', '==', user.uid),
         orderBy('created_at', 'desc')
       );
 
@@ -69,7 +70,7 @@ export const useSources = (projectId: string | null) => {
   };
 
   useEffect(() => {
-    if (!projectId) {
+    if (!projectId || !user) {
       setSources([]);
       setLoading(false);
       return;
@@ -80,6 +81,7 @@ export const useSources = (projectId: string | null) => {
     const q = query(
       collection(db, 'sources'),
       where('project_id', '==', projectId),
+      where('user_id', '==', user.uid),
       orderBy('created_at', 'desc')
     );
 
@@ -98,7 +100,7 @@ export const useSources = (projectId: string | null) => {
     );
 
     return () => unsubscribe();
-  }, [projectId]);
+  }, [projectId, user]);
 
   const uploadSource = async (file: File) => {
     if (!user || !projectId) throw new Error('User or project not found');

@@ -11,6 +11,7 @@ export function getGenAI(): GoogleGenerativeAI {
 }
 
 export const SAFE_OUTPUT_LIMIT = 32768; // Increased for Gemini 2.5 thinking tokens
+export const GEMINI_TIMEOUT = 540000; // 9 minutes to match Cloud Function timeout
 
 export async function callGeminiWithUsage(
     prompt: string | Array<string | any>,
@@ -45,6 +46,8 @@ export async function callGeminiWithUsage(
                     threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
                 },
             ],
+        }, {
+            timeout: GEMINI_TIMEOUT
         });
 
         // Note: Caching support in Node.js SDK might differ from Deno.
@@ -161,9 +164,9 @@ export function parseJsonFromResponse(text: string): any {
     throw new Error("Invalid JSON response from AI");
 }
 
-export async function getEmbedding(text: string, modelName: string = "text-embedding-004"): Promise<number[]> {
+export async function getEmbedding(text: string, modelName: string = "gemini-embedding-001"): Promise<number[]> {
     const ai = getGenAI();
-    const model = ai.getGenerativeModel({ model: modelName });
+    const model = ai.getGenerativeModel({ model: modelName }, { timeout: GEMINI_TIMEOUT });
     const result = await model.embedContent(text);
     return result.embedding.values;
 }

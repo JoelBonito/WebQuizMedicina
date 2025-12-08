@@ -6,6 +6,7 @@
 import { GoogleAIFileManager } from '@google/generative-ai/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { getModelSelector } from './modelSelector';
+import { GEMINI_TIMEOUT } from './gemini';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
@@ -116,7 +117,7 @@ export async function transcribeAudioWithGemini(
 
         // 3. Chamar modelo com fileUri
         const ai = getGenAI();
-        const model = ai.getGenerativeModel({ model: modelName });
+        const model = ai.getGenerativeModel({ model: modelName }, { timeout: GEMINI_TIMEOUT });
 
         const result = await model.generateContent([
             {
@@ -171,7 +172,7 @@ export async function extractTextFromImageWithGemini(
     console.log(`🔍 [OCR] Extraindo texto com ${modelName}...`);
 
     const ai = getGenAI();
-    const model = ai.getGenerativeModel({ model: modelName });
+    const model = ai.getGenerativeModel({ model: modelName }, { timeout: GEMINI_TIMEOUT });
 
     const result = await model.generateContent([
         {

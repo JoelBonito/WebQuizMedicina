@@ -185,7 +185,7 @@
         "ready": "Pronto",
         "error": "Erro",
         "delete": "Excluir",
-        "maxSize": "Tamanho máximo do arquivo: 200 MB.\nFormatos: PDF, DOC, DOCX, PPT, PPTX, TXT, MD, MP3, WAV, M4A, JPG, PNG.",
+        "maxSize": "Tamanho máximo do arquivo: 200 MB.\nFormatos: PDF, DOC, DOCX, PPT, PPTX, TXT, MD, JPG, PNG.",
         "noSources": "Nenhuma fonte adicionada",
         "uploadToStart": "Envie arquivos para começar",
         "newSourcesTitle": "✨ **Novas fontes adicionadas ao seu projeto!**",

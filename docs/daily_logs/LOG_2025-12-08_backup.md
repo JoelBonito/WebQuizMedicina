@@ -144,34 +144,3 @@
   2. `gemini.ts` & `geminiFileManager.ts`: Adicionado `timeout: 540000` (9 min) nas chamadas do SDK.
   3. Recompilação dos arquivos (`npm run build`) - ✅ Sucesso.
 * **Arquivos Modificados**: `functions/src/shared/*`
-
-### Sessão 3: 17:47 - 17:57 (Estimado) ✅
-**Remoção de Suporte a Áudio (Fonts Autorizadas)**
-* Removido suporte a arquivos de áudio (MP3, WAV, M4A) do painel de fontes.
-* Atualizada validação de upload no frontend.
-* Atualizadas mensagens de localização (PT/EN) sobre formatos suportados.
-* Arquivos modificados: `src/components/SourcesPanel.tsx`, `src/locales/pt.json`, `src/locales/en.json`.
-
-### Sessão 11: 17:49 - 17:58 (9 min) ✅
-**Diagnóstico e Solução: Erro de Autenticação Google OAuth + Limpeza de UI**
-* **Problema**: Erro `Firebase: Error (auth/auth-domain-config-required)` ao tentar criar conta pelo Google
-* **Causa Raiz**: Domínio `webquizmedicina.inovesi.app.br` não estava na lista de **Authorized domains** do Firebase Authentication
-* **Diagnóstico**:
-  1. Verificado arquivo de configuração: `src/lib/firebase.ts` (✅ correto)
-  2. Verificadas variáveis de ambiente `.env` (✅ corretas)
-  3. Analisado código de autenticação OAuth: `src/contexts/AuthContext.tsx` (✅ correto)
-  4. Identificado que o erro ocorre no lado do Firebase, não no código
-* **Solução Documentada**:
-  - Criado guia completo: `docs/FIREBASE_DOMAIN_FIX.md`
-  - Passo a passo para adicionar domínio nos **Authorized domains** do Firebase Console
-  - Firebase Console aberto automaticamente na página de configuração de autenticação
-  - ✅ Usuário confirmou: Domínio `webquizmedicina.inovesi.app.br` adicionado com sucesso
-* **Limpeza de UI (Remoção do Login GitHub)**:
-  - Removido botão de login do GitHub (estava desativado no Firebase)
-  - Removido import do ícone `Github` do lucide-react
-  - Removida função `handleGitHubSignIn` (não utilizada)
-  - Botão Google ajustado para largura total (`w-full`) ao invés de grid 2 colunas
-  - Interface mais limpa e focada no método de autenticação ativo
-* **Arquivos Criados**: `docs/FIREBASE_DOMAIN_FIX.md`
-* **Arquivos Modificados**: `src/components/Auth.tsx`
-

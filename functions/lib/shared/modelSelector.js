@@ -25,15 +25,20 @@ class IntelligentModelSelector {
             }
             const data = await response.json();
             const models = data.models || [];
-            // Filtrar apenas modelos que suportam generateContent
+            // Filtrar modelos que suportam generateContent OU embedContent
             this.modelCache = models
-                .filter((m) => { var _a; return (_a = m.supportedGenerationMethods) === null || _a === void 0 ? void 0 : _a.includes('generateContent'); })
+                .filter((m) => {
+                var _a, _b;
+                return ((_a = m.supportedGenerationMethods) === null || _a === void 0 ? void 0 : _a.includes('generateContent')) ||
+                    ((_b = m.supportedGenerationMethods) === null || _b === void 0 ? void 0 : _b.includes('embedContent'));
+            })
                 .map((m) => ({
                 name: m.name.replace('models/', ''),
                 displayName: m.displayName,
                 version: m.version,
                 inputTokenLimit: m.inputTokenLimit,
-                outputTokenLimit: m.outputTokenLimit
+                outputTokenLimit: m.outputTokenLimit,
+                methods: m.supportedGenerationMethods
             }));
             this.cacheExpiry = Date.now() + this.CACHE_TTL;
             console.log(`✅ Discovered ${(_a = this.modelCache) === null || _a === void 0 ? void 0 : _a.length} available models via API`);
@@ -62,8 +67,8 @@ class IntelligentModelSelector {
             ],
             // Para embeddings
             embedding: [
-                'text-embedding-004',
-                'embedding-001'
+                'gemini-embedding-001',
+                'text-embedding-004' // Fallback
             ]
         };
         return priorities[task] || priorities.general;
@@ -84,10 +89,17 @@ class IntelligentModelSelector {
                 }
             }
         }
-        // Se nenhum da lista de prioridades estiver disponível, pegar o primeiro disponível
+        // B. Fallback Específico por Tarefa (CORREÇÃO CRÍTICA)
+        // Se for embedding, NUNCA retorne um modelo de chat genérico (flash/pro)
+        if (task === 'embedding') {
+            const fallbackEmbedding = 'text-embedding-004';
+            console.warn(`⚠️ Embedding model lookup failed via API. Forcing fallback to ${fallbackEmbedding}.`);
+            return fallbackEmbedding;
+        }
+        // C. Fallback Genérico (apenas para tarefas de texto/chat)
         const fallback = availableModels && availableModels.length > 0 ? (_a = availableModels[0]) === null || _a === void 0 ? void 0 : _a.name : null;
         if (fallback) {
-            console.warn(`⚠️ Using fallback model: ${fallback}`);
+            console.warn(`⚠️ Using fallback model from API list: ${fallback}`);
             return fallback;
         }
         return 'gemini-flash-latest'; // Último recurso absoluto

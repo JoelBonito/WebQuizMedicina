@@ -33,15 +33,19 @@ export class IntelligentModelSelector {
             const data = await response.json();
             const models = data.models || [];
 
-            // Filtrar apenas modelos que suportam generateContent
+            // Filtrar modelos que suportam generateContent OU embedContent
             this.modelCache = models
-                .filter((m: any) => m.supportedGenerationMethods?.includes('generateContent'))
+                .filter((m: any) =>
+                    m.supportedGenerationMethods?.includes('generateContent') ||
+                    m.supportedGenerationMethods?.includes('embedContent')
+                )
                 .map((m: any) => ({
                     name: m.name.replace('models/', ''),
                     displayName: m.displayName,
                     version: m.version,
                     inputTokenLimit: m.inputTokenLimit,
-                    outputTokenLimit: m.outputTokenLimit
+                    outputTokenLimit: m.outputTokenLimit,
+                    methods: m.supportedGenerationMethods
                 }));
 
             this.cacheExpiry = Date.now() + this.CACHE_TTL;
@@ -74,8 +78,8 @@ export class IntelligentModelSelector {
 
             // Para embeddings
             embedding: [
-                'text-embedding-004',
-                'embedding-001'
+                'gemini-embedding-001', // Modelo estável e recomendado
+                'text-embedding-004'     // Fallback
             ]
         };
 
@@ -102,10 +106,18 @@ export class IntelligentModelSelector {
             }
         }
 
-        // Se nenhum da lista de prioridades estiver disponível, pegar o primeiro disponível
+        // B. Fallback Específico por Tarefa (CORREÇÃO CRÍTICA)
+        // Se for embedding, NUNCA retorne um modelo de chat genérico (flash/pro)
+        if (task === 'embedding') {
+            const fallbackEmbedding = 'text-embedding-004';
+            console.warn(`⚠️ Embedding model lookup failed via API. Forcing fallback to ${fallbackEmbedding}.`);
+            return fallbackEmbedding;
+        }
+
+        // C. Fallback Genérico (apenas para tarefas de texto/chat)
         const fallback = availableModels && availableModels.length > 0 ? availableModels[0]?.name : null;
         if (fallback) {
-            console.warn(`⚠️ Using fallback model: ${fallback}`);
+            console.warn(`⚠️ Using fallback model from API list: ${fallback}`);
             return fallback;
         }
 

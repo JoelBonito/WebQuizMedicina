@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getEmbedding = exports.parseJsonFromResponse = exports.callGeminiWithUsage = exports.SAFE_OUTPUT_LIMIT = exports.getGenAI = void 0;
+exports.getEmbedding = exports.parseJsonFromResponse = exports.callGeminiWithUsage = exports.GEMINI_TIMEOUT = exports.SAFE_OUTPUT_LIMIT = exports.getGenAI = void 0;
 const generative_ai_1 = require("@google/generative-ai");
 let genAI = null;
 function getGenAI() {
@@ -12,6 +12,7 @@ function getGenAI() {
 }
 exports.getGenAI = getGenAI;
 exports.SAFE_OUTPUT_LIMIT = 32768; // Increased for Gemini 2.5 thinking tokens
+exports.GEMINI_TIMEOUT = 540000; // 9 minutes to match Cloud Function timeout
 async function callGeminiWithUsage(prompt, modelName = "gemini-2.5-flash", maxOutputTokens = exports.SAFE_OUTPUT_LIMIT, jsonMode = false, cacheName) {
     try {
         const ai = getGenAI();
@@ -39,6 +40,8 @@ async function callGeminiWithUsage(prompt, modelName = "gemini-2.5-flash", maxOu
                     threshold: generative_ai_1.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
                 },
             ],
+        }, {
+            timeout: exports.GEMINI_TIMEOUT
         });
         // Note: Caching support in Node.js SDK might differ from Deno.
         // For now, we'll proceed with standard generation.
@@ -149,9 +152,9 @@ function parseJsonFromResponse(text) {
     throw new Error("Invalid JSON response from AI");
 }
 exports.parseJsonFromResponse = parseJsonFromResponse;
-async function getEmbedding(text, modelName = "text-embedding-004") {
+async function getEmbedding(text, modelName = "gemini-embedding-001") {
     const ai = getGenAI();
-    const model = ai.getGenerativeModel({ model: modelName });
+    const model = ai.getGenerativeModel({ model: modelName }, { timeout: exports.GEMINI_TIMEOUT });
     const result = await model.embedContent(text);
     return result.embedding.values;
 }

@@ -31,6 +31,7 @@ exports.extractTextFromImageWithGemini = exports.transcribeAudioWithGemini = exp
 const server_1 = require("@google/generative-ai/server");
 const generative_ai_1 = require("@google/generative-ai");
 const modelSelector_1 = require("./modelSelector");
+const gemini_1 = require("./gemini");
 const fs = __importStar(require("fs"));
 const os = __importStar(require("os"));
 const path = __importStar(require("path"));
@@ -121,7 +122,7 @@ async function transcribeAudioWithGemini(buffer, mimeType, displayName = 'audio_
         console.log(`🎤 [Audio] Transcrevendo com ${modelName}...`);
         // 3. Chamar modelo com fileUri
         const ai = getGenAI();
-        const model = ai.getGenerativeModel({ model: modelName });
+        const model = ai.getGenerativeModel({ model: modelName }, { timeout: gemini_1.GEMINI_TIMEOUT });
         const result = await model.generateContent([
             {
                 fileData: {
@@ -166,7 +167,7 @@ async function extractTextFromImageWithGemini(buffer, mimeType) {
     const modelName = await selector.selectBestModel('general');
     console.log(`🔍 [OCR] Extraindo texto com ${modelName}...`);
     const ai = getGenAI();
-    const model = ai.getGenerativeModel({ model: modelName });
+    const model = ai.getGenerativeModel({ model: modelName }, { timeout: gemini_1.GEMINI_TIMEOUT });
     const result = await model.generateContent([
         {
             inlineData: {

@@ -186,7 +186,7 @@
         "ready": "Ready",
         "error": "Error",
         "delete": "Delete",
-        "maxSize": "Maximum file size: 200 MB.\nFormats: PDF, DOC, DOCX, PPT, PPTX, TXT, MD, MP3, WAV, M4A, JPG, PNG.",
+        "maxSize": "Maximum file size: 200 MB.\nFormats: PDF, DOC, DOCX, PPT, PPTX, TXT, MD, JPG, PNG.",
         "noSources": "No sources added",
         "uploadToStart": "Upload files to get started",
         "newSourcesTitle": "✨ **New sources added to your project!**",

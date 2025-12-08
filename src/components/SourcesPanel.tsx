@@ -2,7 +2,6 @@ import { useState, useRef, ChangeEvent, useEffect } from "react";
 import {
   FileText,
   Upload,
-  Music,
   Image as ImageIcon,
   Trash2,
   Loader2,
@@ -59,8 +58,7 @@ interface SourcesPanelProps {
 
 const getFileIcon = (type: string) => {
   if (type === "pdf") return <FileText className="w-5 h-5 text-red-500" />;
-  if (["mp3", "wav", "m4a"].includes(type))
-    return <Music className="w-5 h-5 text-[#0891B2]" />;
+
   if (["jpg", "jpeg", "png"].includes(type))
     return <ImageIcon className="w-5 h-5 text-blue-500" />;
   return <FileText className="w-5 h-5 text-gray-500" />;
@@ -206,13 +204,33 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
   };
 
   const handleFiles = async (files: File[]) => {
+    // 🛡️ REGRAS DE LIMITES DO USUÁRIO
+    const MAX_TOTAL_FILES = 10;
+    const MAX_HEAVY_FILES = 5;
+    const HEAVY_EXTENSIONS = ['pdf', 'jpg', 'jpeg', 'png'];
+
+    // 1. Validar quantidade total
+    if (files.length > MAX_TOTAL_FILES) {
+      toast.error(t('toasts.maxFilesExceeded', { max: MAX_TOTAL_FILES, count: files.length }) || `Limite de ${MAX_TOTAL_FILES} arquivos por vez excedido.`);
+      return;
+    }
+
+    // 2. Validar quantidade de arquivos pesados
+    const heavyFilesCount = files.filter(f => {
+      const ext = f.name.split('.').pop()?.toLowerCase() || '';
+      return HEAVY_EXTENSIONS.includes(ext) || f.type.startsWith('image/') || f.type === 'application/pdf';
+    }).length;
+
+    if (heavyFilesCount > MAX_HEAVY_FILES) {
+      toast.error(t('toasts.maxHeavyFilesExceeded', { max: MAX_HEAVY_FILES }) || `Limite de ${MAX_HEAVY_FILES} arquivos pesados (PDF/Imagem) por vez.`);
+      return;
+    }
+
     const allowedTypes = [
       "application/pdf",
       "text/plain",
       "text/markdown",
-      "audio/mpeg",
-      "audio/wav",
-      "audio/x-m4a",
+
       "image/jpeg",
       "image/png",
       "application/msword",
@@ -225,7 +243,7 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
     let successCount = 0;
 
     for (const file of files) {
-      if (!allowedTypes.includes(file.type) && !file.name.match(/\.(pdf|txt|md|mp3|wav|m4a|jpg|jpeg|png|doc|docx|ppt|pptx)$/i)) {
+      if (!allowedTypes.includes(file.type) && !file.name.match(/\.(pdf|txt|md|jpg|jpeg|png|doc|docx|ppt|pptx)$/i)) {
         toast.error(t('toasts.unsupportedFileType', { filename: file.name }));
         continue;
       }
@@ -302,9 +320,19 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
 
       // Limpar IDs
       setUploadedSourceIds([]);
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Error calling process-embeddings-queue:', error);
-      toast.error(t('toasts.processingError'));
+
+      if (error.code === 'deadline-exceeded' || error.message?.includes('deadline-exceeded')) {
+        toast.info(t('toasts.processingLong') || 'O processamento de arquivos grandes continua em segundo plano. Você pode verificar o status em instantes.', {
+          duration: 8000,
+          icon: <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
+        });
+        // Tentar um refetch tardio
+        setTimeout(() => refetch(), 5000);
+      } else {
+        toast.error(t('toasts.processingError') || 'Erro ao iniciar processamento.');
+      }
     } finally {
       setProcessingEmbeddings(false);
     }
@@ -364,7 +392,7 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
           ref={fileInputRef}
           type="file"
           multiple
-          accept=".pdf,.txt,.md,.mp3,.wav,.m4a,.jpg,.jpeg,.png,.doc,.docx,.ppt,.pptx"
+          accept=".pdf,.txt,.md,.jpg,.jpeg,.png,.doc,.docx,.ppt,.pptx"
           onChange={handleFileInput}
           className="hidden"
         />
