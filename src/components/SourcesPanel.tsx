@@ -215,13 +215,17 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
       "audio/x-m4a",
       "image/jpeg",
       "image/png",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/vnd.ms-powerpoint",
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation",
     ];
 
     const uploadedIds: string[] = [];
     let successCount = 0;
 
     for (const file of files) {
-      if (!allowedTypes.includes(file.type) && !file.name.match(/\.(pdf|txt|md|mp3|wav|m4a|jpg|jpeg|png)$/i)) {
+      if (!allowedTypes.includes(file.type) && !file.name.match(/\.(pdf|txt|md|mp3|wav|m4a|jpg|jpeg|png|doc|docx|ppt|pptx)$/i)) {
         toast.error(t('toasts.unsupportedFileType', { filename: file.name }));
         continue;
       }
@@ -360,7 +364,7 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
           ref={fileInputRef}
           type="file"
           multiple
-          accept=".pdf,.txt,.md,.mp3,.wav,.m4a,.jpg,.jpeg,.png"
+          accept=".pdf,.txt,.md,.mp3,.wav,.m4a,.jpg,.jpeg,.png,.doc,.docx,.ppt,.pptx"
           onChange={handleFileInput}
           className="hidden"
         />

@@ -29,36 +29,34 @@ service cloud.firestore {
 
     // Sources
     match /sources/{sourceId} {
-      allow read: if isOwner(resource.data.user_id) || isProjectOwner(resource.data.project_id);
-      allow create: if isProjectOwner(request.resource.data.project_id);
-      allow update, delete: if isProjectOwner(resource.data.project_id);
+      // Simplified: use only isOwner to avoid race conditions with multiple listeners
+      allow read: if isOwner(resource.data.user_id);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.user_id);
+      allow update, delete: if isOwner(resource.data.user_id);
     }
 
     // Questions
     match /questions/{questionId} {
-      allow read: if isOwner(resource.data.user_id) || isProjectOwner(resource.data.project_id);
-      allow create: if isProjectOwner(request.resource.data.project_id);
-      allow update, delete: if isAuthenticated() && (
-        isOwner(resource.data.user_id) || 
-        (resource.data.keys().hasAny(['project_id']) && isProjectOwner(resource.data.project_id))
-      );
+      // Simplified: use only isOwner to avoid race conditions
+      allow read: if isOwner(resource.data.user_id);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.user_id);
+      allow update, delete: if isOwner(resource.data.user_id);
     }
 
     // Flashcards
     match /flashcards/{flashcardId} {
-      allow read: if isOwner(resource.data.user_id) || isProjectOwner(resource.data.project_id);
-      allow create: if isProjectOwner(request.resource.data.project_id);
-      allow update, delete: if isAuthenticated() && (
-        isOwner(resource.data.user_id) || 
-        (resource.data.keys().hasAny(['project_id']) && isProjectOwner(resource.data.project_id))
-      );
+      // Simplified: use only isOwner to avoid race conditions
+      allow read: if isOwner(resource.data.user_id);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.user_id);
+      allow update, delete: if isOwner(resource.data.user_id);
     }
 
     // Summaries
     match /summaries/{summaryId} {
-      allow read: if isOwner(resource.data.user_id) || isProjectOwner(resource.data.project_id);
-      allow create: if isProjectOwner(request.resource.data.project_id);
-      allow update, delete: if isProjectOwner(resource.data.project_id);
+      // Simplified: use only isOwner to avoid race conditions
+      allow read: if isOwner(resource.data.user_id);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.user_id);
+      allow update, delete: if isOwner(resource.data.user_id);
     }
 
     // Progress

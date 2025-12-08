@@ -205,17 +205,34 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
           const wrapper = wrapperRef.current;
           const rect = wrapper.getBoundingClientRect();
 
-          // Ensure wrapper has valid dimensions
-          if (rect.width === 0 || rect.height === 0) {
-            console.warn('[MindMapViewer] Wrapper has zero dimensions, delaying render');
-            // Retry on next frame if dimensions still not available
-            animationFrameRef.current = requestAnimationFrame(() => renderMindMap()); // Store ID for cancellation
+          // Ensure wrapper has valid dimensions (strict validation)
+          if (!rect || rect.width === 0 || rect.height === 0 || !isFinite(rect.width) || !isFinite(rect.height)) {
+            console.warn('[MindMapViewer] Invalid wrapper dimensions, delaying render', { width: rect?.width, height: rect?.height });
+            // Retry on next frame if dimensions still not available (with limit)
+            if (retryCount < maxRetries) {
+              setRetryCount(prev => prev + 1);
+              animationFrameRef.current = requestAnimationFrame(() => renderMindMap());
+            } else {
+              console.error('[MindMapViewer] Max retries reached, cannot render mindmap');
+              setIsRendering(false);
+            }
+            return;
+          }
+
+          // Validate SVG element exists and can receive attributes
+          if (!svgRef.current || !svgRef.current.setAttribute) {
+            console.error('[MindMapViewer] SVG element is invalid');
+            setIsRendering(false);
             return;
           }
 
           // Set explicit dimensions on SVG to prevent relative length issues
-          svgRef.current.setAttribute('width', `${rect.width}px`);
-          svgRef.current.setAttribute('height', `${rect.height}px`);
+          const validWidth = Math.max(100, rect.width);
+          const validHeight = Math.max(100, rect.height);
+
+          svgRef.current.setAttribute('width', `${validWidth}px`);
+          svgRef.current.setAttribute('height', `${validHeight}px`);
+          svgRef.current.setAttribute('viewBox', `0 0 ${validWidth} ${validHeight}`);
 
           try {
             const mm = Markmap.create(svgRef.current, {
@@ -248,6 +265,8 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
             wrapperRef.current!.append(el);
 
             setIsRendering(false);
+            // Reset retry count on successful render
+            setRetryCount(0);
           } catch (error) {
             console.error('[MindMapViewer] Error creating Markmap instance:', error);
             setIsRendering(false);
@@ -274,27 +293,65 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
-      // Reset markmap instance reference
-      setMarkmapInstance(null);
 
-      // Clean up markmap instance safely
-      if (markmapInstance) {
+      // CRITICAL: Disable ALL animations and transitions BEFORE any cleanup
+      if (svgRef.current && wrapperRef.current) {
         try {
-          // Stop any ongoing animations/transitions before destroying
-          markmapInstance.destroy();
+          // Disable CSS transitions on wrapper and all children
+          wrapperRef.current.style.transition = 'none';
+
+          // Disable all SVG animations and transitions
+          const allElements = svgRef.current.querySelectorAll('*');
+          allElements.forEach(el => {
+            if (el instanceof SVGElement || el instanceof HTMLElement) {
+              el.style.transition = 'none';
+              el.style.animation = 'none';
+              // Force immediate completion of any running animations
+              if (el instanceof SVGElement) {
+                try {
+                  // Pause any SMIL animations
+                  const animations = el.getAnimations?.() || [];
+                  animations.forEach(anim => anim.cancel());
+                } catch (e) {
+                  // Ignore if getAnimations not supported
+                }
+              }
+            }
+          });
+
+          // Remove elements with invalid transforms
+          const gElements = svgRef.current.querySelectorAll('g[transform*="NaN"]');
+          gElements.forEach(el => el.remove());
+
         } catch (error) {
-          // Suppress errors during cleanup (SVG might be already removed from DOM)
-          console.debug('[MindMapViewer] Cleanup error (expected during unmount):', error);
+          console.debug('[MindMapViewer] Pre-cleanup error:', error);
         }
       }
 
-      // Clear SVG content to prevent stale transform errors
+      // Destroy markmap instance AFTER disabling animations
+      if (markmapInstance) {
+        try {
+          // Set duration to 0 to disable exit animations (if possible)
+          markmapInstance.options = { ...markmapInstance.options, duration: 0 };
+          markmapInstance.destroy();
+        } catch (error) {
+          // Suppress errors during cleanup
+          console.debug('[MindMapViewer] Markmap destroy error:', error);
+        }
+      }
+
+      // Reset markmap instance reference
+      setMarkmapInstance(null);
+
+      // Final SVG cleanup
       if (svgRef.current) {
         try {
           svgRef.current.innerHTML = '';
+          svgRef.current.removeAttribute('width');
+          svgRef.current.removeAttribute('height');
+          svgRef.current.removeAttribute('viewBox');
         } catch (error) {
-          // Suppress if SVG is already removed
-          console.debug('[MindMapViewer] SVG cleanup error:', error);
+          console.debug('[MindMapViewer] SVG final cleanup error:', error);
         }
       }
 
