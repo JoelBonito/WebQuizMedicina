@@ -99,6 +99,7 @@
             "test:e2e:headless": "cypress run",
             "security:audit": "npm audit",
             "security:fix": "npm audit fix",
-            "security:check": "npm audit --audit-level=moderate"
+            "security:check": "npm audit --audit-level=moderate",
+            "i18n:check": "node scripts/check-i18n-keys.js"
       }
 }

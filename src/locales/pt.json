@@ -27,7 +27,8 @@
         "invalidDate": "Data inválida",
         "noProjectsTitle": "Nenhuma matéria ainda",
         "noProjectsDesc": "Crie sua primeira matéria para começar a organizar seus estudos de medicina",
-        "createFirstProject": "Criar Primeira Matéria"
+        "createFirstProject": "Criar Primeira Matéria",
+        "subtitle": "Gerencie seus estudos e materiais"
     },
     "modals": {
         "createProject": "Criar Nova Matéria",
@@ -58,6 +59,8 @@
         "logoutSuccess": "Até logo!",
         "logoutError": "Erro ao sair",
         "selectProjectFirst": "Selecione um projeto primeiro",
+        "maxFilesExceeded": "Limite de {{max}} arquivos por vez excedido (você enviou {{count}}).",
+        "maxHeavyFilesExceeded": "Limite de {{max}} arquivos pesados (PDF/Imagem) por vez excedido.",
         "unsupportedFileType": "Tipo de arquivo não suportado: {{filename}}",
         "fileUploaded": "{{filename}} enviado com sucesso!",
         "fileUploadError": "Erro ao enviar {{filename}}: {{error}}",
@@ -185,7 +188,7 @@
         "ready": "Pronto",
         "error": "Erro",
         "delete": "Excluir",
-        "maxSize": "Tamanho máximo do arquivo: 200 MB.\nFormatos: PDF, DOC, DOCX, PPT, PPTX, TXT, MD, JPG, PNG.",
+        "maxSize": "Máx. 200MB/arquivo. Limite por envio: 10 arquivos (sendo máx. 5 PDFs/Imagens).\nFormatos: PDF, Office, TXT, Imagens.",
         "noSources": "Nenhuma fonte adicionada",
         "uploadToStart": "Envie arquivos para começar",
         "newSourcesTitle": "✨ **Novas fontes adicionadas ao seu projeto!**",

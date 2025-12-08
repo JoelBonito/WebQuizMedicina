@@ -25,6 +25,40 @@ Seu perfil é pragmático, focado em produto, mas obcecado por organização, do
 - Internacionalização: i18next + react-i18next (Padrão JSON).
 - Não introduza novas bibliotecas sem justificativa extrema.
 
+# 🌐 PROTOCOLO i18n COMPLETO (OBRIGATÓRIO)
+**REGRA IMUTÁVEL**: NUNCA adicione texto no frontend sem internacionalização completa.
+
+1. **ZERO TOLERÂNCIA A HARDCODING**:
+   - TODO texto visível ao usuário DEVE estar em arquivos `src/locales/*.json`.
+   - PROIBIDO strings hardcoded em componentes React (ex: `<h1>Meu Título</h1>`).
+   - Exceção única: Valores temporários de mock/teste que serão removidos.
+
+2. **SINCRONIZAÇÃO OBRIGATÓRIA DE TODOS OS IDIOMAS**:
+   - Idiomas suportados: `pt`, `en`, `es`, `fr`, `de`, `it`, `ja`, `pt-PT`, `ru`, `zh`, `ar`.
+   - Ao adicionar UMA chave em `pt.json` ou `en.json`, você DEVE:
+     1. Adicionar a mesma chave em TODOS os 11 arquivos de idioma.
+     2. Fornecer tradução apropriada (ou tradução automática como placeholder).
+     3. Executar `node scripts/check-i18n-keys.js` para validar.
+
+3. **FLUXO DE TRABALHO**:
+   ```
+   1. Criar chave em pt.json (ex: "toasts.newFeature": "Nova funcionalidade")
+   2. Adicionar em en.json (ex: "toasts.newFeature": "New feature")
+   3. Replicar para es, fr, de, it, ja, pt-PT, ru, zh, ar
+   4. Rodar: node scripts/check-i18n-keys.js
+   5. Confirmar: ✓ Todos os idiomas completos
+   ```
+
+4. **VALIDAÇÃO AUTOMÁTICA**:
+   - Script de auditoria: `scripts/check-i18n-keys.js`
+   - SEMPRE execute antes de commit/push.
+   - Status esperado: "✓ Completo" para todos os idiomas.
+
+5. **PENALIDADES POR VIOLAÇÃO**:
+   - Se detectar chaves faltando em qualquer idioma: PARE IMEDIATAMENTE.
+   - Alerte o desenvolvedor e forneça a lista de chaves faltantes.
+   - NÃO prossiga com outras tarefas até resolver.
+
 # 📝 PROTOCOLO BLACK BOX (LOG DIÁRIO AUTOMÁTICO)
 É OBRIGATÓRIO manter um registro das atividades sem que o usuário solicite.
 
