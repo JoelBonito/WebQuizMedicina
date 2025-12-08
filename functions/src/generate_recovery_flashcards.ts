@@ -2,13 +2,12 @@ import * as admin from "firebase-admin";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { callGeminiWithUsage, parseJsonFromResponse } from "./shared/gemini";
 import { calculateBatchSizes } from "./shared/output_limits";
-import { sanitizeString } from "./shared/sanitization";
+import { cleanString } from "./shared/sanitization";
 import { validateRequest, generateRecoveryFlashcardsSchema } from "./shared/validation";
 import { semanticSearchWithTokenLimit, hasAnyEmbeddings } from "./shared/embeddings";
 import { calculateRecoveryStrategyForFlashcards, formatDifficultiesForLog, Difficulty } from "./shared/recovery_strategies";
 import { logTokenUsage } from "./shared/token_usage";
 import { getModelSelector } from "./shared/modelSelector";
-
 
 
 // Recovery Flashcards Token Limit (10k tokens - more focused than quiz)
@@ -129,7 +128,7 @@ export const generate_recovery_flashcards = onCall({
                 let usedSources = sources.slice(0, 3);
                 for (const source of usedSources) {
                     if (source.extracted_content) {
-                        combinedContent += `\n\n=== ${sanitizeString(source.name)} ===\n${sanitizeString(source.extracted_content)}`;
+                        combinedContent += `\n\n=== ${cleanString(source.name)} ===\n${cleanString(source.extracted_content)}`;
                     }
                 }
                 if (combinedContent.length > MAX_CONTENT_LENGTH) {
@@ -143,7 +142,7 @@ export const generate_recovery_flashcards = onCall({
             let usedSources = sources.slice(0, 3);
             for (const source of usedSources) {
                 if (source.extracted_content) {
-                    combinedContent += `\n\n=== ${sanitizeString(source.name)} ===\n${sanitizeString(source.extracted_content)}`;
+                    combinedContent += `\n\n=== ${cleanString(source.name)} ===\n${cleanString(source.extracted_content)}`;
                 }
             }
             if (combinedContent.length > MAX_CONTENT_LENGTH) {
@@ -274,9 +273,9 @@ Retorne APENAS o JSON válido.
             user_id: userId, // Added user_id
             source_id: null,  // Recovery flashcards span multiple sources
             session_id: sessionId,
-            frente: sanitizeString(f.frente || ''),
-            verso: sanitizeString(f.verso || ''),
-            topico: f.topico ? sanitizeString(f.topico) : null,
+            frente: cleanString(f.frente || ''),
+            verso: cleanString(f.verso || ''),
+            topico: f.topico ? cleanString(f.topico) : null,
             dificuldade: ['fácil', 'médio', 'difícil'].includes(f.dificuldade) ? f.dificuldade : 'médio',
             content_type: 'recovery', // Mark as recovery content for UI differentiation
             created_at: admin.firestore.FieldValue.serverTimestamp(),

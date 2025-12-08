@@ -122,7 +122,7 @@ exports.generate_recovery_quiz = (0, https_1.onCall)({
                 let usedSources = sources.slice(0, 3);
                 for (const source of usedSources) {
                     if (source.extracted_content) {
-                        combinedContent += `\n\n=== ${(0, sanitization_1.sanitizeString)(source.name)} ===\n${(0, sanitization_1.sanitizeString)(source.extracted_content)}`;
+                        combinedContent += `\n\n=== ${(0, sanitization_1.cleanString)(source.name)} ===\n${(0, sanitization_1.cleanString)(source.extracted_content)}`;
                     }
                 }
                 if (combinedContent.length > MAX_CONTENT_LENGTH) {
@@ -137,7 +137,7 @@ exports.generate_recovery_quiz = (0, https_1.onCall)({
             let usedSources = sources.slice(0, 3);
             for (const source of usedSources) {
                 if (source.extracted_content) {
-                    combinedContent += `\n\n=== ${(0, sanitization_1.sanitizeString)(source.name)} ===\n${(0, sanitization_1.sanitizeString)(source.extracted_content)}`;
+                    combinedContent += `\n\n=== ${(0, sanitization_1.cleanString)(source.name)} ===\n${(0, sanitization_1.cleanString)(source.extracted_content)}`;
                 }
             }
             if (combinedContent.length > MAX_CONTENT_LENGTH) {
@@ -162,51 +162,46 @@ exports.generate_recovery_quiz = (0, https_1.onCall)({
             const batchNum = i + 1;
             console.log(`🔄 [Batch ${batchNum}/${batchSizes.length}] Generating ${batchCount} recovery questions...`);
             // Build prompt with strategy-specific instructions
+            const trueFalseOpts = (0, language_helper_1.getTrueFalseOptions)(language);
+            const texts = (0, language_helper_1.getPromptTexts)(language);
             const prompt = `
-Você é um professor universitário de MEDICINA criando um QUIZ DE RECUPERAÇÃO personalizado.
+${texts.professorIntro} ${texts.recoveryTitle}.
 
 ${strategy.systemInstruction}
 
-CONTEÚDO BASE:
+${(0, language_helper_1.getLanguageInstruction)(language)}
+
+BASE CONTENT:
 ${combinedContent.substring(0, 30000)}
 
-Gere ${batchCount} questões de múltipla escolha.
+Generate ${batchCount} multiple choice questions.
 
-TIPOS DE QUESTÃO (Varie):
-1. "multipla_escolha": Conceitos diretos.
-2. "verdadeiro_falso": Julgue a afirmação (Opções: [Verdadeiro, Falso]).
-3. "citar": "Qual destes é um exemplo de..." (4 opções).
-4. "caso_clinico": Cenário curto + conduta.
+${texts.questionTypes} (Vary):
+1. "multipla_escolha": ${texts.multipleChoice}.
+2. "verdadeiro_falso": ${texts.trueFalse} (Options: ${trueFalseOpts.display}).
+3. "citar": ${texts.citation} (4 options).
+4. "caso_clinico": ${texts.clinicalCase}.
 
-REGRAS DE FORMATO (Rígidas):
-- TODAS as questões devem ter APENAS UMA alternativa correta.
-- Opções devem ser sempre arrays de strings: ["A) Texto", "B) Texto"...] ou ["Verdadeiro", "Falso"].
+${texts.formatRules} (Strict):
+- ALL questions must have ONLY ONE correct alternative.
+- Options must always be arrays of strings: ["A) Text", "B) Text"...] or ${trueFalseOpts.display}.
 
-REGRAS PARA A JUSTIFICATIVA (Extra Importante para Recovery):
-Este é um quiz de RECUPERAÇÃO. O aluno errou isso antes. A justificativa deve:
-1. CITAR A FONTE: "Segundo o texto...", "O material indica que...", "Conforme a fonte..."
-2. SER EDUCATIVA: Explique POR QUE a alternativa está correta (não apenas repita o fato)
-3. CORRIGIR ERROS COMUNS: Se o aluno pode ter confundido conceitos, esclareça a diferença
+${texts.justificationRules} (Extra Important for Recovery):
+This is a RECOVERY quiz. The student got this wrong before. The justification must:
+1. CITE THE SOURCE: "${texts.accordingToText}", "The material indicates that...", "According to the source..."
+2. BE EDUCATIONAL: Explain WHY the alternative is correct (don't just repeat the fact)
+3. CORRECT COMMON MISTAKES: If the student may have confused concepts, clarify the difference
 4. ${(0, language_helper_1.getLanguageInstruction)(language)}
-5. CONCISÃO: 2-3 frases máximo
+5. ${texts.conciseness}: 2-3 sentences maximum
 
-FORMATO JSON:
+JSON FORMAT:
 {
   "perguntas": [
-    {
-      "tipo": "multipla_escolha",
-      "pergunta": "Qual o tratamento de primeira linha para...",
-      "opcoes": ["A) Opção A", "B) Opção B", "C) Opção C", "D) Opção D"],
-      "resposta_correta": "A",
-      "justificativa": "Conforme o texto, a Opção A é a primeira linha devido à sua eficácia comprovada. Um erro comum é confundir com a Opção B, mas esta só é usada quando há contraindicação à Opção A.",
-      "dica": "Pense na droga que reduz a mortalidade a longo prazo.",
-      "dificuldade": "${difficulty || 'médio'}",
-      "topico": "Cardiologia"
-    }
+    ${(0, language_helper_1.getQuizExample)(language)}
   ]
 }
 
-Retorne APENAS o JSON válido.
+Return ONLY valid JSON.
             `;
             let result;
             try {
@@ -256,7 +251,7 @@ Retorne APENAS o JSON válido.
         // 7. Sanitization and Persistence
         const validTypes = ["multipla_escolha", "verdadeiro_falso", "citar", "caso_clinico", "completar"];
         const questionsToInsert = allQuestions.map((q) => {
-            let respostaLimpa = (0, sanitization_1.sanitizeString)(q.resposta_correta || "");
+            let respostaLimpa = (0, sanitization_1.cleanString)(q.resposta_correta || "");
             const tipo = validTypes.includes(q.tipo) ? q.tipo : "multipla_escolha";
             if (tipo === "verdadeiro_falso") {
                 const normalized = respostaLimpa.toLowerCase();
@@ -271,14 +266,14 @@ Retorne APENAS o JSON válido.
                 project_id,
                 user_id: userId,
                 session_id: sessionId,
-                pergunta: (0, sanitization_1.sanitizeString)(q.pergunta || q.question || ""),
-                opcoes: Array.isArray(q.opcoes) ? q.opcoes.map(sanitization_1.sanitizeString) : [],
+                pergunta: (0, sanitization_1.cleanString)(q.pergunta || q.question || ""),
+                opcoes: Array.isArray(q.opcoes) ? q.opcoes.map(sanitization_1.cleanString) : [],
                 resposta_correta: respostaLimpa,
-                justificativa: (0, sanitization_1.sanitizeString)(q.justificativa || ""),
-                dica: q.dica ? (0, sanitization_1.sanitizeString)(q.dica) : null,
+                justificativa: (0, sanitization_1.cleanString)(q.justificativa || ""),
+                dica: q.dica ? (0, sanitization_1.cleanString)(q.dica) : null,
                 tipo,
                 dificuldade: q.dificuldade || difficulty || "médio",
-                topico: q.topico ? (0, sanitization_1.sanitizeString)(q.topico) : null,
+                topico: q.topico ? (0, sanitization_1.cleanString)(q.topico) : null,
                 content_type: 'recovery',
                 created_at: admin.firestore.FieldValue.serverTimestamp(),
             };

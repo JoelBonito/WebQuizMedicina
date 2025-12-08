@@ -17,6 +17,20 @@ interface DifficultiesPanelProps {
   isFullscreenMode?: boolean;
 }
 
+// Helper to convert Firestore Timestamp to JS Date
+function toJSDate(timestamp: any): Date {
+  // Handle Firestore Timestamp object
+  if (timestamp && typeof timestamp.toDate === 'function') {
+    return timestamp.toDate();
+  }
+  // Handle ISO string or already a Date
+  if (timestamp) {
+    return new Date(timestamp);
+  }
+  // Fallback to current date if invalid
+  return new Date();
+}
+
 const getOriginIcon = (origin: string) => {
   switch (origin) {
     case "quiz":
@@ -413,7 +427,7 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
 
                         <p className="text-xs text-gray-500">
                           {t('difficulties.identifiedOn')}{" "}
-                          {new Date(difficulty.created_at).toLocaleDateString("pt-BR", {
+                          {toJSDate(difficulty.created_at).toLocaleDateString("pt-BR", {
                             day: "2-digit",
                             month: "short",
                             year: "numeric",
@@ -483,7 +497,7 @@ export function DifficultiesPanel({ projectId, isFullscreenMode = false }: Diffi
                             )}
                           </div>
                           <span className="text-xs text-gray-500 whitespace-nowrap ml-4">
-                            {new Date(difficulty.updated_at || difficulty.created_at).toLocaleDateString("pt-BR", {
+                            {toJSDate(difficulty.updated_at || difficulty.created_at).toLocaleDateString("pt-BR", {
                               day: "2-digit",
                               month: "short",
                             })}

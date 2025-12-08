@@ -2,12 +2,11 @@ import * as admin from "firebase-admin";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { callGeminiWithUsage, parseJsonFromResponse } from "./shared/gemini";
 import { estimateTokens } from "./shared/output_limits";
-import { sanitizeString as sanitizeStringUtil } from "./shared/sanitization";
+import { cleanString } from "./shared/sanitization";
 import { validateRequest, generateMindmapSchema } from "./shared/validation";
 import { logTokenUsage } from "./shared/token_usage";
 import { getModelSelector } from "./shared/modelSelector";
-import { getLanguageFromRequest, getLanguageInstruction } from "./shared/language_helper";
-
+import { getLanguageFromRequest, getLanguageInstruction, getMindmapExample } from "./shared/language_helper";
 
 
 
@@ -81,8 +80,8 @@ export const generate_mindmap = onCall({
 
         for (const source of sources) {
             if (source.extracted_content) {
-                const sanitizedContent = sanitizeStringUtil(source.extracted_content);
-                combinedContent += `\n\n=== ${sanitizeStringUtil(source.name)} ===\n${sanitizedContent}`;
+                const sanitizedContent = cleanString(source.extracted_content);
+                combinedContent += `\n\n=== ${cleanString(source.name)} ===\n${sanitizedContent}`;
             }
         }
 
@@ -125,28 +124,20 @@ TECHNICAL INSTRUCTIONS (CRITICAL - FOLLOW EXACTLY):
    - Create a deep structure (at least 3-4 levels).
    - Use nested lists to detail concepts.
    - Example:
-     # Heart Failure
-     ## Pathophysiology
-     - Systolic Dysfunction
-       - Ejection Fraction < 40%
-     - Diastolic Dysfunction
-     ## Symptoms
-     - Congestive
-       - Dyspnea
-       - Edema
+${getMindmapExample(language)}
 
 4. **ALLOWED CHARACTERS**:
    - Use full UTF-8 (accents allowed).
    - You can use emojis to illustrate main topics.
    - ${getLanguageInstruction(language)}
 
-EXEMPLO DO JSON ESPERADO:
+EXPECTED JSON EXAMPLE:
 {
-  "titulo": "Mapa Mental de Insuficiência Cardíaca",
-  "markdown": "# Insuficiência Cardíaca\\n## Fisiopatologia\\n- Disfunção Sistólica\\n  - Fração de Ejeção < 40%\\n- Disfunção Diastólica\\n## Sintomas\\n- Congestivos\\n  - Dispneia\\n  - Edema"
+  "titulo": "Mind Map Title",
+  "markdown": "# Main Title\\n## Branch 1\\n- Sub-item\\n  - Detail\\n## Branch 2\\n- Sub-item"
 }
 
-Gere o JSON agora, garantindo que o campo "markdown" contenha uma string válida com quebras de linha (\\n).`;
+Generate the JSON now, ensuring the "markdown" field contains a valid string with line breaks (\\n).`;
 
         // 4. Call Gemini
         // ✅ Seleção automática e inteligente
@@ -198,7 +189,7 @@ Gere o JSON agora, garantindo que o campo "markdown" contenha uma string válida
 
         // 6. Save to Database
         const titlePrefix = tipo === 'recovery' ? 'Recovery: ' : '';
-        const finalTitle = titlePrefix + sanitizeStringUtil(parsed.titulo);
+        const finalTitle = titlePrefix + cleanString(parsed.titulo);
 
         const mindmapData = {
             project_id: project_id || sources[0].project_id,

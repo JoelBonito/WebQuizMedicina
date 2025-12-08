@@ -14,9 +14,11 @@ service cloud.firestore {
 
     function isProjectOwner(projectId) {
       return isAuthenticated() && 
+        projectId != null &&
         exists(/databases/$(database)/documents/projects/$(projectId)) &&
         get(/databases/$(database)/documents/projects/$(projectId)).data.user_id == request.auth.uid;
     }
+
 
     // Projects
     match /projects/{projectId} {
@@ -36,14 +38,20 @@ service cloud.firestore {
     match /questions/{questionId} {
       allow read: if isOwner(resource.data.user_id) || isProjectOwner(resource.data.project_id);
       allow create: if isProjectOwner(request.resource.data.project_id);
-      allow update, delete: if isProjectOwner(resource.data.project_id);
+      allow update, delete: if isAuthenticated() && (
+        isOwner(resource.data.user_id) || 
+        (resource.data.keys().hasAny(['project_id']) && isProjectOwner(resource.data.project_id))
+      );
     }
 
     // Flashcards
     match /flashcards/{flashcardId} {
       allow read: if isOwner(resource.data.user_id) || isProjectOwner(resource.data.project_id);
       allow create: if isProjectOwner(request.resource.data.project_id);
-      allow update, delete: if isProjectOwner(resource.data.project_id);
+      allow update, delete: if isAuthenticated() && (
+        isOwner(resource.data.user_id) || 
+        (resource.data.keys().hasAny(['project_id']) && isProjectOwner(resource.data.project_id))
+      );
     }
 
     // Summaries

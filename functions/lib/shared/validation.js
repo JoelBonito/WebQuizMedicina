@@ -15,6 +15,7 @@ exports.generateFlashcardsSchema = zod_1.z.object({
     source_id: idSchema.optional(),
     project_id: idSchema.optional(),
     count: zod_1.z.number().min(1).max(50).default(10),
+    difficulty: zod_1.z.string().nullish(), // Support difficulty selection
 });
 exports.chatSchema = zod_1.z.object({
     message: zod_1.z.string().min(1).max(2000),

@@ -1,7 +1,7 @@
 import * as admin from "firebase-admin";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { callGeminiWithUsage } from "./shared/gemini";
-import { sanitizeHtml, sanitizeString } from "./shared/sanitization";
+import { sanitizeHtml, cleanString } from "./shared/sanitization";
 import { validateRequest, generateFocusedSummarySchema } from "./shared/validation";
 import { logTokenUsage } from "./shared/token_usage";
 import { getModelSelector } from "./shared/modelSelector";
@@ -86,21 +86,21 @@ export const generate_focused_summary = onCall({
     const difficultiesList = difficulties
       .map((d: any, index: number) => {
         const stars = '⚠️'.repeat(Math.min(d.nivel, 5));
-        const sanitizedTopic = sanitizeString(d.topico || 'Unknown');
-        const sanitizedType = sanitizeString(d.tipo_origem || 'unknown');
+        const sanitizedTopic = cleanString(d.topico || 'Unknown');
+        const sanitizedType = cleanString(d.tipo_origem || 'unknown');
         return `${index + 1}. ${sanitizedTopic} ${stars} (nível ${d.nivel}) - origem: ${sanitizedType}`;
       })
       .join('\n');
 
-    const topTopics = difficulties.slice(0, 5).map((d: any) => sanitizeString(d.topico));
+    const topTopics = difficulties.slice(0, 5).map((d: any) => cleanString(d.topico));
 
     // 5. Build Context
     console.log('📚 [FULL-SOURCES] Using complete sources for maximum quality');
 
     const combinedContext = sources
       .map((source: any) => {
-        const sanitizedName = sanitizeString(source.name || 'Unknown');
-        const sanitizedContent = sanitizeString(source.extracted_content || '');
+        const sanitizedName = cleanString(source.name || 'Unknown');
+        const sanitizedContent = cleanString(source.extracted_content || '');
         return `[Fonte: ${sanitizedName}]\n${sanitizedContent}`;
       })
       .join('\n\n---\n\n');
@@ -115,7 +115,7 @@ You are an EXPERIENCED and DIDACTIC medical professor creating personalized stud
 YOUR GOAL: Create summaries that REALLY help students who did NOT understand the topic the first time.
 
 STUDENT PROFILE:
-- Studying: "${sanitizeString(project?.name || '')}"
+- Studying: "${cleanString(project?.name || '')}"
 - Identified ${difficulties.length} difficulties during quiz/flashcard studies
 - Needs SIMPLE explanations, not overly technical
 - Learns better with analogies, practical examples, and connections
@@ -185,7 +185,7 @@ GENERAL STRUCTURE:
 <div class="focused-summary">
   <div class="summary-header">
     <h1>🎯 Focused Summary on Your Difficulties</h1>
-    <p class="subtitle">Personalized material for ${sanitizeString(project?.name || '')}</p>
+    <p class="subtitle">Personalized material for ${cleanString(project?.name || '')}</p>
     <p class="meta">Based on ${difficulties.length} topics identified during your studies</p>
   </div>
 

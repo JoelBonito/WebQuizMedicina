@@ -22,7 +22,7 @@ if (import.meta.env.DEV) {
   console.log('PDF.js worker URL:', pdfjsLib.GlobalWorkerOptions.workerSrc);
 }
 
-export type FileType = 'pdf' | 'txt' | 'md' | 'mp3' | 'wav' | 'm4a' | 'jpg' | 'png' | 'jpeg';
+export type FileType = 'pdf' | 'txt' | 'md' | 'mp3' | 'wav' | 'm4a' | 'jpg' | 'png' | 'jpeg' | 'doc' | 'docx' | 'ppt' | 'pptx';
 
 export interface FileMetadata {
   duration?: number;
@@ -46,6 +46,10 @@ export const isImageFile = (type: FileType): boolean => {
 
 export const isTextFile = (type: FileType): boolean => {
   return ['txt', 'md'].includes(type);
+};
+
+export const isOfficeFile = (type: FileType): boolean => {
+  return ['doc', 'docx', 'ppt', 'pptx'].includes(type);
 };
 
 export const isPDFFile = (type: FileType): boolean => {

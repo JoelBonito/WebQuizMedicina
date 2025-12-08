@@ -31,7 +31,8 @@ const validation_1 = require("./shared/validation");
 const embeddings_1 = require("./shared/embeddings");
 const token_usage_1 = require("./shared/token_usage");
 const modelSelector_1 = require("./shared/modelSelector");
-const gemini_1 = require("./shared/gemini");
+const fileExtractors_1 = require("./shared/fileExtractors");
+const geminiFileManager_1 = require("./shared/geminiFileManager");
 const processEmbeddingsSchema = zod_1.z.object({
     source_id: zod_1.z.string().optional(),
     project_id: zod_1.z.string(),
@@ -42,7 +43,7 @@ exports.process_embeddings_queue = (0, https_1.onCall)({
     memory: '2GiB',
     region: 'us-central1'
 }, async (request) => {
-    var _a, _b, _c, _d;
+    var _a, _b, _c, _d, _e;
     const db = admin.firestore();
     const storage = admin.storage();
     // 1. Auth Check
@@ -65,6 +66,10 @@ exports.process_embeddings_queue = (0, https_1.onCall)({
             if ((source === null || source === void 0 ? void 0 : source.project_id) !== project_id) {
                 throw new https_1.HttpsError("permission-denied", "Source does not belong to project");
             }
+            // Garantir que metadata existe
+            if (!(source === null || source === void 0 ? void 0 : source.metadata)) {
+                source.metadata = {};
+            }
             sourcesToProcess.push({ ref: sourceRef, data: source });
         }
         else {
@@ -76,7 +81,10 @@ exports.process_embeddings_queue = (0, https_1.onCall)({
                 .limit(limit)
                 .get();
             snapshot.forEach(doc => {
-                sourcesToProcess.push({ ref: doc.ref, data: doc.data() });
+                const data = doc.data();
+                if (!data.metadata)
+                    data.metadata = {};
+                sourcesToProcess.push({ ref: doc.ref, data: data });
             });
         }
         // 4. Process Sources
@@ -90,38 +98,100 @@ exports.process_embeddings_queue = (0, https_1.onCall)({
             const sourceData = item.data;
             const sourceId = item.ref.id;
             if (!sourceData.extracted_content) {
-                // Check if it's a supported media type (Image or Audio)
-                const isImage = ['jpg', 'jpeg', 'png'].includes(sourceData.type) || ((_b = (_a = sourceData.metadata) === null || _a === void 0 ? void 0 : _a.mimeType) === null || _b === void 0 ? void 0 : _b.startsWith('image/'));
-                const isAudio = ['mp3', 'wav', 'm4a'].includes(sourceData.type) || ((_d = (_c = sourceData.metadata) === null || _c === void 0 ? void 0 : _c.mimeType) === null || _d === void 0 ? void 0 : _d.startsWith('audio/'));
-                if (sourceData.storage_path && (isImage || isAudio)) {
+                // Check file type for routing
+                const mimeType = ((_a = sourceData.metadata) === null || _a === void 0 ? void 0 : _a.mimeType) || '';
+                const isImage = ['jpg', 'jpeg', 'png'].includes(sourceData.type) || mimeType.startsWith('image/');
+                const isAudio = ['mp3', 'wav', 'm4a'].includes(sourceData.type) || mimeType.startsWith('audio/');
+                const isOffice = ['doc', 'docx', 'ppt', 'pptx'].includes(sourceData.type) ||
+                    mimeType.includes('wordprocessingml') ||
+                    mimeType.includes('presentationml') ||
+                    mimeType === 'application/msword' ||
+                    mimeType === 'application/vnd.ms-powerpoint';
+                if (sourceData.storage_path) {
                     try {
-                        console.log(`🖼️ Extracting content from file for source ${sourceId}...`);
+                        console.log(`📂 Downloading file for source ${sourceId}...`);
                         const bucket = storage.bucket();
                         const file = bucket.file(sourceData.storage_path);
                         const [buffer] = await file.download();
-                        const base64Data = buffer.toString('base64');
-                        const mimeType = sourceData.type || 'image/jpeg';
-                        const prompt = "Transcreva todo o texto visível nesta imagem (ou áudio) com alta fidelidade, **incluindo anotações manuscritas (letra de mão)**. Mantenha a formatação e estrutura original das anotações. Se houver diagramas, descreva-os brevemente.";
-                        const result = await (0, gemini_1.callGeminiWithUsage)([
-                            prompt,
-                            {
-                                inlineData: {
-                                    data: base64Data,
-                                    mimeType: mimeType
+                        // PISTA EXPRESSA: Arquivos Office e PDF Texto (Custo Zero)
+                        if (isOffice || mimeType === 'application/pdf') {
+                            // Extrair extensão segura
+                            const extension = (_c = (_b = sourceData.name) === null || _b === void 0 ? void 0 : _b.split('.').pop()) === null || _c === void 0 ? void 0 : _c.toLowerCase(); // do nome original
+                            // ou do storage path se nome não estiver disponível
+                            const safeExtension = extension || ((_e = (_d = sourceData.storage_path) === null || _d === void 0 ? void 0 : _d.split('.').pop()) === null || _e === void 0 ? void 0 : _e.toLowerCase());
+                            console.log(`📄 [Pista Expressa] Extraindo com código (mime: ${mimeType}, ext: ${safeExtension})...`);
+                            // Tenta extração via código (Code-First)
+                            // Aceita retornar null se tipo não suportado, mas isOffice já filtra
+                            let extractedText = await (0, fileExtractors_1.extractByMimeType)(buffer, mimeType, safeExtension);
+                            // Lógica de Fallback para PDF Escaneado
+                            const isPdf = mimeType === 'application/pdf' || safeExtension === 'pdf';
+                            const isScannedPdf = isPdf && (!extractedText || extractedText.length < 50);
+                            if (isScannedPdf) {
+                                console.warn(`⚠️ [Fallback] PDF parece ser escaneado (<50 chars). Ativando Gemini Vision...`);
+                                // Tenta via Gemini Vision (OCR)
+                                try {
+                                    extractedText = await (0, geminiFileManager_1.extractTextFromImageWithGemini)(buffer, 'application/pdf');
+                                }
+                                catch (ocrError) {
+                                    console.error('❌ [Fallback] Erro no OCR Gemini:', ocrError.message);
+                                    // Se falhar o OCR, mantém o texto original (mesmo que curto) ou lança erro?
+                                    // Melhor manter o erro original se texto for realmente vazio/inutil
+                                    if (!extractedText)
+                                        throw ocrError;
                                 }
                             }
-                        ], "gemini-1.5-flash" // Modelo multimodal rápido
-                        );
-                        if (!result.text) {
-                            throw new Error("Gemini returned empty text for this file.");
+                            if (extractedText && extractedText.length > 0) {
+                                sourceData.extracted_content = extractedText;
+                                await item.ref.update({
+                                    extracted_content: extractedText,
+                                    status: 'processing'
+                                });
+                                console.log(`✅ [Extração Concluída] Total: ${extractedText.length} chars`);
+                            }
+                            else {
+                                throw new Error('Extração retornou texto vazio (mesmo após fallback)');
+                            }
                         }
-                        sourceData.extracted_content = result.text;
-                        // Salvar o conteúdo extraído imediatamente
-                        await item.ref.update({
-                            extracted_content: result.text,
-                            status: 'processing' // Ensure status is processing while we continue
-                        });
-                        console.log(`✅ Content extracted for source ${sourceId} (${result.text.length} chars)`);
+                        // PISTA INTELIGENTE: Imagens (Gemini Vision)
+                        else if (isImage) {
+                            console.log(`🧠 [Pista Inteligente] Processando imagem com Gemini Vision...`);
+                            const extractedText = await (0, geminiFileManager_1.extractTextFromImageWithGemini)(buffer, mimeType);
+                            if (!extractedText || extractedText.length === 0) {
+                                throw new Error("Gemini returned empty text for this image.");
+                            }
+                            sourceData.extracted_content = extractedText;
+                            await item.ref.update({
+                                extracted_content: extractedText,
+                                status: 'processing'
+                            });
+                            console.log(`✅ [OCR] Extraído ${extractedText.length} chars`);
+                        }
+                        // PISTA INTELIGENTE: Áudio (Gemini Files API para arquivos grandes)
+                        else if (isAudio) {
+                            console.log(`🎤 [Pista Inteligente] Processando áudio com Gemini Files API...`);
+                            // Use Gemini File API para áudios (suporta arquivos grandes)
+                            const transcription = await (0, geminiFileManager_1.transcribeAudioWithGemini)(buffer, mimeType, sourceData.name || 'audio_upload');
+                            if (!transcription || transcription.length === 0) {
+                                throw new Error("Gemini returned empty transcription for this audio.");
+                            }
+                            sourceData.extracted_content = transcription;
+                            await item.ref.update({
+                                extracted_content: transcription,
+                                status: 'processing'
+                            });
+                            console.log(`✅ [Transcrição] Extraído ${transcription.length} chars`);
+                        }
+                        // Tipo não suportado por nenhuma pista
+                        else {
+                            console.warn(`⚠️ Source ${sourceId} has unsupported file type. Skipping.`);
+                            batch.update(item.ref, {
+                                status: "error",
+                                error_message: "Unsupported file type for extraction",
+                                processed_at: admin.firestore.FieldValue.serverTimestamp()
+                            });
+                            processedCount++;
+                            continue;
+                        }
                     }
                     catch (extractError) {
                         console.error(`❌ Error extracting content for source ${sourceId}:`, extractError);
@@ -135,10 +205,10 @@ exports.process_embeddings_queue = (0, https_1.onCall)({
                     }
                 }
                 else {
-                    console.warn(`⚠️ Source ${sourceId} has no extracted content and is not a supported media type. Skipping.`);
+                    console.warn(`⚠️ Source ${sourceId} has no storage_path and no extracted content. Skipping.`);
                     batch.update(item.ref, {
                         status: "error",
-                        error_message: "No extracted content found",
+                        error_message: "No storage path or extracted content found",
                         processed_at: admin.firestore.FieldValue.serverTimestamp()
                     });
                     processedCount++;

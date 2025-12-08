@@ -99,18 +99,18 @@ exports.generate_focused_summary = (0, https_1.onCall)({
         const difficultiesList = difficulties
             .map((d, index) => {
             const stars = '⚠️'.repeat(Math.min(d.nivel, 5));
-            const sanitizedTopic = (0, sanitization_1.sanitizeString)(d.topico || 'Unknown');
-            const sanitizedType = (0, sanitization_1.sanitizeString)(d.tipo_origem || 'unknown');
+            const sanitizedTopic = (0, sanitization_1.cleanString)(d.topico || 'Unknown');
+            const sanitizedType = (0, sanitization_1.cleanString)(d.tipo_origem || 'unknown');
             return `${index + 1}. ${sanitizedTopic} ${stars} (nível ${d.nivel}) - origem: ${sanitizedType}`;
         })
             .join('\n');
-        const topTopics = difficulties.slice(0, 5).map((d) => (0, sanitization_1.sanitizeString)(d.topico));
+        const topTopics = difficulties.slice(0, 5).map((d) => (0, sanitization_1.cleanString)(d.topico));
         // 5. Build Context
         console.log('📚 [FULL-SOURCES] Using complete sources for maximum quality');
         const combinedContext = sources
             .map((source) => {
-            const sanitizedName = (0, sanitization_1.sanitizeString)(source.name || 'Unknown');
-            const sanitizedContent = (0, sanitization_1.sanitizeString)(source.extracted_content || '');
+            const sanitizedName = (0, sanitization_1.cleanString)(source.name || 'Unknown');
+            const sanitizedContent = (0, sanitization_1.cleanString)(source.extracted_content || '');
             return `[Fonte: ${sanitizedName}]\n${sanitizedContent}`;
         })
             .join('\n\n---\n\n');
@@ -123,7 +123,7 @@ You are an EXPERIENCED and DIDACTIC medical professor creating personalized stud
 YOUR GOAL: Create summaries that REALLY help students who did NOT understand the topic the first time.
 
 STUDENT PROFILE:
-- Studying: "${(0, sanitization_1.sanitizeString)((project === null || project === void 0 ? void 0 : project.name) || '')}"
+- Studying: "${(0, sanitization_1.cleanString)((project === null || project === void 0 ? void 0 : project.name) || '')}"
 - Identified ${difficulties.length} difficulties during quiz/flashcard studies
 - Needs SIMPLE explanations, not overly technical
 - Learns better with analogies, practical examples, and connections
@@ -193,7 +193,7 @@ GENERAL STRUCTURE:
 <div class="focused-summary">
   <div class="summary-header">
     <h1>🎯 Focused Summary on Your Difficulties</h1>
-    <p class="subtitle">Personalized material for ${(0, sanitization_1.sanitizeString)((project === null || project === void 0 ? void 0 : project.name) || '')}</p>
+    <p class="subtitle">Personalized material for ${(0, sanitization_1.cleanString)((project === null || project === void 0 ? void 0 : project.name) || '')}</p>
     <p class="meta">Based on ${difficulties.length} topics identified during your studies</p>
   </div>
 

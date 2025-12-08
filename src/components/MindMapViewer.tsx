@@ -18,6 +18,10 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
   const [isRendering, setIsRendering] = useState(false);
   const [markmapInstance, setMarkmapInstance] = useState<Markmap | null>(null);
   const rootRef = useRef<any>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const maxRetries = 20; // ~2 seconds with requestAnimationFrame
+  const animationFrameRef = useRef<number | null>(null);
+  const isUnmountedRef = useRef(false);
 
   // Convert Mermaid-like indented text to Markdown list (Legacy Support)
   const convertMermaidToMarkdown = (text: string) => {
@@ -61,6 +65,14 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
 
   const handleExpandAll = () => {
     if (!markmapInstance || !rootRef.current) return;
+    // Ensure wrapper has valid dimensions before expanding
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+    const { width, height } = wrapper.getBoundingClientRect();
+    if (width === 0 || height === 0) {
+      console.warn('[MindMapViewer] Skip expandAll due to zero dimensions');
+      return;
+    }
 
     const expand = (node: any) => {
       if (node.payload) {
@@ -78,6 +90,14 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
 
   const handleCollapseAll = () => {
     if (!markmapInstance || !rootRef.current) return;
+    // Ensure wrapper has valid dimensions before collapsing
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+    const { width, height } = wrapper.getBoundingClientRect();
+    if (width === 0 || height === 0) {
+      console.warn('[MindMapViewer] Skip collapseAll due to zero dimensions');
+      return;
+    }
 
     const collapse = (node: any) => {
       // Don't collapse root (depth 0)
@@ -100,16 +120,25 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
     let isCancelled = false;
 
     const renderMindMap = async () => {
-      if (isCancelled) return;
+      if (isCancelled || isUnmountedRef.current) return; // Add unmounted guard
 
       // Double check dimensions before proceeding
       if (!wrapperRef.current) return;
       const { width, height } = wrapperRef.current.getBoundingClientRect();
 
       if (width === 0 || height === 0) {
-        // If still 0, wait for next frame
-        requestAnimationFrame(renderMindMap);
-        return;
+        // If still 0, wait for next frame (with retry limit)
+        if (retryCount >= maxRetries) {
+          console.warn('[MindMapViewer] Max retries reached in renderMindMap, using fallback dimensions');
+          // fallback dimensions will be set later
+        } else {
+          setRetryCount(prev => prev + 1);
+          animationFrameRef.current = requestAnimationFrame(renderMindMap); // Store ID for cancellation
+          return;
+        }
+      } else {
+        // Reset retry counter when dimensions are ok
+        setRetryCount(0);
       }
 
       setIsRendering(true);
@@ -169,39 +198,60 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
 
         // 4. Create new Markmap instance with options
         // We use requestAnimationFrame to ensure the SVG is in the DOM and has dimensions
-        requestAnimationFrame(() => {
-          if (isCancelled || !svgRef.current) return;
+        animationFrameRef.current = requestAnimationFrame(() => { // Store ID for cancellation
+          if (isCancelled || isUnmountedRef.current || !svgRef.current || !wrapperRef.current) return;
 
-          const mm = Markmap.create(svgRef.current, {
-            autoFit: true,
-            fitRatio: 0.95,
-            duration: 500,
-            spacingVertical: 10, // Increased spacing
-            spacingHorizontal: 120, // Increased spacing
-            embedGlobalCSS: true,
-            zoom: true,
-            pan: true,
-            scrollForPan: true,
-            color: colorFn, // Apply custom coloring
-          }, root);
+          // CRITICAL FIX: Explicitly set SVG dimensions to prevent SVGLength error
+          const wrapper = wrapperRef.current;
+          const rect = wrapper.getBoundingClientRect();
 
-          setMarkmapInstance(mm);
-
-          // 5. Add Toolbar
-          const existingToolbar = wrapperRef.current?.querySelector('.markmap-toolbar');
-          if (existingToolbar) {
-            existingToolbar.remove();
+          // Ensure wrapper has valid dimensions
+          if (rect.width === 0 || rect.height === 0) {
+            console.warn('[MindMapViewer] Wrapper has zero dimensions, delaying render');
+            // Retry on next frame if dimensions still not available
+            animationFrameRef.current = requestAnimationFrame(() => renderMindMap()); // Store ID for cancellation
+            return;
           }
 
-          const { el } = Toolbar.create(mm);
-          el.style.position = 'absolute';
-          el.style.bottom = '1rem';
-          el.style.right = '1rem';
-          el.style.zIndex = '10';
-          el.classList.add('markmap-toolbar');
-          wrapperRef.current!.append(el);
+          // Set explicit dimensions on SVG to prevent relative length issues
+          svgRef.current.setAttribute('width', `${rect.width}px`);
+          svgRef.current.setAttribute('height', `${rect.height}px`);
 
-          setIsRendering(false);
+          try {
+            const mm = Markmap.create(svgRef.current, {
+              autoFit: true,
+              fitRatio: 0.95,
+              duration: 500,
+              spacingVertical: 10, // Increased spacing
+              spacingHorizontal: 120, // Increased spacing
+              embedGlobalCSS: true,
+              zoom: true,
+              pan: true,
+              scrollForPan: true,
+              color: colorFn, // Apply custom coloring
+            }, root);
+
+            setMarkmapInstance(mm);
+
+            // 5. Add Toolbar
+            const existingToolbar = wrapperRef.current?.querySelector('.markmap-toolbar');
+            if (existingToolbar) {
+              existingToolbar.remove();
+            }
+
+            const { el } = Toolbar.create(mm);
+            el.style.position = 'absolute';
+            el.style.bottom = '1rem';
+            el.style.right = '1rem';
+            el.style.zIndex = '10';
+            el.classList.add('markmap-toolbar');
+            wrapperRef.current!.append(el);
+
+            setIsRendering(false);
+          } catch (error) {
+            console.error('[MindMapViewer] Error creating Markmap instance:', error);
+            setIsRendering(false);
+          }
         });
 
       } catch (error) {
@@ -212,15 +262,42 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
 
     // Initial check with a small delay to allow layout to settle
     const timer = setTimeout(() => {
-      requestAnimationFrame(renderMindMap);
+      animationFrameRef.current = requestAnimationFrame(renderMindMap); // Store ID for cancellation
     }, 100);
 
     return () => {
       isCancelled = true;
       clearTimeout(timer);
-      if (markmapInstance) {
-        markmapInstance.destroy();
+      // Mark component as unmounted to avoid further renders
+      isUnmountedRef.current = true;
+      // Cancel any pending animation frames
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
       }
+      // Reset markmap instance reference
+      setMarkmapInstance(null);
+
+      // Clean up markmap instance safely
+      if (markmapInstance) {
+        try {
+          // Stop any ongoing animations/transitions before destroying
+          markmapInstance.destroy();
+        } catch (error) {
+          // Suppress errors during cleanup (SVG might be already removed from DOM)
+          console.debug('[MindMapViewer] Cleanup error (expected during unmount):', error);
+        }
+      }
+
+      // Clear SVG content to prevent stale transform errors
+      if (svgRef.current) {
+        try {
+          svgRef.current.innerHTML = '';
+        } catch (error) {
+          // Suppress if SVG is already removed
+          console.debug('[MindMapViewer] SVG cleanup error:', error);
+        }
+      }
+
       const existingToolbar = wrapperRef.current?.querySelector('.markmap-toolbar');
       if (existingToolbar) {
         existingToolbar.remove();

@@ -7,10 +7,10 @@ import { validateRequest, sanitizeString } from "./shared/validation";
 
 const manageDifficultiesSchema = z.object({
     action: z.enum(["add", "resolve", "list", "check_auto_resolve", "statistics", "normalize_topic"]),
-    project_id: z.string().uuid().optional(),
+    project_id: z.string().min(1).optional(),
     topico: z.string().optional(),
     topic: z.string().optional(), // Alias para topico
-    difficulty_id: z.string().uuid().optional(),
+    difficulty_id: z.string().min(1).optional(),
     correct: z.boolean().optional(), // Para check_auto_resolve
 });
 

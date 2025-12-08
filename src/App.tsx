@@ -1,4 +1,5 @@
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState, lazy, Suspense } from "react";
+import { BrowserRouter, Routes, Route, useParams, useNavigate } from "react-router-dom";
 import { Navbar } from "./components/Navbar";
 import { useAuth } from "./hooks/useAuth";
 import { useProjects } from "./hooks/useProjects";
@@ -22,8 +23,6 @@ const Auth = lazy(() => import("./components/Auth").then(module => ({ default: m
 const ProjectStats = lazy(() => import("./components/ProjectStats").then(module => ({ default: module.ProjectStats })));
 const AdminDashboard = lazy(() => import("./components/AdminDashboard").then(module => ({ default: module.AdminDashboard })));
 
-
-
 // Loading fallback component
 const LoadingFallback = () => (
   <div className="min-h-screen bg-background flex items-center justify-center">
@@ -31,88 +30,85 @@ const LoadingFallback = () => (
   </div>
 );
 
-// Inner app component that uses auth context
-function AppContent() {
-  const { user, loading } = useAuth();
-  const { projects } = useProjects();
-  const isMobile = useIsMobile();
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
-  const [selectedSourceIds, setSelectedSourceIds] = useState<string[]>([]);
-  const [view, setView] = useState<"dashboard" | "project" | "admin">("dashboard");
-  const [showStats, setShowStats] = useState(false);
-
-  // Debug logging for selectedProjectId changes
-  useEffect(() => {
-    console.log('[App] Selected Project ID changed:', selectedProjectId);
-  }, [selectedProjectId]);
+// Dashboard Route Component
+function DashboardRoute() {
+  const navigate = useNavigate();
 
   const handleSelectProject = (projectId: string) => {
-    console.log('[App] handleSelectProject called with:', projectId);
-    setSelectedProjectId(projectId);
-    setView("project");
-  };
-
-  const handleBackToDashboard = () => {
-    console.log('[App] handleBackToDashboard called - clearing projectId');
-    setView("dashboard");
-    setSelectedProjectId(null);
+    navigate(`/project/${projectId}`);
   };
 
   const handleAdminClick = () => {
-    console.log('[App] handleAdminClick called - navigating to admin');
-    setView("admin");
-    setSelectedProjectId(null);
+    navigate('/admin');
+  };
+
+  return (
+    <>
+      <Navbar onAdminClick={handleAdminClick} />
+      <div className="min-h-screen bg-background pt-16">
+        <Suspense fallback={<LoadingFallback />}>
+          <Dashboard onSelectSubject={handleSelectProject} />
+        </Suspense>
+      </div>
+      <Toaster />
+    </>
+  );
+}
+
+// Admin Route Component
+function AdminRoute() {
+  const navigate = useNavigate();
+
+  const handleBackToDashboard = () => {
+    navigate('/');
+  };
+
+  const handleAdminClick = () => {
+    navigate('/admin');
+  };
+
+  return (
+    <>
+      <Navbar onBackClick={handleBackToDashboard} onAdminClick={handleAdminClick} />
+      <div className="min-h-screen bg-background pt-16">
+        <Suspense fallback={<LoadingFallback />}>
+          <AdminDashboard />
+        </Suspense>
+      </div>
+      <Toaster />
+    </>
+  );
+}
+
+// Project Route Component
+function ProjectRoute() {
+  const { projectId } = useParams<{ projectId: string }>();
+  const navigate = useNavigate();
+  const { projects } = useProjects();
+  const isMobile = useIsMobile();
+  const [selectedSourceIds, setSelectedSourceIds] = useState<string[]>([]);
+  const [showStats, setShowStats] = useState(false);
+
+  // Redirect se projectId não existe
+  if (!projectId) {
+    navigate('/');
+    return null;
+  }
+
+  const handleBackToDashboard = () => {
+    navigate('/');
+  };
+
+  const handleAdminClick = () => {
+    navigate('/admin');
   };
 
   const handleSelectedSourcesChange = (sourceIds: string[]) => {
     setSelectedSourceIds(sourceIds);
   };
 
-  if (loading) {
-    return <LoadingFallback />;
-  }
-
-  if (!user) {
-    return (
-      <>
-        <Suspense fallback={<LoadingFallback />}>
-          <Auth />
-        </Suspense>
-        <Toaster />
-      </>
-    );
-  }
-
-  if (view === "dashboard") {
-    return (
-      <>
-        <Navbar onAdminClick={handleAdminClick} />
-        <div className="min-h-screen bg-background pt-16">
-          <Suspense fallback={<LoadingFallback />}>
-            <Dashboard onSelectSubject={handleSelectProject} />
-          </Suspense>
-        </div>
-        <Toaster />
-      </>
-    );
-  }
-
-  if (view === "admin") {
-    return (
-      <>
-        <Navbar onBackClick={handleBackToDashboard} onAdminClick={handleAdminClick} />
-        <div className="min-h-screen bg-background pt-16">
-          <Suspense fallback={<LoadingFallback />}>
-            <AdminDashboard />
-          </Suspense>
-        </div>
-        <Toaster />
-      </>
-    );
-  }
-
   // Busca o projeto atual
-  const currentProject = projects.find(p => p.id === selectedProjectId);
+  const currentProject = projects.find(p => p.id === projectId);
   const projectName = currentProject?.name || 'Matéria';
 
   return (
@@ -126,7 +122,7 @@ function AppContent() {
               onAdminClick={handleAdminClick}
             />
             <MobileProjectLayout
-              projectId={selectedProjectId!}
+              projectId={projectId}
               projectName={projectName}
               onBack={handleBackToDashboard}
               onViewStats={() => setShowStats(true)}
@@ -147,19 +143,19 @@ function AppContent() {
                 <ResizableLayout
                   leftPanel={
                     <SourcesPanel
-                      projectId={selectedProjectId}
+                      projectId={projectId}
                       onSelectedSourcesChange={handleSelectedSourcesChange}
                     />
                   }
                   centerPanel={
                     <ContentPanel
-                      projectId={selectedProjectId}
+                      projectId={projectId}
                       selectedSourceIds={selectedSourceIds}
                       onViewStats={() => setShowStats(true)}
                     />
                   }
                   rightPanel={
-                    <RightPanel projectId={selectedProjectId} />
+                    <RightPanel projectId={projectId} />
                   }
                 />
               </div>
@@ -168,9 +164,9 @@ function AppContent() {
         )}
 
         {/* Project Stats Modal */}
-        {showStats && selectedProjectId && (
+        {showStats && projectId && (
           <ProjectStats
-            projectId={selectedProjectId}
+            projectId={projectId}
             projectName={projectName}
             open={showStats}
             onClose={() => setShowStats(false)}
@@ -182,6 +178,34 @@ function AppContent() {
   );
 }
 
+// Inner app component that uses auth context
+function AppContent() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <LoadingFallback />;
+  }
+
+  if (!user) {
+    return (
+      <>
+        <Suspense fallback={<LoadingFallback />}>
+          <Auth />
+        </Suspense>
+        <Toaster />
+      </>
+    );
+  }
+
+  return (
+    <Routes>
+      <Route path="/" element={<DashboardRoute />} />
+      <Route path="/project/:projectId" element={<ProjectRoute />} />
+      <Route path="/admin" element={<AdminRoute />} />
+    </Routes>
+  );
+}
+
 // Main App component - wraps everything with providers
 export default function App() {
   return (
@@ -189,7 +213,9 @@ export default function App() {
       <AuthProvider>
         <ProfileProvider>
           <LanguageProvider>
-            <AppContent />
+            <BrowserRouter>
+              <AppContent />
+            </BrowserRouter>
           </LanguageProvider>
         </ProfileProvider>
       </AuthProvider>

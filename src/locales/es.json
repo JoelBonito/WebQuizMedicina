@@ -186,7 +186,7 @@
         "ready": "Listo",
         "error": "Error",
         "delete": "Eliminar",
-        "maxSize": "Tamaño máximo: 50 MB por archivo",
+        "maxSize": "Tamaño máximo del archivo: 200 MB.\nFormatos: PDF, DOC, DOCX, PPT, PPTX, TXT, MD, MP3, WAV, M4A, JPG, PNG.",
         "noSources": "Ninguna fuente añadida",
         "uploadToStart": "Sube archivos para empezar",
         "newSourcesTitle": "✨ **¡Nuevas fuentes añadidas a tu proyecto!**",

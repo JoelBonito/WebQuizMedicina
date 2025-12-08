@@ -23,7 +23,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.get_token_usage_stats = exports.generate_recovery_quiz = exports.generate_recovery_flashcards = exports.generate_focused_summary = exports.generate_mindmap = exports.process_embeddings_queue = exports.manage_difficulties = exports.generate_summary = exports.chat = exports.generate_flashcards = exports.generate_quiz = void 0;
+exports.delete_flashcard_session = exports.delete_quiz_session = exports.get_token_usage_stats = exports.generate_recovery_quiz = exports.generate_recovery_flashcards = exports.generate_focused_summary = exports.generate_mindmap = exports.process_embeddings_queue = exports.manage_difficulties = exports.generate_summary = exports.chat = exports.generate_flashcards = exports.generate_quiz = void 0;
 const admin = __importStar(require("firebase-admin"));
 // Initialize Firebase Admin SDK once
 if (!admin.apps.length) {
@@ -52,6 +52,9 @@ var generate_recovery_quiz_1 = require("./generate_recovery_quiz");
 Object.defineProperty(exports, "generate_recovery_quiz", { enumerable: true, get: function () { return generate_recovery_quiz_1.generate_recovery_quiz; } });
 var get_token_usage_stats_1 = require("./get_token_usage_stats");
 Object.defineProperty(exports, "get_token_usage_stats", { enumerable: true, get: function () { return get_token_usage_stats_1.get_token_usage_stats; } });
-// Placeholder exports for other functions to be ported
-// manage_difficulties is already exported above
+// Delete operations
+var delete_quiz_session_1 = require("./delete_quiz_session");
+Object.defineProperty(exports, "delete_quiz_session", { enumerable: true, get: function () { return delete_quiz_session_1.delete_quiz_session; } });
+var delete_flashcard_session_1 = require("./delete_flashcard_session");
+Object.defineProperty(exports, "delete_flashcard_session", { enumerable: true, get: function () { return delete_flashcard_session_1.delete_flashcard_session; } });
 //# sourceMappingURL=index.js.map

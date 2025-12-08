@@ -186,7 +186,7 @@
         "ready": "就绪",
         "error": "错误",
         "delete": "删除",
-        "maxSize": "最大大小：每个文件 50 MB",
+        "maxSize": "最大文件大小：200 MB。\n格式：PDF, DOC, DOCX, PPT, PPTX, TXT, MD, MP3, WAV, M4A, JPG, PNG。",
         "noSources": "暂无添加的资源",
         "uploadToStart": "上传文件开始",
         "newSourcesTitle": "✨ **新资源已添加到您的项目！**",

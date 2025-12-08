@@ -48,7 +48,15 @@ export const useDifficulties = (projectId: string | null) => {
       );
 
       const querySnapshot = await getDocs(q);
-      const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Difficulty));
+      const data = querySnapshot.docs.map(doc => {
+        const docData = doc.data();
+        return {
+          id: doc.id,
+          ...docData,
+          // Garantir que nivel seja sempre number para comparações corretas
+          nivel: Number(docData.nivel || 1)
+        } as Difficulty;
+      });
       setDifficulties(data);
     } catch (err) {
       console.error('Error fetching difficulties:', err);

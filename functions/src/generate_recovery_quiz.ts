@@ -2,13 +2,13 @@ import * as admin from "firebase-admin";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { callGeminiWithUsage, parseJsonFromResponse } from "./shared/gemini";
 import { calculateBatchSizes } from "./shared/output_limits";
-import { sanitizeString } from "./shared/sanitization";
+import { cleanString } from "./shared/sanitization";
 import { validateRequest, generateRecoveryQuizSchema } from "./shared/validation";
 import { semanticSearchWithTokenLimit, hasAnyEmbeddings } from "./shared/embeddings";
 import { calculateRecoveryStrategy, formatDifficultiesForLog, Difficulty } from "./shared/recovery_strategies";
 import { logTokenUsage } from "./shared/token_usage";
 import { getModelSelector } from "./shared/modelSelector";
-import { getLanguageFromRequest, getLanguageInstruction } from "./shared/language_helper";
+import { getLanguageFromRequest, getLanguageInstruction, getTrueFalseOptions, getPromptTexts, getQuizExample } from "./shared/language_helper";
 
 
 
@@ -133,7 +133,7 @@ export const generate_recovery_quiz = onCall({
                 let usedSources = sources.slice(0, 3);
                 for (const source of usedSources) {
                     if (source.extracted_content) {
-                        combinedContent += `\n\n=== ${sanitizeString(source.name)} ===\n${sanitizeString(source.extracted_content)}`;
+                        combinedContent += `\n\n=== ${cleanString(source.name)} ===\n${cleanString(source.extracted_content)}`;
                     }
                 }
                 if (combinedContent.length > MAX_CONTENT_LENGTH) {
@@ -147,7 +147,7 @@ export const generate_recovery_quiz = onCall({
             let usedSources = sources.slice(0, 3);
             for (const source of usedSources) {
                 if (source.extracted_content) {
-                    combinedContent += `\n\n=== ${sanitizeString(source.name)} ===\n${sanitizeString(source.extracted_content)}`;
+                    combinedContent += `\n\n=== ${cleanString(source.name)} ===\n${cleanString(source.extracted_content)}`;
                 }
             }
             if (combinedContent.length > MAX_CONTENT_LENGTH) {
@@ -178,51 +178,47 @@ export const generate_recovery_quiz = onCall({
             console.log(`🔄 [Batch ${batchNum}/${batchSizes.length}] Generating ${batchCount} recovery questions...`);
 
             // Build prompt with strategy-specific instructions
+            const trueFalseOpts = getTrueFalseOptions(language);
+            const texts = getPromptTexts(language);
+
             const prompt = `
-Você é um professor universitário de MEDICINA criando um QUIZ DE RECUPERAÇÃO personalizado.
+${texts.professorIntro} ${texts.recoveryTitle}.
 
 ${strategy.systemInstruction}
 
-CONTEÚDO BASE:
+${getLanguageInstruction(language)}
+
+BASE CONTENT:
 ${combinedContent.substring(0, 30000)}
 
-Gere ${batchCount} questões de múltipla escolha.
+Generate ${batchCount} multiple choice questions.
 
-TIPOS DE QUESTÃO (Varie):
-1. "multipla_escolha": Conceitos diretos.
-2. "verdadeiro_falso": Julgue a afirmação (Opções: [Verdadeiro, Falso]).
-3. "citar": "Qual destes é um exemplo de..." (4 opções).
-4. "caso_clinico": Cenário curto + conduta.
+${texts.questionTypes} (Vary):
+1. "multipla_escolha": ${texts.multipleChoice}.
+2. "verdadeiro_falso": ${texts.trueFalse} (Options: ${trueFalseOpts.display}).
+3. "citar": ${texts.citation} (4 options).
+4. "caso_clinico": ${texts.clinicalCase}.
 
-REGRAS DE FORMATO (Rígidas):
-- TODAS as questões devem ter APENAS UMA alternativa correta.
-- Opções devem ser sempre arrays de strings: ["A) Texto", "B) Texto"...] ou ["Verdadeiro", "Falso"].
+${texts.formatRules} (Strict):
+- ALL questions must have ONLY ONE correct alternative.
+- Options must always be arrays of strings: ["A) Text", "B) Text"...] or ${trueFalseOpts.display}.
 
-REGRAS PARA A JUSTIFICATIVA (Extra Importante para Recovery):
-Este é um quiz de RECUPERAÇÃO. O aluno errou isso antes. A justificativa deve:
-1. CITAR A FONTE: "Segundo o texto...", "O material indica que...", "Conforme a fonte..."
-2. SER EDUCATIVA: Explique POR QUE a alternativa está correta (não apenas repita o fato)
-3. CORRIGIR ERROS COMUNS: Se o aluno pode ter confundido conceitos, esclareça a diferença
+${texts.justificationRules} (Extra Important for Recovery):
+This is a RECOVERY quiz. The student got this wrong before. The justification must:
+1. CITE THE SOURCE: "${texts.accordingToText}", "The material indicates that...", "According to the source..."
+2. BE EDUCATIONAL: Explain WHY the alternative is correct (don't just repeat the fact)
+3. CORRECT COMMON MISTAKES: If the student may have confused concepts, clarify the difference
 4. ${getLanguageInstruction(language)}
-5. CONCISÃO: 2-3 frases máximo
+5. ${texts.conciseness}: 2-3 sentences maximum
 
-FORMATO JSON:
+JSON FORMAT:
 {
   "perguntas": [
-    {
-      "tipo": "multipla_escolha",
-      "pergunta": "Qual o tratamento de primeira linha para...",
-      "opcoes": ["A) Opção A", "B) Opção B", "C) Opção C", "D) Opção D"],
-      "resposta_correta": "A",
-      "justificativa": "Conforme o texto, a Opção A é a primeira linha devido à sua eficácia comprovada. Um erro comum é confundir com a Opção B, mas esta só é usada quando há contraindicação à Opção A.",
-      "dica": "Pense na droga que reduz a mortalidade a longo prazo.",
-      "dificuldade": "${difficulty || 'médio'}",
-      "topico": "Cardiologia"
-    }
+    ${getQuizExample(language)}
   ]
 }
 
-Retorne APENAS o JSON válido.
+Return ONLY valid JSON.
             `;
 
             let result;
@@ -282,7 +278,7 @@ Retorne APENAS o JSON válido.
         const validTypes = ["multipla_escolha", "verdadeiro_falso", "citar", "caso_clinico", "completar"];
 
         const questionsToInsert = allQuestions.map((q: any) => {
-            let respostaLimpa = sanitizeString(q.resposta_correta || "");
+            let respostaLimpa = cleanString(q.resposta_correta || "");
             const tipo = validTypes.includes(q.tipo) ? q.tipo : "multipla_escolha";
 
             if (tipo === "verdadeiro_falso") {
@@ -298,14 +294,14 @@ Retorne APENAS o JSON válido.
                 project_id,
                 user_id: userId, // Added user_id
                 session_id: sessionId,
-                pergunta: sanitizeString(q.pergunta || q.question || ""),
-                opcoes: Array.isArray(q.opcoes) ? q.opcoes.map(sanitizeString) : [],
+                pergunta: cleanString(q.pergunta || q.question || ""),
+                opcoes: Array.isArray(q.opcoes) ? q.opcoes.map(cleanString) : [],
                 resposta_correta: respostaLimpa,
-                justificativa: sanitizeString(q.justificativa || ""),
-                dica: q.dica ? sanitizeString(q.dica) : null,
+                justificativa: cleanString(q.justificativa || ""),
+                dica: q.dica ? cleanString(q.dica) : null,
                 tipo,
                 dificuldade: q.dificuldade || difficulty || "médio",
-                topico: q.topico ? sanitizeString(q.topico) : null,
+                topico: q.topico ? cleanString(q.topico) : null,
                 content_type: 'recovery', // Mark as recovery content for UI differentiation
                 created_at: admin.firestore.FieldValue.serverTimestamp(),
             };

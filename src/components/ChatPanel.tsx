@@ -351,7 +351,7 @@ export function ChatPanel({ projectId, isFullscreenMode = false }: ChatPanelProp
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               placeholder={t("chat.placeholder")}
-              className="flex-1 bg-transparent border-0 outline-none text-sm text-foreground placeholder:text-muted-foreground"
+              className="flex-1 bg-transparent border-0 outline-none text-sm text-gray-900 dark:text-white placeholder:text-muted-foreground"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();

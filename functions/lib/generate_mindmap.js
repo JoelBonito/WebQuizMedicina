@@ -91,8 +91,8 @@ exports.generate_mindmap = (0, https_1.onCall)({
         let combinedContent = '';
         for (const source of sources) {
             if (source.extracted_content) {
-                const sanitizedContent = (0, sanitization_1.sanitizeString)(source.extracted_content);
-                combinedContent += `\n\n=== ${(0, sanitization_1.sanitizeString)(source.name)} ===\n${sanitizedContent}`;
+                const sanitizedContent = (0, sanitization_1.cleanString)(source.extracted_content);
+                combinedContent += `\n\n=== ${(0, sanitization_1.cleanString)(source.name)} ===\n${sanitizedContent}`;
             }
         }
         console.log(`🗺️ [MindMap] Combined ${sources.length} sources: ${combinedContent.length} chars`);
@@ -130,28 +130,20 @@ TECHNICAL INSTRUCTIONS (CRITICAL - FOLLOW EXACTLY):
    - Create a deep structure (at least 3-4 levels).
    - Use nested lists to detail concepts.
    - Example:
-     # Heart Failure
-     ## Pathophysiology
-     - Systolic Dysfunction
-       - Ejection Fraction < 40%
-     - Diastolic Dysfunction
-     ## Symptoms
-     - Congestive
-       - Dyspnea
-       - Edema
+${(0, language_helper_1.getMindmapExample)(language)}
 
 4. **ALLOWED CHARACTERS**:
    - Use full UTF-8 (accents allowed).
    - You can use emojis to illustrate main topics.
    - ${(0, language_helper_1.getLanguageInstruction)(language)}
 
-EXEMPLO DO JSON ESPERADO:
+EXPECTED JSON EXAMPLE:
 {
-  "titulo": "Mapa Mental de Insuficiência Cardíaca",
-  "markdown": "# Insuficiência Cardíaca\\n## Fisiopatologia\\n- Disfunção Sistólica\\n  - Fração de Ejeção < 40%\\n- Disfunção Diastólica\\n## Sintomas\\n- Congestivos\\n  - Dispneia\\n  - Edema"
+  "titulo": "Mind Map Title",
+  "markdown": "# Main Title\\n## Branch 1\\n- Sub-item\\n  - Detail\\n## Branch 2\\n- Sub-item"
 }
 
-Gere o JSON agora, garantindo que o campo "markdown" contenha uma string válida com quebras de linha (\\n).`;
+Generate the JSON now, ensuring the "markdown" field contains a valid string with line breaks (\\n).`;
         // 4. Call Gemini
         // ✅ Seleção automática e inteligente
         const selector = (0, modelSelector_1.getModelSelector)();
@@ -189,7 +181,7 @@ Gere o JSON agora, garantindo que o campo "markdown" contenha uma string válida
         // But ideally we want markdown.
         // 6. Save to Database
         const titlePrefix = tipo === 'recovery' ? 'Recovery: ' : '';
-        const finalTitle = titlePrefix + (0, sanitization_1.sanitizeString)(parsed.titulo);
+        const finalTitle = titlePrefix + (0, sanitization_1.cleanString)(parsed.titulo);
         const mindmapData = {
             project_id: project_id || sources[0].project_id,
             user_id: userId,

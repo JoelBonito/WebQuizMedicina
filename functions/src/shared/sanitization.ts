@@ -2,8 +2,27 @@
 // Simple HTML sanitization without external dependencies
 
 /**
+ * Clean text strings by removing dangerous characters without HTML encoding
+ * Use this for plain text content that will be stored in Firestore and rendered in React
+ * (React already escapes HTML by default)
+ */
+export function cleanString(input: string): string {
+    if (typeof input !== 'string') return '';
+
+    return input
+        // Remove null bytes and control characters (except newlines and tabs)
+        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+        // Trim excessive whitespace
+        .trim()
+        // Normalize line breaks
+        .replace(/\r\n/g, '\n');
+}
+
+/**
  * Sanitize plain text strings to prevent XSS
  * Escapes HTML special characters
+ * USE ONLY when content will be inserted into HTML context (e.g., innerHTML)
+ * For plain text in React/Firestore, use cleanString() instead
  */
 export function sanitizeString(input: string): string {
     if (typeof input !== 'string') return '';

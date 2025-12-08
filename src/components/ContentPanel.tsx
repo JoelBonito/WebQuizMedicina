@@ -30,8 +30,9 @@ import { useDifficulties } from "../hooks/useDifficulties";
 import { useMindMaps } from "../hooks/useMindMaps";
 import { useUserPreferences } from "../hooks/useUserPreferences";
 
-import { db } from "../lib/firebase";
-import { collection, query, where, getDocs, updateDoc, doc, writeBatch } from "firebase/firestore";
+import { db, functions } from "../lib/firebase";
+import { updateDoc, doc } from "firebase/firestore";
+import { httpsCallable } from "firebase/functions";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 type TFunction = ReturnType<typeof useTranslation>['t'];
@@ -498,17 +499,10 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
   };
 
 
-
   const handleDeleteQuiz = async (sessionId: string) => {
     try {
-      const q = query(collection(db, 'questions'), where('session_id', '==', sessionId));
-      const snapshot = await getDocs(q);
-
-      const batch = writeBatch(db);
-      snapshot.docs.forEach((doc) => {
-        batch.delete(doc.ref);
-      });
-      await batch.commit();
+      const deleteQuizSession = httpsCallable(functions, 'delete_quiz_session');
+      await deleteQuizSession({ session_id: sessionId });
 
       // Refetch questions to update UI
       await fetchQuestions();
@@ -521,14 +515,8 @@ export function ContentPanel({ projectId, selectedSourceIds = [], isFullscreenMo
 
   const handleDeleteFlashcards = async (sessionId: string) => {
     try {
-      const q = query(collection(db, 'flashcards'), where('session_id', '==', sessionId));
-      const snapshot = await getDocs(q);
-
-      const batch = writeBatch(db);
-      snapshot.docs.forEach((doc) => {
-        batch.delete(doc.ref);
-      });
-      await batch.commit();
+      const deleteFlashcardSession = httpsCallable(functions, 'delete_flashcard_session');
+      await deleteFlashcardSession({ session_id: sessionId });
 
       // Refetch flashcards to update UI
       await fetchFlashcards();

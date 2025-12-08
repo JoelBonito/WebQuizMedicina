@@ -43,6 +43,7 @@ exports.generate_quiz = (0, https_1.onCall)({
     }
     // 2. Get user's language preference
     const language = await (0, language_helper_1.getLanguageFromRequest)(request.data, db, request.auth.uid);
+    const trueFalseOpts = (0, language_helper_1.getTrueFalseOptions)(language);
     try {
         // 3. Validation
         const { source_ids, project_id, count, difficulty } = (0, validation_1.validateRequest)(request.data, validation_1.generateQuizSchema);
@@ -104,13 +105,13 @@ CRITICAL DIVERSITY RULE:
 
 QUESTION TYPES (Vary):
 1. "multipla_escolha": Direct concepts.
-2. "verdadeiro_falso": Judge the statement (Options: ["True", "False"] or localized equivalents).
+2. "verdadeiro_falso": Judge the statement (Options: ${trueFalseOpts.display}).
 3. "citar": "Which of these is an example of..." (4 options).
 4. "caso_clinico": Short scenario + conduct.
 
 FORMAT RULES (Strict):
 - ALL questions must have ONLY ONE correct alternative.
-- Options must always be arrays of strings: ["A) Text", "B) Text"...] or ["True", "False"].
+- Options must always be arrays of strings: ["A) Text", "B) Text"...] or ${trueFalseOpts.display}.
 - ${(0, language_helper_1.getLanguageInstruction)(language)}
 
 JUSTIFICATION RULES (Mandatory):
@@ -130,16 +131,7 @@ ${(difficulty && difficulty !== 'misto') ? `DIFFICULTY: ALL questions must be at
 MANDATORY JSON FORMAT:
 {
   "perguntas": [
-    {
-      "tipo": "multipla_escolha",
-      "pergunta": "What is the first-line treatment for...",
-      "opcoes": ["A) Option A", "B) Option B", "C) Option C", "D) Option D"],
-      "resposta_correta": "A",
-      "justificativa": "According to the text...",
-      "dica": "Think about the drug that...",
-      "dificuldade": "médio",
-      "topico": "Cardiology"
-    }
+    ${(0, language_helper_1.getQuizExample)(language)}
   ]
 }
     `;

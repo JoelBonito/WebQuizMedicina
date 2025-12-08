@@ -30,10 +30,10 @@ const zod_1 = require("zod");
 const validation_1 = require("./shared/validation");
 const manageDifficultiesSchema = zod_1.z.object({
     action: zod_1.z.enum(["add", "resolve", "list", "check_auto_resolve", "statistics", "normalize_topic"]),
-    project_id: zod_1.z.string().uuid().optional(),
+    project_id: zod_1.z.string().min(1).optional(),
     topico: zod_1.z.string().optional(),
     topic: zod_1.z.string().optional(),
-    difficulty_id: zod_1.z.string().uuid().optional(),
+    difficulty_id: zod_1.z.string().min(1).optional(),
     correct: zod_1.z.boolean().optional(), // Para check_auto_resolve
 });
 exports.manage_difficulties = (0, https_1.onCall)({

@@ -20,5 +20,7 @@ export { generate_focused_summary } from "./generate_focused_summary";
 export { generate_recovery_flashcards } from "./generate_recovery_flashcards";
 export { generate_recovery_quiz } from "./generate_recovery_quiz";
 export { get_token_usage_stats } from "./get_token_usage_stats";
-// Placeholder exports for other functions to be ported
-// manage_difficulties is already exported above
+
+// Delete operations
+export { delete_quiz_session } from "./delete_quiz_session";
+export { delete_flashcard_session } from "./delete_flashcard_session";

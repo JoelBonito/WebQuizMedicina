@@ -15,6 +15,7 @@ export const generateFlashcardsSchema = z.object({
     source_id: idSchema.optional(),
     project_id: idSchema.optional(),
     count: z.number().min(1).max(50).default(10),
+    difficulty: z.string().nullish(), // Support difficulty selection
 });
 
 export const chatSchema = z.object({

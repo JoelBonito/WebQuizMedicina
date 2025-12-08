@@ -48,7 +48,7 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { db, functions } from "../lib/firebase";
-import { collection, addDoc, updateDoc, doc, serverTimestamp } from "firebase/firestore";
+import { updateDoc, doc } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 
 interface SourcesPanelProps {
@@ -251,41 +251,7 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
 
 
 
-  const addSourcesSummaryToChat = async () => {
-    if (!projectId || !user) return;
 
-    try {
-      // Buscar fontes processadas
-      const processedSources = sources.filter(s => uploadedSourceIds.includes(s.id));
-
-      if (processedSources.length === 0) return;
-
-      // Gerar resumo das fontes
-      const sourcesText = processedSources.map(s => `📄 **${s.name}**`).join('\n');
-
-      const summaryMessage = `${t('sources.newSourcesTitle')}\n\n${sourcesText}\n\n${t('sources.sourceProcessed', { count: processedSources.length })}`;
-
-      // Preparar dados para inserção
-      const insertData = {
-        project_id: projectId,
-        user_id: user.uid,
-        role: 'system',
-        content: summaryMessage,
-        created_at: serverTimestamp(),
-      };
-
-      console.log('📝 Tentando inserir mensagem de sistema:', insertData);
-      console.log('📝 User:', user);
-
-      // Inserir mensagem de sistema no chat (usando estrutura correta: role + content)
-      await addDoc(collection(db, 'chat_messages'), insertData);
-
-      console.log('✅ Resumo das fontes adicionado ao chat');
-    } catch (error) {
-      console.error('❌ Error adding sources summary to chat:', error);
-      // Não mostrar erro ao usuário, é uma feature nice-to-have
-    }
-  };
 
   const processEmbeddings = async () => {
     setProcessingEmbeddings(true);
@@ -315,14 +281,17 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
       setShowSuccessModal(false);
 
       if (data?.processed > 0) {
-        toast.success(t('toasts.processingStarted', { count: data.processed }));
+        // Gerar lista de arquivos processados
+        const processedSources = sources.filter(s => uploadedSourceIds.includes(s.id));
+        const sourcesNames = processedSources.map(s => s.name).join(', ');
+
+        toast.success(t('toasts.processingStarted', { count: data.processed }) + '\n' + sourcesNames, {
+          duration: 5000,
+        });
 
         // Refetch sources para garantir que o status está atualizado
         console.log('🔄 Fazendo refetch das fontes após processamento...');
         await refetch();
-
-        // Adicionar resumo automático ao chat após processamento bem-sucedido
-        await addSourcesSummaryToChat();
       } else {
         toast.success(t('toasts.embeddingsStarted'));
       }

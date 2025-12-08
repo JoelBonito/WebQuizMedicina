@@ -119,7 +119,7 @@ exports.generate_recovery_flashcards = (0, https_1.onCall)({
                 let usedSources = sources.slice(0, 3);
                 for (const source of usedSources) {
                     if (source.extracted_content) {
-                        combinedContent += `\n\n=== ${(0, sanitization_1.sanitizeString)(source.name)} ===\n${(0, sanitization_1.sanitizeString)(source.extracted_content)}`;
+                        combinedContent += `\n\n=== ${(0, sanitization_1.cleanString)(source.name)} ===\n${(0, sanitization_1.cleanString)(source.extracted_content)}`;
                     }
                 }
                 if (combinedContent.length > MAX_CONTENT_LENGTH) {
@@ -134,7 +134,7 @@ exports.generate_recovery_flashcards = (0, https_1.onCall)({
             let usedSources = sources.slice(0, 3);
             for (const source of usedSources) {
                 if (source.extracted_content) {
-                    combinedContent += `\n\n=== ${(0, sanitization_1.sanitizeString)(source.name)} ===\n${(0, sanitization_1.sanitizeString)(source.extracted_content)}`;
+                    combinedContent += `\n\n=== ${(0, sanitization_1.cleanString)(source.name)} ===\n${(0, sanitization_1.cleanString)(source.extracted_content)}`;
                 }
             }
             if (combinedContent.length > MAX_CONTENT_LENGTH) {
@@ -247,9 +247,9 @@ Retorne APENAS o JSON válido.
             user_id: userId,
             source_id: null,
             session_id: sessionId,
-            frente: (0, sanitization_1.sanitizeString)(f.frente || ''),
-            verso: (0, sanitization_1.sanitizeString)(f.verso || ''),
-            topico: f.topico ? (0, sanitization_1.sanitizeString)(f.topico) : null,
+            frente: (0, sanitization_1.cleanString)(f.frente || ''),
+            verso: (0, sanitization_1.cleanString)(f.verso || ''),
+            topico: f.topico ? (0, sanitization_1.cleanString)(f.topico) : null,
             dificuldade: ['fácil', 'médio', 'difícil'].includes(f.dificuldade) ? f.dificuldade : 'médio',
             content_type: 'recovery',
             created_at: admin.firestore.FieldValue.serverTimestamp(),

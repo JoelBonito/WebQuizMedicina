@@ -297,7 +297,7 @@ export function SummaryViewer({ html, summaryId, projectId, onAskChat, onHighlig
 
       {/* Summary Content */}
       <div
-        className="study-content select-text flex-1 overflow-auto custom-scrollbar transition-transform duration-200"
+        className="study-content select-text flex-1 transition-transform duration-200"
         dangerouslySetInnerHTML={{ __html: renderedHtml }}
         style={{
           userSelect: 'text',

@@ -4,6 +4,8 @@
 ---
 
 ## 📊 **Estado Atual**
+> [!IMPORTANT]
+> **Foco Atual**: Implementação do plano "Antigravity" para ingestão multimodal otimizada antes de avançar para RAG Semântico profundo.
 
 ### ✅ **Implementado (Phase 0 e 1)**
 - ✅ Truncamento básico de input (3 PDFs, 40k chars)
@@ -30,6 +32,29 @@ Transformar o WebQuizMedicina em uma aplicação **sólida e escalável** com:
 3. **Input Otimizado** - Apenas conteúdo relevante enviado ao LLM
 4. **Output Confiável** - Resposta sempre completa, nunca truncada
 5. **Monitoramento** - Logs e métricas para debugging
+
+---
+
+## 📋 **FASE 1.5: ANTIGRAVITY (Ingestão Multimodal)**
+**Status: EM PLANEJAMENTO/EXECUÇÃO**
+
+### **Filosofia: Código para Estrutura, IA para o Caos**
+
+#### **Objetivo**
+Implementar pipeline robusto de ingestão que suporta arquivos grandes (áudio/vídeo/imagem) e documentos office, roteando inteligentemente para economizar custos.
+
+#### **Arquitetura Bifurcada**
+1.  **Pista Expressa (Custo Zero):**
+    *   Arquivos: .docx, .pptx, .txt, .pdf (nativo)
+    *   Tech: `mammoth`, `office-text-extractor`, `pdf-parse`
+2.  **Pista Inteligente (Gemini AI):**
+    *   Arquivos: Áudio, Imagens, Scans, Manuscritos
+    *   Tech: Gemini File API + Flash Model (Multimodal)
+
+#### **Cronograma Antigravity**
+1.  **Fundação:** Aumentar limites (200MB), Lifecycle Rules Storage, Dependências.
+2.  **Router:** Cloud Function `onObjectFinalized` com switch/case MIME.
+3.  **Multimodal:** Integração Gemini Files API para áudios longos e OCR avançado.
 
 ---
 

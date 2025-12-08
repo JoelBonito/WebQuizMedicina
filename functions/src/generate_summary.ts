@@ -81,7 +81,67 @@ export const generate_summary = onCall({
     }
 
     // 4. Generate Summary
-    // 4. Generate Summary
+    // Helper function to get translated section titles
+    const getSectionTitles = (lang: string) => {
+      const titles: Record<string, any> = {
+        pt: {
+          masterSummary: 'Resumo Mestre Completo',
+          subtitle: 'Análise profunda e exaustiva',
+          overview: 'Visão Geral',
+          deepAnalysis: 'Análise Profunda',
+          classifications: 'Classificações e Critérios',
+          analogy: 'Analogia ou Exemplo Prático',
+          clinicalPearls: 'Pérolas Clínicas e Prática',
+          conclusion: 'Síntese Final',
+          signSymptom: 'Sinal/Sintoma',
+          alert: 'Alerta',
+          conduct: 'Conduta'
+        },
+        en: {
+          masterSummary: 'Master Summary',
+          subtitle: 'Deep and exhaustive analysis',
+          overview: 'Overview',
+          deepAnalysis: 'Deep Analysis',
+          classifications: 'Classifications & Criteria',
+          analogy: 'Analogy or Practical Example',
+          clinicalPearls: 'Clinical Pearls & Practice',
+          conclusion: 'Final Synthesis',
+          signSymptom: 'Sign/Symptom',
+          alert: 'Alert',
+          conduct: 'Conduct'
+        },
+        fr: {
+          masterSummary: 'Résumé Maître Complet',
+          subtitle: 'Analyse approfondie et exhaustive',
+          overview: 'Vue d\'ensemble',
+          deepAnalysis: 'Analyse Approfondie',
+          classifications: 'Classifications et Critères',
+          analogy: 'Analogie ou Exemple Pratique',
+          clinicalPearls: 'Perles Cliniques et Pratique',
+          conclusion: 'Synthèse Finale',
+          signSymptom: 'Signe/Symptôme',
+          alert: 'Alerte',
+          conduct: 'Conduite'
+        },
+        es: {
+          masterSummary: 'Resumen Maestro Completo',
+          subtitle: 'Análisis profundo y exhaustivo',
+          overview: 'Resumen General',
+          deepAnalysis: 'Análisis Profundo',
+          classifications: 'Clasificaciones y Criterios',
+          analogy: 'Analogía o Ejemplo Práctico',
+          clinicalPearls: 'Perlas Clínicas y Práctica',
+          conclusion: 'Síntesis Final',
+          signSymptom: 'Signo/Síntoma',
+          alert: 'Alerta',
+          conduct: 'Conducta'
+        }
+      };
+      return titles[lang] || titles['en'];
+    };
+
+    const sectionTitles = getSectionTitles(language);
+
     const prompt = `
 ${getLanguageInstruction(language)}
 
@@ -106,13 +166,13 @@ Return ONLY valid HTML inside a div.
 
 <div class="master-summary">
   <div class="summary-header">
-    <h1>📚 ${language === 'pt' ? 'Resumo Mestre Completo' : (language === 'fr' ? 'Résumé Maître Complet' : 'Master Summary')}</h1>
-    <p class="subtitle">${language === 'pt' ? 'Análise profunda e exaustiva' : (language === 'fr' ? 'Analyse approfondie et exhaustive' : 'Deep and exhaustive analysis')}</p>
+    <h1>📚 ${sectionTitles.masterSummary}</h1>
+    <p class="subtitle">${sectionTitles.subtitle}</p>
   </div>
 
   <!-- GENERAL INTRO -->
   <section class="intro-section">
-    <h2>Overview</h2>
+    <h2>${sectionTitles.overview}</h2>
     <p>[Introductory paragraph integrating themes covered in sources]</p>
   </section>
 
@@ -124,7 +184,7 @@ Return ONLY valid HTML inside a div.
     </div>
 
     <div class="deep-dive">
-      <h3>🔍 Deep Analysis</h3>
+      <h3>🔍 ${sectionTitles.deepAnalysis}</h3>
       <p>[Detailed explanation, academic/professional level. At least 3 robust paragraphs.]</p>
       <p>[Do not be superficial. Explain pathophysiology, mechanisms, "whys" and nuances.]</p>
       <p>[Use correct technical terms, but explain them didactically.]</p>
@@ -132,30 +192,30 @@ Return ONLY valid HTML inside a div.
 
     <!-- If there are classifications, criteria or lists in the original text, include here -->
     <div class="structured-content">
-       <h3>📋 Classifications & Criteria</h3>
+       <h3>📋 ${sectionTitles.classifications}</h3>
        <ul>
          <li><strong>[Item]:</strong> [Detailed description]</li>
        </ul>
     </div>
 
     <div class="analogy">
-       <h3>💡 Analogy or Practical Example</h3>
+       <h3>💡 ${sectionTitles.analogy}</h3>
        <p>[A didactic analogy or short clinical case to illustrate the concept]</p>
     </div>
 
     <div class="clinical-pearls">
-      <h3>💎 Clinical Pearls & Practice</h3>
+      <h3>💎 ${sectionTitles.clinicalPearls}</h3>
       <ul>
-        <li><strong>[Sign/Symptom]:</strong> [What to look for in physical exam]</li>
-        <li><strong>[Alert]:</strong> [Red flags or common mistakes]</li>
-        <li><strong>[Conduct]:</strong> [Key points on management/diagnosis cited in text]</li>
+        <li><strong>${sectionTitles.signSymptom}:</strong> [What to look for in physical exam]</li>
+        <li><strong>${sectionTitles.alert}:</strong> [Red flags or common mistakes]</li>
+        <li><strong>${sectionTitles.conduct}:</strong> [Key points on management/diagnosis cited in text]</li>
       </ul>
     </div>
   </section>
 
   <!-- CONCLUSION -->
   <section class="conclusion-section">
-    <h2>🚀 Final Synthesis</h2>
+    <h2>🚀 ${sectionTitles.conclusion}</h2>
     <p>[Integrating conclusion]</p>
   </section>
 </div>
@@ -163,10 +223,10 @@ Return ONLY valid HTML inside a div.
 GOLDEN RULES:
 1. **ZERO TOLERANCE FOR OMISSIONS:** If it's in the text, it must be in the summary. Scan text from start to finish.
 2. ${getLanguageInstruction(language)}
-2. **PROFUNDIDADE:** Explicações de 1 parágrafo são proibidas para tópicos principais. Desenvolva o raciocínio.
-3. **FIDELIDADE:** Mantenha a terminologia técnica correta.
-4. **FORMATO:** HTML limpo, use as classes CSS indicadas.
-5. ${getLanguageInstruction(language)}
+3. **PROFUNDIDADE:** Explicações de 1 parágrafo são proibidas para tópicos principais. Desenvolva o raciocínio.
+4. **FIDELIDADE:** Mantenha a terminologia técnica correta.
+5. **FORMATO:** HTML limpo, use as classes CSS indicadas.
+6. ${getLanguageInstruction(language)}
 
 Gere o HTML agora.
     `;

@@ -6,7 +6,8 @@ import { chunkText, generateEmbeddings } from "./shared/embeddings";
 
 import { logTokenUsage } from "./shared/token_usage";
 import { getModelSelector } from "./shared/modelSelector";
-import { callGeminiWithUsage } from "./shared/gemini";
+import { extractByMimeType } from "./shared/fileExtractors";
+import { transcribeAudioWithGemini, extractTextFromImageWithGemini } from "./shared/geminiFileManager";
 
 
 
@@ -49,6 +50,12 @@ export const process_embeddings_queue = onCall({
             if (source?.project_id !== project_id) {
                 throw new HttpsError("permission-denied", "Source does not belong to project");
             }
+
+            // Garantir que metadata existe
+            if (!source?.metadata) {
+                source!.metadata = {};
+            }
+
             sourcesToProcess.push({ ref: sourceRef, data: source });
         } else {
             // Fetch pending sources for project
@@ -60,7 +67,9 @@ export const process_embeddings_queue = onCall({
                 .get();
 
             snapshot.forEach(doc => {
-                sourcesToProcess.push({ ref: doc.ref, data: doc.data() });
+                const data = doc.data();
+                if (!data.metadata) data.metadata = {};
+                sourcesToProcess.push({ ref: doc.ref, data: data });
             });
         }
 
@@ -78,48 +87,117 @@ export const process_embeddings_queue = onCall({
             const sourceId = item.ref.id;
 
             if (!sourceData.extracted_content) {
-                // Check if it's a supported media type (Image or Audio)
-                const isImage = ['jpg', 'jpeg', 'png'].includes(sourceData.type) || sourceData.metadata?.mimeType?.startsWith('image/');
-                const isAudio = ['mp3', 'wav', 'm4a'].includes(sourceData.type) || sourceData.metadata?.mimeType?.startsWith('audio/');
+                // Check file type for routing
+                const mimeType = sourceData.metadata?.mimeType || '';
+                const isImage = ['jpg', 'jpeg', 'png'].includes(sourceData.type) || mimeType.startsWith('image/');
+                const isAudio = ['mp3', 'wav', 'm4a'].includes(sourceData.type) || mimeType.startsWith('audio/');
+                const isOffice = ['doc', 'docx', 'ppt', 'pptx'].includes(sourceData.type) ||
+                    mimeType.includes('wordprocessingml') ||
+                    mimeType.includes('presentationml') ||
+                    mimeType === 'application/msword' ||
+                    mimeType === 'application/vnd.ms-powerpoint';
 
-                if (sourceData.storage_path && (isImage || isAudio)) {
+                if (sourceData.storage_path) {
                     try {
-                        console.log(`🖼️ Extracting content from file for source ${sourceId}...`);
+                        console.log(`📂 Downloading file for source ${sourceId}...`);
                         const bucket = storage.bucket();
                         const file = bucket.file(sourceData.storage_path);
                         const [buffer] = await file.download();
-                        const base64Data = buffer.toString('base64');
-                        const mimeType = sourceData.type || 'image/jpeg';
 
-                        const prompt = "Transcreva todo o texto visível nesta imagem (ou áudio) com alta fidelidade, **incluindo anotações manuscritas (letra de mão)**. Mantenha a formatação e estrutura original das anotações. Se houver diagramas, descreva-os brevemente.";
+                        // PISTA EXPRESSA: Arquivos Office e PDF Texto (Custo Zero)
+                        if (isOffice || mimeType === 'application/pdf') {
+                            // Extrair extensão segura
+                            const extension = sourceData.name?.split('.').pop()?.toLowerCase(); // do nome original
+                            // ou do storage path se nome não estiver disponível
+                            const safeExtension = extension || sourceData.storage_path?.split('.').pop()?.toLowerCase();
 
-                        const result = await callGeminiWithUsage(
-                            [
-                                prompt,
-                                {
-                                    inlineData: {
-                                        data: base64Data,
-                                        mimeType: mimeType
-                                    }
+                            console.log(`📄 [Pista Expressa] Extraindo com código (mime: ${mimeType}, ext: ${safeExtension})...`);
+
+                            // Tenta extração via código (Code-First)
+                            // Aceita retornar null se tipo não suportado, mas isOffice já filtra
+                            let extractedText = await extractByMimeType(buffer, mimeType, safeExtension);
+
+                            // Lógica de Fallback para PDF Escaneado
+                            const isPdf = mimeType === 'application/pdf' || safeExtension === 'pdf';
+                            const isScannedPdf = isPdf && (!extractedText || extractedText.length < 50);
+
+                            if (isScannedPdf) {
+                                console.warn(`⚠️ [Fallback] PDF parece ser escaneado (<50 chars). Ativando Gemini Vision...`);
+
+                                // Tenta via Gemini Vision (OCR)
+                                try {
+                                    extractedText = await extractTextFromImageWithGemini(buffer, 'application/pdf');
+                                } catch (ocrError: any) {
+                                    console.error('❌ [Fallback] Erro no OCR Gemini:', ocrError.message);
+                                    // Se falhar o OCR, mantém o texto original (mesmo que curto) ou lança erro?
+                                    // Melhor manter o erro original se texto for realmente vazio/inutil
+                                    if (!extractedText) throw ocrError;
                                 }
-                            ],
-                            "gemini-1.5-flash" // Modelo multimodal rápido
-                        );
+                            }
 
-                        if (!result.text) {
-                            throw new Error("Gemini returned empty text for this file.");
+                            if (extractedText && extractedText.length > 0) {
+                                sourceData.extracted_content = extractedText;
+                                await item.ref.update({
+                                    extracted_content: extractedText,
+                                    status: 'processing'
+                                });
+                                console.log(`✅ [Extração Concluída] Total: ${extractedText.length} chars`);
+                            } else {
+                                throw new Error('Extração retornou texto vazio (mesmo após fallback)');
+                            }
                         }
+                        // PISTA INTELIGENTE: Imagens (Gemini Vision)
+                        else if (isImage) {
+                            console.log(`🧠 [Pista Inteligente] Processando imagem com Gemini Vision...`);
 
-                        sourceData.extracted_content = result.text;
+                            const extractedText = await extractTextFromImageWithGemini(buffer, mimeType);
 
-                        // Salvar o conteúdo extraído imediatamente
-                        await item.ref.update({
-                            extracted_content: result.text,
-                            status: 'processing' // Ensure status is processing while we continue
-                        });
+                            if (!extractedText || extractedText.length === 0) {
+                                throw new Error("Gemini returned empty text for this image.");
+                            }
 
-                        console.log(`✅ Content extracted for source ${sourceId} (${result.text.length} chars)`);
+                            sourceData.extracted_content = extractedText;
+                            await item.ref.update({
+                                extracted_content: extractedText,
+                                status: 'processing'
+                            });
 
+                            console.log(`✅ [OCR] Extraído ${extractedText.length} chars`);
+                        }
+                        // PISTA INTELIGENTE: Áudio (Gemini Files API para arquivos grandes)
+                        else if (isAudio) {
+                            console.log(`🎤 [Pista Inteligente] Processando áudio com Gemini Files API...`);
+
+                            // Use Gemini File API para áudios (suporta arquivos grandes)
+                            const transcription = await transcribeAudioWithGemini(
+                                buffer,
+                                mimeType,
+                                sourceData.name || 'audio_upload'
+                            );
+
+                            if (!transcription || transcription.length === 0) {
+                                throw new Error("Gemini returned empty transcription for this audio.");
+                            }
+
+                            sourceData.extracted_content = transcription;
+                            await item.ref.update({
+                                extracted_content: transcription,
+                                status: 'processing'
+                            });
+
+                            console.log(`✅ [Transcrição] Extraído ${transcription.length} chars`);
+                        }
+                        // Tipo não suportado por nenhuma pista
+                        else {
+                            console.warn(`⚠️ Source ${sourceId} has unsupported file type. Skipping.`);
+                            batch.update(item.ref, {
+                                status: "error",
+                                error_message: "Unsupported file type for extraction",
+                                processed_at: admin.firestore.FieldValue.serverTimestamp()
+                            });
+                            processedCount++;
+                            continue;
+                        }
                     } catch (extractError: any) {
                         console.error(`❌ Error extracting content for source ${sourceId}:`, extractError);
                         batch.update(item.ref, {
@@ -131,10 +209,10 @@ export const process_embeddings_queue = onCall({
                         continue;
                     }
                 } else {
-                    console.warn(`⚠️ Source ${sourceId} has no extracted content and is not a supported media type. Skipping.`);
+                    console.warn(`⚠️ Source ${sourceId} has no storage_path and no extracted content. Skipping.`);
                     batch.update(item.ref, {
                         status: "error",
-                        error_message: "No extracted content found",
+                        error_message: "No storage path or extracted content found",
                         processed_at: admin.firestore.FieldValue.serverTimestamp()
                     });
                     processedCount++;

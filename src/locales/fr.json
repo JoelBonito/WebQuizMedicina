@@ -186,7 +186,7 @@
         "ready": "Prêt",
         "error": "Erreur",
         "delete": "Supprimer",
-        "maxSize": "Taille max : 50 Mo par fichier",
+        "maxSize": "Taille maximale du fichier : 200 Mo.\nFormats : PDF, DOC, DOCX, PPT, PPTX, TXT, MD, MP3, WAV, M4A, JPG, PNG.",
         "noSources": "Aucune source ajoutée",
         "uploadToStart": "Téléversez des fichiers pour commencer",
         "newSourcesTitle": "✨ **Nouvelles sources ajoutées à votre projet !**",

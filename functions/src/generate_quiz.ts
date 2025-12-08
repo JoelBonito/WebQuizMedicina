@@ -4,7 +4,7 @@ import { generateQuizSchema, validateRequest, sanitizeString } from "./shared/va
 import { callGeminiWithUsage, parseJsonFromResponse } from "./shared/gemini";
 import { logTokenUsage } from "./shared/token_usage";
 import { getModelSelector } from "./shared/modelSelector";
-import { getLanguageFromRequest, getLanguageInstruction } from "./shared/language_helper";
+import { getLanguageFromRequest, getLanguageInstruction, getTrueFalseOptions, getQuizExample } from "./shared/language_helper";
 
 
 
@@ -21,6 +21,7 @@ export const generate_quiz = onCall({
 
     // 2. Get user's language preference
     const language = await getLanguageFromRequest(request.data, db, request.auth.uid);
+    const trueFalseOpts = getTrueFalseOptions(language);
 
     try {
         // 3. Validation
@@ -92,13 +93,13 @@ CRITICAL DIVERSITY RULE:
 
 QUESTION TYPES (Vary):
 1. "multipla_escolha": Direct concepts.
-2. "verdadeiro_falso": Judge the statement (Options: ["True", "False"] or localized equivalents).
+2. "verdadeiro_falso": Judge the statement (Options: ${trueFalseOpts.display}).
 3. "citar": "Which of these is an example of..." (4 options).
 4. "caso_clinico": Short scenario + conduct.
 
 FORMAT RULES (Strict):
 - ALL questions must have ONLY ONE correct alternative.
-- Options must always be arrays of strings: ["A) Text", "B) Text"...] or ["True", "False"].
+- Options must always be arrays of strings: ["A) Text", "B) Text"...] or ${trueFalseOpts.display}.
 - ${getLanguageInstruction(language)}
 
 JUSTIFICATION RULES (Mandatory):
@@ -118,16 +119,7 @@ ${(difficulty && difficulty !== 'misto') ? `DIFFICULTY: ALL questions must be at
 MANDATORY JSON FORMAT:
 {
   "perguntas": [
-    {
-      "tipo": "multipla_escolha",
-      "pergunta": "What is the first-line treatment for...",
-      "opcoes": ["A) Option A", "B) Option B", "C) Option C", "D) Option D"],
-      "resposta_correta": "A",
-      "justificativa": "According to the text...",
-      "dica": "Think about the drug that...",
-      "dificuldade": "médio",
-      "topico": "Cardiology"
-    }
+    ${getQuizExample(language)}
   ]
 }
     `;

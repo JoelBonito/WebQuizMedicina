@@ -103,7 +103,8 @@ export const useSources = (projectId: string | null) => {
   const uploadSource = async (file: File) => {
     if (!user || !projectId) throw new Error('User or project not found');
 
-    const MAX_FILE_SIZE = 50 * 1024 * 1024;
+    // 200MB para suportar áudios longos e materiais médicos de alta resolução
+    const MAX_FILE_SIZE = 200 * 1024 * 1024;
     if (file.size > MAX_FILE_SIZE) {
       const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
       const maxSizeMB = (MAX_FILE_SIZE / (1024 * 1024)).toFixed(0);

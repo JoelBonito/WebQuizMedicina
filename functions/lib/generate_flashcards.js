@@ -45,7 +45,7 @@ exports.generate_flashcards = (0, https_1.onCall)({
         // 2. Get user's language preference
         const language = await (0, language_helper_1.getLanguageFromRequest)(request.data, db, request.auth.uid);
         // 3. Validation
-        const { source_id, project_id, count } = (0, validation_1.validateRequest)(request.data, validation_1.generateFlashcardsSchema);
+        const { source_id, project_id, count, difficulty } = (0, validation_1.validateRequest)(request.data, validation_1.generateFlashcardsSchema);
         // 3. Fetch Content (Sources)
         let sources = [];
         if (source_id) {
@@ -103,17 +103,13 @@ CREATION RULES:
 3. CONCISE ANSWERS: Get straight to the point. Avoid long texts on the back.
 4. ATOMICITY: Each flashcard should test ONE single concept.
 5. ${(0, language_helper_1.getLanguageInstruction)(language)}
+${(difficulty && difficulty !== 'misto') ? `6. DIFFICULTY: ALL flashcards must be at "${difficulty}" level.` : '6. DIFFICULTY: Vary the difficulty level between easy, medium, and hard.'}
 
 MANDATORY JSON FORMAT (NO MARKDOWN):
 Return ONLY raw JSON, without code blocks (\`\`\`).
 {
   "flashcards": [
-    {
-      "frente": "What is the first-line treatment for Hypertension in blacks?",
-      "verso": "Thiazides or Calcium Channel Blockers (CCB).",
-      "topico": "Cardiology",
-      "dificuldade": "médio"
-    }
+    ${(0, language_helper_1.getFlashcardExample)(language)}
   ]
 }
     `;
@@ -171,7 +167,7 @@ Return ONLY raw JSON, without code blocks (\`\`\`).
                 frente: (0, validation_1.sanitizeString)(f.frente || ""),
                 verso: (0, validation_1.sanitizeString)(f.verso || ""),
                 topico: f.topico ? (0, validation_1.sanitizeString)(f.topico) : "Geral",
-                dificuldade: f.dificuldade || "médio",
+                dificuldade: f.dificuldade || difficulty || "médio",
                 created_at: admin.firestore.FieldValue.serverTimestamp(),
             };
             batch.set(flashcardRef, newFlashcard);

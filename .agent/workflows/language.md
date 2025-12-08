@@ -14,7 +14,7 @@ Sempre que for solicitada uma tarefa, siga esta ordem estrita:
    - Confirme se o Tech Stack (React/Supabase) está sendo respeitado.
 
 3. 🔨 EXECUÇÃO & QUALIDADE (CRÍTICO)
-   - Gere o código na estrutura de pastas correta.
+   - Gere o código na estrutura de pastas correta (⚠️ MDs SEMPRE em `docs/`).
    - **🛡️ GATEKEEPER i18n:** Antes de finalizar o código, revise: "Existem strings hardcoded?". Se sim, substitua por chaves `t('...')` imediatamente.
    - **🛡️ GATEKEEPER EXAUSTIVIDADE:** Se for uma lista de tarefas ou refatoração, verifique: "Fiz tudo ou resumi?". Se resumiu, complete a tarefa (ou peça para continuar).
    - Comentários explicativos sempre em Português.
