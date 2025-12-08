@@ -13,6 +13,19 @@ const firebaseConfig = {
     appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
+
+
+// DEBUG: Verificar se as variáveis estão sendo carregadas
+console.log('[Firebase Config Check]', {
+    authDomain: firebaseConfig.authDomain,
+    projectId: firebaseConfig.projectId,
+    apiKeyPresent: !!firebaseConfig.apiKey
+});
+
+if (!firebaseConfig.authDomain) {
+    console.error('[CRITICAL] VITE_FIREBASE_AUTH_DOMAIN is missing! Check your .env file and restart the server.');
+}
+
 // Inicializa o Firebase
 const app = initializeApp(firebaseConfig);
 

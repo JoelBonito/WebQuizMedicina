@@ -15,6 +15,23 @@
 1. Acesse: https://console.firebase.google.com/
 2. Selecione o projeto: **web-quiz-medicina**
 
+### 1.1 Verificar Variáveis de Ambiente (.env) ⚠️ CRÍTICO
+
+Seu arquivo `.env` deve conter as chaves do Firebase. Se estiverem faltando, o erro `auth-domain-config-required` aparecerá.
+
+Verifique seu arquivo `.env`:
+
+```env
+VITE_FIREBASE_API_KEY=...
+VITE_FIREBASE_AUTH_DOMAIN=web-quiz-medicina.firebaseapp.com  <-- OBRIGATÓRIO
+VITE_FIREBASE_PROJECT_ID=web-quiz-medicina
+VITE_FIREBASE_STORAGE_BUCKET=web-quiz-medicina.firebasestorage.app
+VITE_FIREBASE_MESSAGING_SENDER_ID=...
+VITE_FIREBASE_APP_ID=...
+```
+
+> **Nota:** Se você adicionar estas variáveis agora, **reinicie o servidor** (`npm run dev`) para que tenham efeito.
+
 ### 2. Configurar Domínios Autorizados
 
 1. No menu lateral, clique em **Authentication** (Autenticação)
