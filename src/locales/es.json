@@ -3,7 +3,8 @@
         "profile": "Perfil",
         "appearance": "Apariencia",
         "adminDashboard": "Panel de Admin",
-        "logout": "Cerrar sesión"
+        "logout": "Cerrar sesión",
+        "bugReports": "Bugs Reportados"
     },
     "dashboard": {
         "title": "Mis Materias",
@@ -552,6 +553,57 @@
         "beta": {
             "badge": "BETA",
             "message": "Versión Beta - ¡Tu feedback es esencial!"
+        }
+    },
+    "bugReports": {
+        "title": "Bugs Reportados",
+        "subtitle": "Total de {{count}} reportes",
+        "detailTitle": "Detalles del Bug",
+        "error": "Error al cargar bugs reportados",
+        "empty": "No hay bugs reportados aún",
+        "filters": {
+            "title": "Filtros",
+            "status": "Estado",
+            "severity": "Gravedad",
+            "search": "Buscar",
+            "searchPlaceholder": "Buscar por usuario...",
+            "all": "Todos"
+        },
+        "status": {
+            "open": "Abierto",
+            "in_progress": "En Análisis",
+            "resolved": "Resuelto"
+        },
+        "severity": {
+            "low": "Baja",
+            "medium": "Media",
+            "high": "Alta"
+        },
+        "card": {
+            "reportedBy": "Reportado por",
+            "date": "Fecha",
+            "page": "Página",
+            "project": "Proyecto",
+            "description": "Descripción",
+            "technicalDetails": "Detalles Técnicos"
+        },
+        "actions": {
+            "viewDetails": "Ver Detalles",
+            "markResolved": "Marcar como Resuelto",
+            "markInProgress": "En Análisis",
+            "resolved": "Bug marcado como resuelto!",
+            "inProgressSet": "Estado actualizado a En Análisis",
+            "updating": "Actualizando...",
+            "error": "Error al actualizar estado"
+        },
+        "time": {
+            "justNow": "Ahora mismo",
+            "minutesAgo": "Hace {{count}} minutos",
+            "minutesAgo_plural": "Hace {{count}} minutos",
+            "hoursAgo": "Hace {{count}} horas",
+            "hoursAgo_plural": "Hace {{count}} horas",
+            "daysAgo": "Hace {{count}} días",
+            "daysAgo_plural": "Hace {{count}} días"
         }
     }
 }

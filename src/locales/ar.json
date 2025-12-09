@@ -3,7 +3,8 @@
         "profile": "الملف الشخصي",
         "appearance": "المظهر",
         "adminDashboard": "لوحة الإدارة",
-        "logout": "تسجيل الخروج"
+        "logout": "تسجيل الخروج",
+        "bugReports": "Reported Bugs"
     },
     "dashboard": {
         "title": "موادي",
@@ -552,6 +553,57 @@
         "beta": {
             "badge": "BETA",
             "message": "Beta Version - Your feedback is essential!"
+        }
+    },
+    "bugReports": {
+        "title": "Reported Bugs",
+        "subtitle": "Total of {{count}} reports",
+        "detailTitle": "Bug Details",
+        "error": "Error loading reported bugs",
+        "empty": "No bugs reported yet",
+        "filters": {
+            "title": "Filters",
+            "status": "Status",
+            "severity": "Severity",
+            "search": "Search",
+            "searchPlaceholder": "Search by user...",
+            "all": "All"
+        },
+        "status": {
+            "open": "Open",
+            "in_progress": "In Progress",
+            "resolved": "Resolved"
+        },
+        "severity": {
+            "low": "Low",
+            "medium": "Medium",
+            "high": "High"
+        },
+        "card": {
+            "reportedBy": "Reported by",
+            "date": "Date",
+            "page": "Page",
+            "project": "Project",
+            "description": "Description",
+            "technicalDetails": "Technical Details"
+        },
+        "actions": {
+            "viewDetails": "View Details",
+            "markResolved": "Mark as Resolved",
+            "markInProgress": "In Progress",
+            "resolved": "Bug marked as resolved!",
+            "inProgressSet": "Status updated to In Progress",
+            "updating": "Updating...",
+            "error": "Error updating status"
+        },
+        "time": {
+            "justNow": "Just now",
+            "minutesAgo": "{{count}} minutes ago",
+            "minutesAgo_plural": "{{count}} minutes ago",
+            "hoursAgo": "{{count}} hours ago",
+            "hoursAgo_plural": "{{count}} hours ago",
+            "daysAgo": "{{count}} days ago",
+            "daysAgo_plural": "{{count}} days ago"
         }
     }
 }
