@@ -458,5 +458,100 @@
         "error": "Erreur lors de l'envoi. Réessayez.",
         "category": "Catégorie",
         "priority": "Priorité"
+    },
+    "tutorial": {
+        "common": {
+            "next": "Suivant",
+            "previous": "Précédent",
+            "skip": "Passer",
+            "finish": "Terminer",
+            "dontShowAgain": "Ne plus afficher",
+            "helpButton": "Aide"
+        },
+        "dashboard": {
+            "title": "Bienvenue sur QuizMed!",
+            "step1": {
+                "title": "Commencez par Mettre à Jour votre Profil",
+                "description": "Cliquez sur votre avatar et allez dans 'Profil'. Personnalisez votre nom, photo, choisissez la langue de réponse de l'IA et configurez vos préférences d'étude."
+            },
+            "step2": {
+                "title": "Créez vos Matières",
+                "description": "Cliquez sur 'Nouvelle Matière' pour créer une matière d'étude. Organisez vos études par discipline ou thème."
+            },
+            "step3": {
+                "title": "Organisez vos Études",
+                "description": "Chaque matière peut contenir des sources (PDFs, documents), quiz, cartes et résumés générés par IA."
+            },
+            "step4": {
+                "title": "🎯 Système d'Analyse des Difficultés",
+                "description": "L'application suit automatiquement vos erreurs dans les quiz et cartes. Ensuite, vous pouvez générer du contenu FOCALISÉ uniquement sur les sujets les plus difficiles: Quiz de Récupération, Cartes de Récupération et Résumés Focalisés!"
+            },
+            "step5": {
+                "title": "Besoin d'Aide?",
+                "description": "Utilisez le bouton SOS (⚠️) en haut pour signaler des bugs ou problèmes. Nous sommes en version bêta et vos retours sont précieux!"
+            }
+        },
+        "profile": {
+            "title": "Paramètres du Profil",
+            "step1": {
+                "title": "Langue de Réponse",
+                "description": "Choisissez la langue pour tout le contenu généré par l'IA (quiz, cartes, résumés, chat)."
+            },
+            "step2": {
+                "title": "Thème Clair/Sombre",
+                "description": "Personnalisez l'apparence de l'application. Choisissez le thème clair, sombre ou synchronisez avec les paramètres système."
+            },
+            "step3": {
+                "title": "Suppression Automatique des Difficultés",
+                "description": "Activez pour supprimer automatiquement les sujets de vos difficultés après 3 réponses correctes consécutives."
+            }
+        },
+        "project": {
+            "title": "Navigation de la Matière",
+            "step1": {
+                "title": "Onglet Sources",
+                "description": "Téléchargez des PDFs, documents Word/PowerPoint, images et textes. L'IA traitera automatiquement tout le contenu."
+            },
+            "step2": {
+                "title": "Onglet Étude",
+                "description": "Générez des quiz adaptatifs, cartes intelligentes, résumés et cartes mentales basés sur vos sources."
+            },
+            "step3": {
+                "title": "Onglet Chat",
+                "description": "Chattez avec l'IA sur vos sources. Posez des questions, demandez des explications ou résumés personnalisés."
+            },
+            "step4": {
+                "title": "🎯 Analyse des Difficultés - Le Différenciateur!",
+                "description": "Le système suit automatiquement vos erreurs et difficultés dans les quiz/cartes. Ensuite, vous pouvez générer du contenu FOCALISÉ uniquement sur les sujets que vous devez maîtriser le plus: Quiz de Récupération, Cartes de Récupération et Résumés Focalisés. Étudiez intelligemment!"
+            },
+            "step5": {
+                "title": "Problème Rencontré?",
+                "description": "Utilisez le bouton SOS (⚠️) pour signaler rapidement des bugs. Vos retours nous aident à nous améliorer!"
+            }
+        }
+    },
+    "help": {
+        "button": {
+            "tooltip": "Signaler un Problème (SOS)",
+            "title": "Signaler un Problème",
+            "description": "Trouvé un bug ou quelque chose ne fonctionne pas? Signalez-le ici!"
+        },
+        "form": {
+            "descriptionLabel": "Décrivez le problème",
+            "descriptionPlaceholder": "Que s'est-il passé? Où étiez-vous? Comment peut-on le reproduire?",
+            "severityLabel": "Gravité",
+            "severityLow": "Faible",
+            "severityMedium": "Moyenne",
+            "severityHigh": "Haute",
+            "submit": "Envoyer le Rapport",
+            "submitting": "Envoi...",
+            "success": "Merci! Rapport envoyé avec succès.",
+            "error": "Erreur d'envoi. Réessayez.",
+            "cancel": "Annuler"
+        },
+        "beta": {
+            "badge": "BETA",
+            "message": "Version Bêta - Vos retours sont essentiels!"
+        }
     }
 }

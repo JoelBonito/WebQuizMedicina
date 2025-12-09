@@ -1,4 +1,4 @@
-import { ArrowLeft, LogOut, User, BookOpen, Shield, Palette } from "lucide-react";
+import { ArrowLeft, LogOut, User, BookOpen, Shield, Palette, AlertTriangle } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Button } from "./ui/button";
 import { useAuth } from "../hooks/useAuth";
@@ -14,6 +14,7 @@ import {
 import { Logo } from "./Logo";
 import { ProfileSettings } from "./ProfileSettings";
 import { ThemeSettings } from "./ThemeSettings";
+import { HelpModal } from "./HelpModal";
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
 
@@ -21,14 +22,16 @@ interface NavbarProps {
   onBackClick?: () => void;
   projectName?: string;
   onAdminClick?: () => void;
+  onTutorialClick?: () => void; // Callback para abrir tutorial da página atual
 }
 
-export function Navbar({ projectName, onBackClick, onAdminClick }: NavbarProps) {
+export function Navbar({ projectName, onBackClick, onAdminClick, onTutorialClick }: NavbarProps) {
   const { t } = useTranslation();
   const { signOut, user } = useAuth();
   const { profile } = useProfile();
   const [profileOpen, setProfileOpen] = useState(false);
   const [themeOpen, setThemeOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   // Debug: log profile data
   // console.log('[Navbar] Profile data:', profile);
@@ -112,7 +115,30 @@ export function Navbar({ projectName, onBackClick, onAdminClick }: NavbarProps) 
 
 
         {/* User Actions */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
+          {/* Help Button (SOS) */}
+          <button
+            onClick={() => setHelpOpen(true)}
+            className="relative w-9 h-9 rounded-full bg-orange-50 dark:bg-orange-950 ring-2 ring-orange-400 hover:ring-orange-500 transition-all flex items-center justify-center"
+            title={t('help.button.tooltip')}
+          >
+            <AlertTriangle className="w-5 h-5 text-orange-500 dark:text-orange-400" />
+            {/* Badge BETA */}
+            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-bold px-1 py-0.5 rounded-full leading-none">
+              {t('help.beta.badge')}
+            </span>
+          </button>
+
+          {/* Tutorial Button */}
+          <button
+            onClick={onTutorialClick}
+            disabled={!onTutorialClick}
+            className="w-9 h-9 rounded-full bg-primary/10 ring-2 ring-primary hover:ring-[#0891B2] transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+            title={t('tutorial.common.helpButton')}
+          >
+            <span className="text-xl font-bold text-primary">?</span>
+          </button>
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="flex items-center gap-3 p-1 rounded-xl hover:bg-muted transition-colors">
@@ -184,6 +210,11 @@ export function Navbar({ projectName, onBackClick, onAdminClick }: NavbarProps) 
       {/* Settings Dialogs */}
       <ProfileSettings open={profileOpen} onOpenChange={setProfileOpen} />
       <ThemeSettings open={themeOpen} onOpenChange={setThemeOpen} />
+
+      {/* Help Modal (moved from floating button) */}
+      {helpOpen && (
+        <HelpModal open={helpOpen} onOpenChange={setHelpOpen} />
+      )}
     </nav>
   );
 }

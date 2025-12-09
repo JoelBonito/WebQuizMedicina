@@ -458,5 +458,100 @@
         "error": "Erro ao enviar. Tente novamente.",
         "category": "Categoria",
         "priority": "Prioridade"
+    },
+    "tutorial": {
+        "common": {
+            "next": "Próximo",
+            "previous": "Anterior",
+            "skip": "Pular",
+            "finish": "Concluir",
+            "dontShowAgain": "Não mostrar novamente",
+            "helpButton": "Ajuda"
+        },
+        "dashboard": {
+            "title": "Bem-vindo ao QuizMed!",
+            "step1": {
+                "title": "Comece Atualizando seu Perfil",
+                "description": "Clique no seu avatar e vá em 'Perfil'. Personalize seu nome, foto, escolha o idioma das respostas da IA e configure suas preferências de estudo."
+            },
+            "step2": {
+                "title": "Crie suas Matérias",
+                "description": "Clique em 'Nova Matéria' para criar uma matéria de estudo. Organize seus estudos por disciplina ou tema."
+            },
+            "step3": {
+                "title": "Organize seus Estudos",
+                "description": "Cada matéria pode conter fontes (PDFs, documentos), quizzes, flashcards e resumos gerados por IA."
+            },
+            "step4": {
+                "title": "🎯 Sistema de Análise de Dificuldades",
+                "description": "O app rastreia automaticamente seus erros em quizzes e flashcards. Depois, você pode gerar conteúdo FOCADO apenas nos tópicos mais difíceis: Recovery Quizzes, Recovery Flashcards e Resumos Focados!"
+            },
+            "step5": {
+                "title": "Precisa de Ajuda?",
+                "description": "Use o botão SOS (⚠️) no topo para reportar bugs ou problemas. Estamos em versão beta e seu feedback é valioso!"
+            }
+        },
+        "profile": {
+            "title": "Configurações de Perfil",
+            "step1": {
+                "title": "Idioma de Resposta",
+                "description": "Escolha o idioma para todo o conteúdo gerado pela IA (quizzes, flashcards, resumos, chat)."
+            },
+            "step2": {
+                "title": "Tema Claro/Escuro",
+                "description": "Personalize a aparência do app. Escolha tema claro, escuro ou sincronize com as configurações do sistema."
+            },
+            "step3": {
+                "title": "Auto-remoção de Dificuldades",
+                "description": "Ative para remover automaticamente tópicos das suas dificuldades após 3 acertos consecutivos."
+            }
+        },
+        "project": {
+            "title": "Navegação da Matéria",
+            "step1": {
+                "title": "Aba Fontes",
+                "description": "Faça upload de PDFs, documentos Word/PowerPoint, imagens e textos. A IA processará automaticamente todo o conteúdo."
+            },
+            "step2": {
+                "title": "Aba Estudo",
+                "description": "Gere quizzes adaptativos, flashcards inteligentes, resumos e mapas mentais baseados nas suas fontes."
+            },
+            "step3": {
+                "title": "Aba Chat",
+                "description": "Converse com a IA sobre suas fontes. Faça perguntas, peça explicações ou resumos personalizados."
+            },
+            "step4": {
+                "title": "🎯 Análise de Dificuldades - O Diferencial!",
+                "description": "O sistema rastreia automaticamente seus erros e dificuldades em quizzes/flashcards. Depois, você pode gerar conteúdo FOCADO apenas nos tópicos que você mais precisa dominar: Recovery Quizzes, Recovery Flashcards e Resumos Focados. Estude de forma inteligente!"
+            },
+            "step5": {
+                "title": "Encontrou um Problema?",
+                "description": "Use o botão SOS (🆘) para reportar bugs rapidamente. Seu feedback nos ajuda a melhorar!"
+            }
+        }
+    },
+    "help": {
+        "button": {
+            "tooltip": "Reportar Problema (SOS)",
+            "title": "Reportar Problema",
+            "description": "Encontrou um bug ou algo não está funcionando? Reporte aqui!"
+        },
+        "form": {
+            "descriptionLabel": "Descreva o problema",
+            "descriptionPlaceholder": "O que aconteceu? Onde você estava? Como podemos reproduzir?",
+            "severityLabel": "Gravidade",
+            "severityLow": "Baixa",
+            "severityMedium": "Média",
+            "severityHigh": "Alta",
+            "submit": "Enviar Report",
+            "submitting": "Enviando...",
+            "success": "Obrigado! Report enviado com sucesso.",
+            "error": "Erro ao enviar. Tente novamente.",
+            "cancel": "Cancelar"
+        },
+        "beta": {
+            "badge": "BETA",
+            "message": "Versão Beta - Seu feedback é essencial!"
+        }
     }
 }

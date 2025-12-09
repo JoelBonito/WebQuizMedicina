@@ -458,5 +458,100 @@
         "error": "提交时出错，请重试。",
         "category": "类别",
         "priority": "优先级"
+    },
+    "tutorial": {
+        "common": {
+            "next": "Next",
+            "previous": "Previous",
+            "skip": "Skip",
+            "finish": "Finish",
+            "dontShowAgain": "Don't show again",
+            "helpButton": "Help"
+        },
+        "dashboard": {
+            "title": "Welcome to QuizMed!",
+            "step1": {
+                "title": "Start by Updating Your Profile",
+                "description": "Click on your avatar and go to 'Profile'. Customize your name, photo, choose the AI response language and configure your study preferences."
+            },
+            "step2": {
+                "title": "Create Your Subjects",
+                "description": "Click 'New Subject' to create a study subject. Organize your studies by discipline or topic."
+            },
+            "step3": {
+                "title": "Organize Your Studies",
+                "description": "Each subject can contain sources (PDFs, documents), quizzes, flashcards and AI-generated summaries."
+            },
+            "step4": {
+                "title": "🎯 Difficulty Analysis System",
+                "description": "The app automatically tracks your mistakes in quizzes and flashcards. Then, you can generate FOCUSED content only on the hardest topics: Recovery Quizzes, Recovery Flashcards and Focused Summaries!"
+            },
+            "step5": {
+                "title": "Need Help?",
+                "description": "Use the SOS button (⚠️) at the top to report bugs or issues. We're in beta version and your feedback is valuable!"
+            }
+        },
+        "profile": {
+            "title": "Profile Settings",
+            "step1": {
+                "title": "Response Language",
+                "description": "Choose the language for all AI-generated content (quizzes, flashcards, summaries, chat)."
+            },
+            "step2": {
+                "title": "Light/Dark Theme",
+                "description": "Customize the app appearance. Choose light, dark theme or sync with system settings."
+            },
+            "step3": {
+                "title": "Auto-remove Difficulties",
+                "description": "Enable to automatically remove topics from your difficulties after 3 consecutive correct answers."
+            }
+        },
+        "project": {
+            "title": "Subject Navigation",
+            "step1": {
+                "title": "Sources Tab",
+                "description": "Upload PDFs, Word/PowerPoint documents, images and texts. AI will automatically process all content."
+            },
+            "step2": {
+                "title": "Study Tab",
+                "description": "Generate adaptive quizzes, intelligent flashcards, summaries and mind maps based on your sources."
+            },
+            "step3": {
+                "title": "Chat Tab",
+                "description": "Chat with AI about your sources. Ask questions, request explanations or personalized summaries."
+            },
+            "step4": {
+                "title": "🎯 Difficulty Analysis - The Differentiator!",
+                "description": "The system automatically tracks your errors and difficulties in quizzes/flashcards. Then, you can generate FOCUSED content only on the topics you need to master most: Recovery Quizzes, Recovery Flashcards and Focused Summaries. Study smart!"
+            },
+            "step5": {
+                "title": "Found an Issue?",
+                "description": "Use the SOS button (⚠️) to quickly report bugs. Your feedback helps us improve!"
+            }
+        }
+    },
+    "help": {
+        "button": {
+            "tooltip": "Report Issue (SOS)",
+            "title": "Report Issue",
+            "description": "Found a bug or something not working? Report it here!"
+        },
+        "form": {
+            "descriptionLabel": "Describe the issue",
+            "descriptionPlaceholder": "What happened? Where were you? How can we reproduce it?",
+            "severityLabel": "Severity",
+            "severityLow": "Low",
+            "severityMedium": "Medium",
+            "severityHigh": "High",
+            "submit": "Submit Report",
+            "submitting": "Sending...",
+            "success": "Thank you! Report submitted successfully.",
+            "error": "Error sending. Try again.",
+            "cancel": "Cancel"
+        },
+        "beta": {
+            "badge": "BETA",
+            "message": "Beta Version - Your feedback is essential!"
+        }
     }
 }

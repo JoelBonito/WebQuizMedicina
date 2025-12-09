@@ -458,5 +458,100 @@
         "error": "Error al enviar. Inténtalo de nuevo.",
         "category": "Categoría",
         "priority": "Prioridad"
+    },
+    "tutorial": {
+        "common": {
+            "next": "Siguiente",
+            "previous": "Anterior",
+            "skip": "Saltar",
+            "finish": "Finalizar",
+            "dontShowAgain": "No mostrar de nuevo",
+            "helpButton": "Ayuda"
+        },
+        "dashboard": {
+            "title": "¡Bienvenido a QuizMed!",
+            "step1": {
+                "title": "Comienza Actualizando tu Perfil",
+                "description": "Haz clic en tu avatar y ve a 'Perfil'. Personaliza tu nombre, foto, elige el idioma de respuesta de la IA y configura tus preferencias de estudio."
+            },
+            "step2": {
+                "title": "Crea tus Materias",
+                "description": "Haz clic en 'Nueva Materia' para crear una materia de estudio. Organiza tus estudios por disciplina o tema."
+            },
+            "step3": {
+                "title": "Organiza tus Estudios",
+                "description": "Cada materia puede contener fuentes (PDFs, documentos), cuestionarios, tarjetas y resúmenes generados por IA."
+            },
+            "step4": {
+                "title": "🎯 Sistema de Análisis de Dificultades",
+                "description": "La app rastrea automáticamente tus errores en cuestionarios y tarjetas. Luego, puedes generar contenido ENFOCADO solo en los temas más difíciles: Cuestionarios de Recuperación, Tarjetas de Recuperación y Resúmenes Enfocados!"
+            },
+            "step5": {
+                "title": "¿Necesitas Ayuda?",
+                "description": "Usa el botón SOS (⚠️) en la parte superior para reportar bugs o problemas. ¡Estamos en versión beta y tu feedback es valioso!"
+            }
+        },
+        "profile": {
+            "title": "Configuración de Perfil",
+            "step1": {
+                "title": "Idioma de Respuesta",
+                "description": "Elige el idioma para todo el contenido generado por IA (cuestionarios, tarjetas, resúmenes, chat)."
+            },
+            "step2": {
+                "title": "Tema Claro/Oscuro",
+                "description": "Personaliza la apariencia de la app. Elige tema claro, oscuro o sincroniza con la configuración del sistema."
+            },
+            "step3": {
+                "title": "Auto-eliminación de Dificultades",
+                "description": "Activa para eliminar automáticamente temas de tus dificultades después de 3 respuestas correctas consecutivas."
+            }
+        },
+        "project": {
+            "title": "Navegación de Materia",
+            "step1": {
+                "title": "Pestaña Fuentes",
+                "description": "Sube PDFs, documentos Word/PowerPoint, imágenes y textos. La IA procesará automáticamente todo el contenido."
+            },
+            "step2": {
+                "title": "Pestaña Estudio",
+                "description": "Genera cuestionarios adaptativos, tarjetas inteligentes, resúmenes y mapas mentales basados en tus fuentes."
+            },
+            "step3": {
+                "title": "Pestaña Chat",
+                "description": "Chatea con la IA sobre tus fuentes. Haz preguntas, solicita explicaciones o resúmenes personalizados."
+            },
+            "step4": {
+                "title": "🎯 Análisis de Dificultades - ¡El Diferenciador!",
+                "description": "El sistema rastrea automáticamente tus errores y dificultades en cuestionarios/tarjetas. Luego, puedes generar contenido ENFOCADO solo en los temas que más necesitas dominar: Cuestionarios de Recuperación, Tarjetas de Recuperación y Resúmenes Enfocados. ¡Estudia inteligentemente!"
+            },
+            "step5": {
+                "title": "¿Encontraste un Problema?",
+                "description": "Usa el botón SOS (⚠️) para reportar bugs rápidamente. ¡Tu feedback nos ayuda a mejorar!"
+            }
+        }
+    },
+    "help": {
+        "button": {
+            "tooltip": "Reportar Problema (SOS)",
+            "title": "Reportar Problema",
+            "description": "¿Encontraste un bug o algo que no funciona? ¡Repórtalo aquí!"
+        },
+        "form": {
+            "descriptionLabel": "Describe el problema",
+            "descriptionPlaceholder": "¿Qué sucedió? ¿Dónde estabas? ¿Cómo podemos reproducirlo?",
+            "severityLabel": "Gravedad",
+            "severityLow": "Baja",
+            "severityMedium": "Media",
+            "severityHigh": "Alta",
+            "submit": "Enviar Reporte",
+            "submitting": "Enviando...",
+            "success": "¡Gracias! Reporte enviado con éxito.",
+            "error": "Error al enviar. Intenta de nuevo.",
+            "cancel": "Cancelar"
+        },
+        "beta": {
+            "badge": "BETA",
+            "message": "Versión Beta - ¡Tu feedback es esencial!"
+        }
     }
 }

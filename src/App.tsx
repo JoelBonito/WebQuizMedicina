@@ -22,6 +22,7 @@ const Dashboard = lazy(() => import("./components/Dashboard").then(module => ({ 
 const Auth = lazy(() => import("./components/Auth").then(module => ({ default: module.Auth })));
 const ProjectStats = lazy(() => import("./components/ProjectStats").then(module => ({ default: module.ProjectStats })));
 const AdminDashboard = lazy(() => import("./components/AdminDashboard").then(module => ({ default: module.AdminDashboard })));
+import { GlobalTutorial, useGlobalTutorial } from "./components/GlobalTutorial";
 
 // Loading fallback component
 const LoadingFallback = () => (
@@ -33,6 +34,7 @@ const LoadingFallback = () => (
 // Dashboard Route Component
 function DashboardRoute() {
   const navigate = useNavigate();
+  const { showCurrentTutorial } = useGlobalTutorial();
 
   const handleSelectProject = (projectId: string) => {
     navigate(`/project/${projectId}`);
@@ -44,12 +46,13 @@ function DashboardRoute() {
 
   return (
     <>
-      <Navbar onAdminClick={handleAdminClick} />
+      <Navbar onAdminClick={handleAdminClick} onTutorialClick={showCurrentTutorial} />
       <div className="min-h-screen bg-background pt-16">
         <Suspense fallback={<LoadingFallback />}>
           <Dashboard onSelectSubject={handleSelectProject} />
         </Suspense>
       </div>
+      <GlobalTutorial />
       <Toaster />
     </>
   );
@@ -58,23 +61,25 @@ function DashboardRoute() {
 // Admin Route Component
 function AdminRoute() {
   const navigate = useNavigate();
+  const { showCurrentTutorial } = useGlobalTutorial();
 
   const handleBackToDashboard = () => {
     navigate('/');
   };
 
   const handleAdminClick = () => {
-    navigate('/admin');
+    // Already on admin page
   };
 
   return (
     <>
-      <Navbar onBackClick={handleBackToDashboard} onAdminClick={handleAdminClick} />
+      <Navbar onBackClick={handleBackToDashboard} onAdminClick={handleAdminClick} onTutorialClick={showCurrentTutorial} />
       <div className="min-h-screen bg-background pt-16">
         <Suspense fallback={<LoadingFallback />}>
           <AdminDashboard />
         </Suspense>
       </div>
+      <GlobalTutorial />
       <Toaster />
     </>
   );
@@ -88,6 +93,7 @@ function ProjectRoute() {
   const isMobile = useIsMobile();
   const [selectedSourceIds, setSelectedSourceIds] = useState<string[]>([]);
   const [showStats, setShowStats] = useState(false);
+  const { showCurrentTutorial } = useGlobalTutorial();
 
   // Redirect se projectId não existe
   if (!projectId) {
@@ -120,6 +126,7 @@ function ProjectRoute() {
             <Navbar
               onBackClick={handleBackToDashboard}
               onAdminClick={handleAdminClick}
+              onTutorialClick={showCurrentTutorial}
             />
             <MobileProjectLayout
               projectId={projectId}
@@ -173,6 +180,7 @@ function ProjectRoute() {
           />
         )}
       </Suspense>
+      <GlobalTutorial />
       <Toaster />
     </>
   );

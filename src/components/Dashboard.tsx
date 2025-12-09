@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Plus, BookOpen, Trash2, Edit, ChevronRight, Loader2, X, BarChart3 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
@@ -27,6 +27,8 @@ import { Label } from "./ui/label";
 import { useProjects } from "../hooks/useProjects";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
+import { TutorialModal, TutorialStep } from "./TutorialModal";
+import { useTutorial } from "../hooks/useTutorial";
 
 interface DashboardProps {
   onSelectSubject: (subjectId: string) => void;
@@ -183,7 +185,12 @@ const ProjectCard = ({ project, index, onSelect, onEdit, onDelete, onViewStats }
   );
 };
 
-export function Dashboard({ onSelectSubject }: DashboardProps) {
+interface DashboardProps {
+  onSelectSubject: (subjectId: string) => void;
+  onRegisterTutorial?: (showTutorial: () => void) => void;
+}
+
+export function Dashboard({ onSelectSubject, onRegisterTutorial }: DashboardProps) {
   const { t } = useTranslation();
   const { projects, loading, createProject, updateProject, deleteProject } = useProjects();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -192,6 +199,40 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
   const [statsProject, setStatsProject] = useState<{ id: string; name: string } | null>(null);
   const [formData, setFormData] = useState({ name: "" });
   const [submitting, setSubmitting] = useState(false);
+
+  // Tutorial hook
+  const { isOpen: tutorialOpen, showTutorial, closeTutorial, markAsViewed } = useTutorial('dashboard');
+
+  // Tutorial steps
+  const tutorialSteps: TutorialStep[] = [
+    {
+      title: t('tutorial.dashboard.step1.title'),
+      description: t('tutorial.dashboard.step1.description'),
+    },
+    {
+      title: t('tutorial.dashboard.step2.title'),
+      description: t('tutorial.dashboard.step2.description'),
+    },
+    {
+      title: t('tutorial.dashboard.step3.title'),
+      description: t('tutorial.dashboard.step3.description'),
+    },
+    {
+      title: t('tutorial.dashboard.step4.title'),
+      description: t('tutorial.dashboard.step4.description'),
+    },
+    {
+      title: t('tutorial.dashboard.step5.title'),
+      description: t('tutorial.dashboard.step5.description'),
+    },
+  ];
+
+  // Registra função showTutorial para ser chamada via Navbar
+  React.useEffect(() => {
+    if (onRegisterTutorial) {
+      onRegisterTutorial(showTutorial);
+    }
+  }, [onRegisterTutorial]);
 
   const handleAddProject = async () => {
     if (!formData.name.trim()) {
@@ -438,6 +479,15 @@ export function Dashboard({ onSelectSubject }: DashboardProps) {
           onClose={() => setStatsProject(null)}
         />
       )}
+
+      {/* Tutorial Modal */}
+      <TutorialModal
+        open={tutorialOpen}
+        onOpenChange={closeTutorial}
+        tutorialKey="dashboard"
+        steps={tutorialSteps}
+        onComplete={markAsViewed}
+      />
     </div>
   );
 }
