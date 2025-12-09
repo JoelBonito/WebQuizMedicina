@@ -4,7 +4,8 @@
         "appearance": "外观",
         "adminDashboard": "管理后台",
         "logout": "退出登录",
-        "bugReports": "Reported Bugs"
+        "bugReports": "Reported Bugs",
+        "usersDashboard": "用户仪表板"
     },
     "dashboard": {
         "title": "我的科目",
@@ -283,7 +284,23 @@
         "operationsColumn": "操作",
         "userCount": "{{count}}个用户",
         "userCount_other": "{{count}}个用户",
-        "clickUserBreakdown": "点击用户查看按项目/科目的明细"
+        "clickUserBreakdown": "点击用户查看按项目/科目的明细",
+        "usersDashboard": {
+            "title": "用户仪表板",
+            "subtitle": "管理和查看所有平台用户",
+            "columns": {
+                "email": "电子邮件",
+                "createdAt": "注册日期",
+                "lastAccess": "最后访问",
+                "projects": "项目",
+                "browser": "浏览器",
+                "os": "系统",
+                "device": "设备",
+                "location": "位置"
+            },
+            "noUsers": "未找到用户",
+            "never": "从未访问过"
+        }
     },
     "study": {
         "title": "学习",
@@ -605,5 +622,13 @@
             "daysAgo": "{{count}} days ago",
             "daysAgo_plural": "{{count}} days ago"
         }
+    },
+    "notifications": {
+        "title": "通知",
+        "markAllRead": "全部标记为已读",
+        "viewAll": "查看全部",
+        "empty": "没有通知",
+        "newUser": "新用户",
+        "newBug": "报告了新错误"
     }
 }

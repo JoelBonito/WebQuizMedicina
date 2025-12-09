@@ -1,22 +1,27 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { TutorialModal, TutorialStep } from '../components/TutorialModal';
 import { useTranslation } from 'react-i18next';
+import { useProfile } from '../hooks/useProfile';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 
-// Chave para localStorage
-const getStorageKey = (key: string) => `tutorial_viewed_${key}`;
-const hasBeenViewed = (key: string) => {
-    try {
-        return localStorage.getItem(getStorageKey(key)) === 'true';
-    } catch {
-        return false;
-    }
+// Verificar se tutorial já foi visto (do perfil do usuário no Firestore)
+const hasBeenViewed = (key: string, profile: any): boolean => {
+    if (!profile || !profile.tutorials_viewed) return false;
+    return profile.tutorials_viewed[key] === true;
 };
-const markViewed = (key: string) => {
+
+// Marcar tutorial como visto no Firestore
+const markViewed = async (key: string, userId: string) => {
     try {
-        localStorage.setItem(getStorageKey(key), 'true');
+        const userRef = doc(db, 'user_profiles', userId);
+        await updateDoc(userRef, {
+            [`tutorials_viewed.${key}`]: true
+        });
+        console.log(`[GlobalTutorial] Marcado como visto: ${key}`);
     } catch (e) {
-        console.error('Error saving tutorial state:', e);
+        console.error('[GlobalTutorial] Error saving tutorial state:', e);
     }
 };
 
@@ -26,12 +31,18 @@ let globalShowTutorial: (() => void) | null = null;
 export function GlobalTutorial() {
     const { t } = useTranslation();
     const location = useLocation();
+    const { profile } = useProfile();
     const [isOpen, setIsOpen] = useState(false);
     const [currentKey, setCurrentKey] = useState('');
     const [steps, setSteps] = useState<TutorialStep[]>([]);
 
+    // Flag para evitar abrir múltiplas vezes na mesma página
+    const hasAutoOpenedRef = useRef<string | null>(null);
+
     // Detecta a página atual e atualiza os steps
     useEffect(() => {
+        if (!profile) return; // Aguardar perfil carregar
+
         const path = location.pathname;
         let key = 'dashboard';
         let newSteps: TutorialStep[] = [];
@@ -70,12 +81,14 @@ export function GlobalTutorial() {
         setCurrentKey(key);
         setSteps(newSteps);
 
-        // Abre automaticamente se nunca foi visto
-        if (!hasBeenViewed(key)) {
+        // Abre automaticamente se nunca foi visto (verificando Firestore)
+        // E se ainda não tentou abrir automaticamente nesta página
+        if (!hasBeenViewed(key, profile) && hasAutoOpenedRef.current !== key) {
+            hasAutoOpenedRef.current = key;
             const timer = setTimeout(() => setIsOpen(true), 500);
             return () => clearTimeout(timer);
         }
-    }, [location.pathname, t]);
+    }, [location.pathname, t, profile]);
 
     // Registra função global de abertura
     const showTutorial = useCallback(() => {
@@ -91,10 +104,12 @@ export function GlobalTutorial() {
         setIsOpen(false);
     }, []);
 
-    const handleComplete = useCallback(() => {
-        markViewed(currentKey);
+    const handleComplete = useCallback(async () => {
+        if (profile?.id) {
+            await markViewed(currentKey, profile.id);
+        }
         setIsOpen(false);
-    }, [currentKey]);
+    }, [currentKey, profile]);
 
     return (
         <TutorialModal

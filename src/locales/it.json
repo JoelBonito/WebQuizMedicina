@@ -4,7 +4,8 @@
         "appearance": "Aspetto",
         "adminDashboard": "Dashboard Admin",
         "logout": "Esci",
-        "bugReports": "Reported Bugs"
+        "bugReports": "Reported Bugs",
+        "usersDashboard": "Dashboard Utenti"
     },
     "dashboard": {
         "title": "Le Mie Materie",
@@ -283,7 +284,23 @@
         "operationsColumn": "Operazioni",
         "userCount": "{{count}} utente",
         "userCount_other": "{{count}} utenti",
-        "clickUserBreakdown": "Fai clic su un utente per vedere la suddivisione per progetto/materia"
+        "clickUserBreakdown": "Fai clic su un utente per vedere la suddivisione per progetto/materia",
+        "usersDashboard": {
+            "title": "Dashboard Utenti",
+            "subtitle": "Gestisci e visualizza tutti gli utenti della piattaforma",
+            "columns": {
+                "email": "Email",
+                "createdAt": "Data di Registrazione",
+                "lastAccess": "Ultimo Accesso",
+                "projects": "Progetti",
+                "browser": "Browser",
+                "os": "Sistema",
+                "device": "Dispositivo",
+                "location": "Posizione"
+            },
+            "noUsers": "Nessun utente trovato",
+            "never": "Mai effettuato l'accesso"
+        }
     },
     "study": {
         "title": "Studio",
@@ -605,5 +622,13 @@
             "daysAgo": "{{count}} days ago",
             "daysAgo_plural": "{{count}} days ago"
         }
+    },
+    "notifications": {
+        "title": "Notifiche",
+        "markAllRead": "Segna tutte come lette",
+        "viewAll": "Vedi tutto",
+        "empty": "Nessuna notifica",
+        "newUser": "Nuovo utente",
+        "newBug": "Nuovo bug segnalato"
     }
 }

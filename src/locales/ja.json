@@ -4,7 +4,8 @@
         "appearance": "外観",
         "adminDashboard": "管理者ダッシュボード",
         "logout": "ログアウト",
-        "bugReports": "Reported Bugs"
+        "bugReports": "Reported Bugs",
+        "usersDashboard": "ユーザーダッシュボード"
     },
     "dashboard": {
         "title": "マイ科目",
@@ -283,7 +284,23 @@
         "operationsColumn": "操作",
         "userCount": "{{count}}人のユーザー",
         "userCount_other": "{{count}}人のユーザー",
-        "clickUserBreakdown": "ユーザーをクリックして、プロジェクト/科目別の内訳を表示"
+        "clickUserBreakdown": "ユーザーをクリックして、プロジェクト/科目別の内訳を表示",
+        "usersDashboard": {
+            "title": "ユーザーダッシュボード",
+            "subtitle": "すべてのプラットフォームユーザーを管理および表示",
+            "columns": {
+                "email": "メールアドレス",
+                "createdAt": "登録日",
+                "lastAccess": "最終アクセス",
+                "projects": "プロジェクト",
+                "browser": "ブラウザ",
+                "os": "システム",
+                "device": "デバイス",
+                "location": "位置"
+            },
+            "noUsers": "ユーザーが見つかりません",
+            "never": "アクセスしたことがありません"
+        }
     },
     "study": {
         "title": "学習",
@@ -605,5 +622,13 @@
             "daysAgo": "{{count}} days ago",
             "daysAgo_plural": "{{count}} days ago"
         }
+    },
+    "notifications": {
+        "title": "通知",
+        "markAllRead": "すべて既読にする",
+        "viewAll": "すべて表示",
+        "empty": "通知なし",
+        "newUser": "新しいユーザー",
+        "newBug": "新しいバグが報告されました"
     }
 }

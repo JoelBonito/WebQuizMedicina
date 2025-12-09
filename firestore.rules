@@ -88,7 +88,12 @@ service cloud.firestore {
 
     // User Profiles
     match /user_profiles/{userId} {
+      // Usuário pode ler/escrever próprio perfil
       allow read, write: if isOwner(userId);
+      
+      // Admin pode LER todos os perfis (para Dashboard de Usuários)
+      allow read: if isAuthenticated() && 
+        request.auth.token.email == 'jbento1@gmail.com';
     }
 
     // Users Collection (Preferences, Settings)
@@ -149,6 +154,12 @@ service cloud.firestore {
       
       // Apenas admin pode ATUALIZAR status
       allow update: if isAuthenticated() && 
+        request.auth.token.email == 'jbento1@gmail.com';
+    }
+
+    // Notificações Admin - apenas admin pode ler/escrever
+    match /admin_notifications/{notificationId} {
+      allow read, write: if isAuthenticated() && 
         request.auth.token.email == 'jbento1@gmail.com';
     }
   }

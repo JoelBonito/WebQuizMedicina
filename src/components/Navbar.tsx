@@ -1,4 +1,4 @@
-import { ArrowLeft, LogOut, User, BookOpen, Shield, Palette, AlertTriangle } from "lucide-react";
+import { ArrowLeft, LogOut, User, BookOpen, Shield, Palette, AlertTriangle, Users } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Button } from "./ui/button";
 import { useAuth } from "../hooks/useAuth";
@@ -15,6 +15,7 @@ import { Logo } from "./Logo";
 import { ProfileSettings } from "./ProfileSettings";
 import { ThemeSettings } from "./ThemeSettings";
 import { HelpModal } from "./HelpModal";
+import { NotificationBell } from "./NotificationBell";
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
 
@@ -115,7 +116,7 @@ export function Navbar({ projectName, onBackClick, onAdminClick, onTutorialClick
 
 
         {/* User Actions */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 md:gap-4">
           {/* Help Button (SOS) */}
           <button
             onClick={() => setHelpOpen(true)}
@@ -133,11 +134,14 @@ export function Navbar({ projectName, onBackClick, onAdminClick, onTutorialClick
           <button
             onClick={onTutorialClick}
             disabled={!onTutorialClick}
-            className="w-9 h-9 rounded-full bg-primary/10 ring-2 ring-primary hover:ring-[#0891B2] transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-9 h-9 rounded-full bg-primary/10 ring-2 ring-primary hover:ring-[#0891B2] transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed ml-1 md:ml-0"
             title={t('tutorial.common.helpButton')}
           >
             <span className="text-xl font-bold text-primary">?</span>
           </button>
+
+          {/* Notification Bell - Only for Admin */}
+          <NotificationBell />
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -192,6 +196,10 @@ export function Navbar({ projectName, onBackClick, onAdminClick, onTutorialClick
                     <DropdownMenuItem onClick={() => window.location.href = '/admin/bugs'} className="cursor-pointer rounded-lg">
                       <AlertTriangle className="w-4 h-4 mr-2 text-orange-500" />
                       <span className="text-foreground">{t('navbar.bugReports')}</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => window.location.href = '/admin/users'} className="cursor-pointer rounded-lg">
+                      <Users className="w-4 h-4 mr-2 text-primary" />
+                      <span className="text-foreground">{t('navbar.usersDashboard')}</span>
                     </DropdownMenuItem>
                   </>
                 )}

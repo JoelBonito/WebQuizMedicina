@@ -24,3 +24,7 @@ export { get_token_usage_stats } from "./get_token_usage_stats";
 // Delete operations
 export { delete_quiz_session } from "./delete_quiz_session";
 export { delete_flashcard_session } from "./delete_flashcard_session";
+
+// Admin notification triggers
+export { onUserCreated } from "./on_user_created";
+export { onFeedbackCreated } from "./on_feedback_created";

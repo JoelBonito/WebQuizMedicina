@@ -4,7 +4,8 @@
         "appearance": "Внешний вид",
         "adminDashboard": "Панель администратора",
         "logout": "Выйти",
-        "bugReports": "Reported Bugs"
+        "bugReports": "Reported Bugs",
+        "usersDashboard": "Панель пользователей"
     },
     "dashboard": {
         "title": "Мои предметы",
@@ -283,7 +284,23 @@
         "operationsColumn": "Операции",
         "userCount": "{{count}} пользователь",
         "userCount_other": "{{count}} пользователей",
-        "clickUserBreakdown": "Нажмите на пользователя, чтобы увидеть разбивку по проектам/предметам"
+        "clickUserBreakdown": "Нажмите на пользователя, чтобы увидеть разбивку по проектам/предметам",
+        "usersDashboard": {
+            "title": "Панель пользователей",
+            "subtitle": "Управляйте и просматривайте всех пользователей платформы",
+            "columns": {
+                "email": "Электронная почта",
+                "createdAt": "Дата регистрации",
+                "lastAccess": "Последний доступ",
+                "projects": "Проекты",
+                "browser": "Браузер",
+                "os": "Система",
+                "device": "Устройство",
+                "location": "Местоположение"
+            },
+            "noUsers": "Пользователи не найдены",
+            "never": "Никогда не заходил"
+        }
     },
     "study": {
         "title": "Обучение",
@@ -605,5 +622,13 @@
             "daysAgo": "{{count}} days ago",
             "daysAgo_plural": "{{count}} days ago"
         }
+    },
+    "notifications": {
+        "title": "Уведомления",
+        "markAllRead": "Отметить все как прочитанные",
+        "viewAll": "Посмотреть все",
+        "empty": "Нет уведомлений",
+        "newUser": "Новый пользователь",
+        "newBug": "Новая ошибка сообщена"
     }
 }

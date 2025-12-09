@@ -4,7 +4,8 @@
         "appearance": "Apariencia",
         "adminDashboard": "Panel de Admin",
         "logout": "Cerrar sesión",
-        "bugReports": "Bugs Reportados"
+        "bugReports": "Bugs Reportados",
+        "usersDashboard": "Panel de Usuarios"
     },
     "dashboard": {
         "title": "Mis Materias",
@@ -283,7 +284,23 @@
         "operationsColumn": "Operaciones",
         "userCount": "{{count}} usuario",
         "userCount_other": "{{count}} usuarios",
-        "clickUserBreakdown": "Haz clic en un usuario para ver el desglose por proyecto/materia"
+        "clickUserBreakdown": "Haz clic en un usuario para ver el desglose por proyecto/materia",
+        "usersDashboard": {
+            "title": "Panel de Usuarios",
+            "subtitle": "Gestione y visualice todos los usuarios de la plataforma",
+            "columns": {
+                "email": "Correo electrónico",
+                "createdAt": "Fecha de Registro",
+                "lastAccess": "Último Acceso",
+                "projects": "Proyectos",
+                "browser": "Navegador",
+                "os": "Sistema",
+                "device": "Dispositivo",
+                "location": "Ubicación"
+            },
+            "noUsers": "No se encontraron usuarios",
+            "never": "Nunca accedió"
+        }
     },
     "study": {
         "title": "Estudio",
@@ -605,5 +622,13 @@
             "daysAgo": "Hace {{count}} días",
             "daysAgo_plural": "Hace {{count}} días"
         }
+    },
+    "notifications": {
+        "title": "Notificaciones",
+        "markAllRead": "Marcar todas como leídas",
+        "viewAll": "Ver todas",
+        "empty": "Sin notificaciones",
+        "newUser": "Nuevo usuario",
+        "newBug": "Nuevo error reportado"
     }
 }

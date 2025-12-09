@@ -4,7 +4,8 @@
         "appearance": "Aparência",
         "adminDashboard": "Admin Dashboard",
         "logout": "Sair",
-        "bugReports": "Reported Bugs"
+        "bugReports": "Reported Bugs",
+        "usersDashboard": "Painel de Utilizadores"
     },
     "dashboard": {
         "title": "Minhas Matérias",
@@ -283,7 +284,23 @@
         "operationsColumn": "Operações",
         "userCount": "{{count}} utilizador",
         "userCount_other": "{{count}} utilizadores",
-        "clickUserBreakdown": "Clique num utilizador para ver detalhes por projeto/matéria"
+        "clickUserBreakdown": "Clique num utilizador para ver detalhes por projeto/matéria",
+        "usersDashboard": {
+            "title": "Painel de Utilizadores",
+            "subtitle": "Gerir e visualizar todos os utilizadores da plataforma",
+            "columns": {
+                "email": "Email",
+                "createdAt": "Data de Registo",
+                "lastAccess": "Último Acesso",
+                "projects": "Projetos",
+                "browser": "Navegador",
+                "os": "Sistema",
+                "device": "Dispositivo",
+                "location": "Localização"
+            },
+            "noUsers": "Nenhum utilizador encontrado",
+            "never": "Nunca acedeu"
+        }
     },
     "study": {
         "title": "Estudo",
@@ -605,5 +622,13 @@
             "daysAgo": "{{count}} days ago",
             "daysAgo_plural": "{{count}} days ago"
         }
+    },
+    "notifications": {
+        "title": "Notificações",
+        "markAllRead": "Marcar todas como lidas",
+        "viewAll": "Ver todas",
+        "empty": "Sem notificações",
+        "newUser": "Novo utilizador",
+        "newBug": "Novo erro reportado"
     }
 }

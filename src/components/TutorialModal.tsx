@@ -98,10 +98,10 @@ export function TutorialModal({
                         <div
                             key={index}
                             className={`h-1.5 rounded-full flex-1 transition-all ${index === currentStep
-                                    ? 'bg-gradient-to-r from-[#0891B2] to-[#7CB342]'
-                                    : index < currentStep
-                                        ? 'bg-primary/50'
-                                        : 'bg-muted'
+                                ? 'bg-gradient-to-r from-[#0891B2] to-[#7CB342]'
+                                : index < currentStep
+                                    ? 'bg-primary/50'
+                                    : 'bg-muted'
                                 }`}
                         />
                     ))}
@@ -131,22 +131,20 @@ export function TutorialModal({
                     </p>
                 </div>
 
-                {/* Checkbox "Não mostrar novamente" (apenas no último passo) */}
-                {isLastStep && (
-                    <div className="flex items-center space-x-2 py-2">
-                        <Checkbox
-                            id={`${tutorialKey}-dont-show`}
-                            checked={dontShowAgain}
-                            onCheckedChange={(checked) => setDontShowAgain(checked === true)}
-                        />
-                        <Label
-                            htmlFor={`${tutorialKey}-dont-show`}
-                            className="text-sm text-muted-foreground cursor-pointer"
-                        >
-                            {t('tutorial.common.dontShowAgain')}
-                        </Label>
-                    </div>
-                )}
+                {/* Checkbox "Não mostrar novamente" (em TODOS os passos) */}
+                <div className="flex items-center space-x-2 py-2">
+                    <Checkbox
+                        id={`${tutorialKey}-dont-show`}
+                        checked={dontShowAgain}
+                        onCheckedChange={(checked) => setDontShowAgain(checked === true)}
+                    />
+                    <Label
+                        htmlFor={`${tutorialKey}-dont-show`}
+                        className="text-sm text-muted-foreground cursor-pointer"
+                    >
+                        {t('tutorial.common.dontShowAgain')}
+                    </Label>
+                </div>
 
                 {/* Footer com botões de navegação */}
                 <DialogFooter className="flex-row justify-between gap-2 pt-4">

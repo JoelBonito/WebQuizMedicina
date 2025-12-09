@@ -1,11 +1,4 @@
 {
-    "navbar": {
-        "profile": "Perfil",
-        "appearance": "Aparência",
-        "adminDashboard": "Dashboard Admin",
-        "logout": "Sair",
-        "bugReports": "Bugs Reportados"
-    },
     "dashboard": {
         "title": "Minhas Matérias",
         "createProject": "Nova Matéria",
@@ -283,7 +276,39 @@
         "operationsColumn": "Operações",
         "userCount": "{{count}} usuário",
         "userCount_other": "{{count}} usuários",
-        "clickUserBreakdown": "Clique em um usuário para ver breakdown por projeto/matéria"
+        "clickUserBreakdown": "Clique em um usuário para ver breakdown por projeto/matéria",
+        "usersDashboard": {
+            "title": "Dashboard de Usuários",
+            "subtitle": "Gerencie e visualize todos os usuários da plataforma",
+            "columns": {
+                "email": "Email",
+                "createdAt": "Data de Cadastro",
+                "lastAccess": "Último Acesso",
+                "projects": "Projetos",
+                "browser": "Navegador",
+                "os": "Sistema",
+                "device": "Dispositivo",
+                "location": "Localização"
+            },
+            "noUsers": "Nenhum usuário encontrado",
+            "never": "Nunca acessou"
+        }
+    },
+    "notifications": {
+        "title": "Notificações",
+        "markAllRead": "Marcar todas como lidas",
+        "viewAll": "Ver todas",
+        "empty": "Nenhuma notificação",
+        "newUser": "Novo usuário",
+        "newBug": "Novo bug reportado"
+    },
+    "navbar": {
+        "profile": "Perfil",
+        "appearance": "Aparência",
+        "adminDashboard": "Dashboard Admin",
+        "usersDashboard": "Dashboard Usuários",
+        "logout": "Sair",
+        "bugReports": "Bugs Reportados"
     },
     "study": {
         "title": "Estudo",

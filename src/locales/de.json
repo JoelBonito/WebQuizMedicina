@@ -4,7 +4,8 @@
         "appearance": "Erscheinungsbild",
         "adminDashboard": "Admin-Dashboard",
         "logout": "Abmelden",
-        "bugReports": "Reported Bugs"
+        "bugReports": "Reported Bugs",
+        "usersDashboard": "Benutzer-Dashboard"
     },
     "dashboard": {
         "title": "Meine Fächer",
@@ -283,7 +284,23 @@
         "operationsColumn": "Operationen",
         "userCount": "{{count}} Benutzer",
         "userCount_other": "{{count}} Benutzer",
-        "clickUserBreakdown": "Klicken Sie auf einen Benutzer, um die Aufschlüsselung nach Projekt/Fach anzuzeigen"
+        "clickUserBreakdown": "Klicken Sie auf einen Benutzer, um die Aufschlüsselung nach Projekt/Fach anzuzeigen",
+        "usersDashboard": {
+            "title": "Benutzer-Dashboard",
+            "subtitle": "Verwalten und visualisieren Sie alle Plattformbenutzer",
+            "columns": {
+                "email": "E-Mail",
+                "createdAt": "Registrierungsdatum",
+                "lastAccess": "Letzter Zugriff",
+                "projects": "Projekte",
+                "browser": "Browser",
+                "os": "System",
+                "device": "Gerät",
+                "location": "Standort"
+            },
+            "noUsers": "Keine Benutzer gefunden",
+            "never": "Nie zugegriffen"
+        }
     },
     "study": {
         "title": "Lernen",
@@ -605,5 +622,13 @@
             "daysAgo": "{{count}} days ago",
             "daysAgo_plural": "{{count}} days ago"
         }
+    },
+    "notifications": {
+        "title": "Benachrichtigungen",
+        "markAllRead": "Alle als gelesen markieren",
+        "viewAll": "Alle anzeigen",
+        "empty": "Keine Benachrichtigungen",
+        "newUser": "Neuer Benutzer",
+        "newBug": "Neuer Fehler gemeldet"
     }
 }

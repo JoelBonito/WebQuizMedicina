@@ -23,6 +23,7 @@ const Auth = lazy(() => import("./components/Auth").then(module => ({ default: m
 const ProjectStats = lazy(() => import("./components/ProjectStats").then(module => ({ default: module.ProjectStats })));
 const AdminDashboard = lazy(() => import("./components/AdminDashboard").then(module => ({ default: module.AdminDashboard })));
 const BugReports = lazy(() => import("./components/BugReports").then(module => ({ default: module.BugReports })));
+const UsersDashboard = lazy(() => import("./components/admin/UsersDashboard").then(module => ({ default: module.UsersDashboard })));
 import { GlobalTutorial, useGlobalTutorial } from "./components/GlobalTutorial";
 
 // Loading fallback component
@@ -102,6 +103,30 @@ function BugReportsRoute() {
       <Navbar onBackClick={handleBackToDashboard} onAdminClick={handleAdminClick} onTutorialClick={showCurrentTutorial} />
       <Suspense fallback={<LoadingFallback />}>
         <BugReports />
+      </Suspense>
+      <Toaster />
+    </>
+  );
+}
+
+// Users Dashboard Route Component (Admin only)
+function UsersRoute() {
+  const navigate = useNavigate();
+  const { showCurrentTutorial } = useGlobalTutorial();
+
+  const handleBackToDashboard = () => {
+    navigate('/');
+  };
+
+  const handleAdminClick = () => {
+    navigate('/admin');
+  };
+
+  return (
+    <>
+      <Navbar onBackClick={handleBackToDashboard} onAdminClick={handleAdminClick} onTutorialClick={showCurrentTutorial} />
+      <Suspense fallback={<LoadingFallback />}>
+        <UsersDashboard />
       </Suspense>
       <Toaster />
     </>
@@ -235,6 +260,7 @@ function AppContent() {
         <Route path="/project/:projectId" element={<ProjectRoute />} />
         <Route path="/admin" element={<AdminRoute />} />
         <Route path="/admin/bugs" element={<BugReportsRoute />} />
+        <Route path="/admin/users" element={<UsersRoute />} />
       </Routes>
       <GlobalTutorial />
     </>

@@ -4,6 +4,7 @@ import { doc, setDoc, updateDoc, serverTimestamp, onSnapshot } from 'firebase/fi
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuth } from '../hooks/useAuth';
 import { getInitialLanguage } from '../lib/languageUtils';
+import { updateLastAccess } from '../lib/deviceTracker';
 
 // Profile interface
 export interface Profile {
@@ -57,14 +58,29 @@ export function ProfileProvider({ children }: ProfileProviderProps) {
             hasLoggedRef.current = true;
         }
 
+
         setLoading(true);
 
         const docRef = doc(db, 'user_profiles', user.uid);
+
+        // Track if we've already updated last access in this session
+        let hasUpdatedAccess = false;
 
         const unsubscribe = onSnapshot(docRef, async (docSnap) => {
             if (docSnap.exists()) {
                 const data = docSnap.data();
                 setProfile({ id: docSnap.id, ...data } as Profile);
+
+                // Update last access ONLY ONCE per session, not on every profile change
+                if (!hasUpdatedAccess) {
+                    hasUpdatedAccess = true;
+                    // Use setTimeout to avoid triggering during the listener
+                    setTimeout(() => {
+                        updateLastAccess(user.uid).catch(err =>
+                            console.error('[ProfileContext] Error updating access:', err)
+                        );
+                    }, 1000);
+                }
             } else {
                 // Create profile if it doesn't exist
                 const displayName = user.email?.split('@')[0] || 'Usuário';
@@ -89,6 +105,7 @@ export function ProfileProvider({ children }: ProfileProviderProps) {
                     console.error('[ProfileContext] Error creating profile:', err);
                 }
             }
+
             setLoading(false);
         }, (error) => {
             console.error('[ProfileContext] Error listening to profile:', error);

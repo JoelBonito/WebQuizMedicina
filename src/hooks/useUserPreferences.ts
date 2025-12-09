@@ -20,7 +20,8 @@ export function useUserPreferences() {
             return;
         }
 
-        const userRef = doc(db, 'users', user.uid);
+        // Usar user_profiles (coleção principal do usuário) em vez de 'users'
+        const userRef = doc(db, 'user_profiles', user.uid);
 
         const unsubscribe = onSnapshot(userRef, async (docSnapshot) => {
             if (docSnapshot.exists()) {
@@ -34,10 +35,9 @@ export function useUserPreferences() {
                     setPreferences(defaultPrefs);
                 }
             } else {
-                // Criar documento de usuário se não existir
-                const defaultPrefs = { autoRemoveDifficulties: true };
-                await setDoc(userRef, { preferences: defaultPrefs });
-                setPreferences(defaultPrefs);
+                // Documento não existe ainda - apenas usar defaults
+                // O ProfileContext criará o documento quando necessário
+                setPreferences({ autoRemoveDifficulties: true });
             }
             setLoading(false);
         }, (error) => {
@@ -52,7 +52,7 @@ export function useUserPreferences() {
         if (!user) return;
 
         try {
-            const userRef = doc(db, 'users', user.uid);
+            const userRef = doc(db, 'user_profiles', user.uid);
             // Usar setDoc com merge para criar o documento se não existir
             await setDoc(userRef, {
                 preferences: {
@@ -77,3 +77,4 @@ export function useUserPreferences() {
         updateAutoRemove,
     };
 }
+

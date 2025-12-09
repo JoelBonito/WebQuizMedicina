@@ -4,7 +4,8 @@
         "appearance": "Apparence",
         "adminDashboard": "Tableau de bord Admin",
         "logout": "Déconnexion",
-        "bugReports": "Bugs Signalés"
+        "bugReports": "Bugs Signalés",
+        "usersDashboard": "Tableau de Bord Utilisateurs"
     },
     "dashboard": {
         "title": "Mes Matières",
@@ -283,7 +284,23 @@
         "operationsColumn": "Opérations",
         "userCount": "{{count}} utilisateur",
         "userCount_other": "{{count}} utilisateurs",
-        "clickUserBreakdown": "Cliquez sur un utilisateur pour voir la répartition par projet/matière"
+        "clickUserBreakdown": "Cliquez sur un utilisateur pour voir la répartition par projet/matière",
+        "usersDashboard": {
+            "title": "Tableau de Bord Utilisateurs",
+            "subtitle": "Gérez et visualisez tous les utilisateurs de la plateforme",
+            "columns": {
+                "email": "E-mail",
+                "createdAt": "Date d'inscription",
+                "lastAccess": "Dernier Accès",
+                "projects": "Projets",
+                "browser": "Navigateur",
+                "os": "Système",
+                "device": "Appareil",
+                "location": "Emplacement"
+            },
+            "noUsers": "Aucun utilisateur trouvé",
+            "never": "Jamais accédé"
+        }
     },
     "study": {
         "title": "Étude",
@@ -605,5 +622,13 @@
             "daysAgo": "Il y a {{count}} jours",
             "daysAgo_plural": "Il y a {{count}} jours"
         }
+    },
+    "notifications": {
+        "title": "Notifications",
+        "markAllRead": "Marquer toutes comme lues",
+        "viewAll": "Voir tout",
+        "empty": "Aucune notification",
+        "newUser": "Nouvel utilisateur",
+        "newBug": "Nouveau bug signalé"
     }
 }

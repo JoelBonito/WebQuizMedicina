@@ -4,7 +4,8 @@
         "appearance": "المظهر",
         "adminDashboard": "لوحة الإدارة",
         "logout": "تسجيل الخروج",
-        "bugReports": "Reported Bugs"
+        "bugReports": "Reported Bugs",
+        "usersDashboard": "لوحة المستخدمين"
     },
     "dashboard": {
         "title": "موادي",
@@ -283,7 +284,23 @@
         "operationsColumn": "العمليات",
         "userCount": "{{count}} مستخدم",
         "userCount_other": "{{count}} مستخدمين",
-        "clickUserBreakdown": "انقر فوق مستخدم لرؤية التفصيل حسب المشروع/المادة"
+        "clickUserBreakdown": "انقر فوق مستخدم لرؤية التفصيل حسب المشروع/المادة",
+        "usersDashboard": {
+            "title": "لوحة المستخدمين",
+            "subtitle": "إدارة وعرض جميع مستخدمي المنصة",
+            "columns": {
+                "email": "البريد الإلكتروني",
+                "createdAt": "تاريخ التسجيل",
+                "lastAccess": "آخر دخول",
+                "projects": "المشاريع",
+                "browser": "المتصفح",
+                "os": "النظام",
+                "device": "الجهاز",
+                "location": "الموقع"
+            },
+            "noUsers": "لم يتم العثور على مستخدمين",
+            "never": "لم يدخل أبداً"
+        }
     },
     "study": {
         "title": "الدراسة",
@@ -605,5 +622,13 @@
             "daysAgo": "{{count}} days ago",
             "daysAgo_plural": "{{count}} days ago"
         }
+    },
+    "notifications": {
+        "title": "الإشعارات",
+        "markAllRead": "وضع علامة مقروء على الكل",
+        "viewAll": "عرض الكل",
+        "empty": "لا توجد إشعارات",
+        "newUser": "مستخدم جديد",
+        "newBug": "خطأ جديد تم الإبلاغ عنه"
     }
 }

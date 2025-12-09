@@ -2,8 +2,9 @@
     "navbar": {
         "profile": "Profile",
         "appearance": "Appearance",
-        "logout": "Logout",
         "adminDashboard": "Admin Dashboard",
+        "usersDashboard": "Users Dashboard",
+        "logout": "Logout",
         "bugReports": "Reported Bugs"
     },
     "dashboard": {
@@ -283,7 +284,31 @@
         "operationsColumn": "Operations",
         "userCount": "{{count}} user",
         "userCount_other": "{{count}} users",
-        "clickUserBreakdown": "Click on a user to see breakdown by project/subject"
+        "clickUserBreakdown": "Click on a user to see breakdown by project/subject",
+        "usersDashboard": {
+            "title": "Users Dashboard",
+            "subtitle": "Manage and view all platform users",
+            "columns": {
+                "email": "Email",
+                "createdAt": "Registration Date",
+                "lastAccess": "Last Access",
+                "projects": "Projects",
+                "browser": "Browser",
+                "os": "System",
+                "device": "Device",
+                "location": "Location"
+            },
+            "noUsers": "No users found",
+            "never": "Never accessed"
+        }
+    },
+    "notifications": {
+        "title": "Notifications",
+        "markAllRead": "Mark all as read",
+        "viewAll": "View all",
+        "empty": "No notifications",
+        "newUser": "New user",
+        "newBug": "New bug reported"
     },
     "study": {
         "title": "Study",
