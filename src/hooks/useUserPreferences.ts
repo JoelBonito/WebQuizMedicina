@@ -1,79 +1,53 @@
-import { useState, useEffect } from 'react';
-import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { useState } from 'react';
+import { doc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from './useAuth';
+import { useProfileContext } from '../contexts/ProfileContext';
 
 interface UserPreferences {
     autoRemoveDifficulties: boolean;
 }
 
+/**
+ * Hook para gerenciar preferências do usuário.
+ * 
+ * IMPORTANTE: Este hook agora usa o ProfileContext existente para obter
+ * as preferências, evitando race conditions e listeners duplicados.
+ * O ProfileContext já garante que o documento user_profiles existe.
+ */
 export function useUserPreferences() {
     const { user } = useAuth();
-    const [preferences, setPreferences] = useState<UserPreferences>({
-        autoRemoveDifficulties: true, // Padrão ativado
-    });
-    const [loading, setLoading] = useState(true);
+    const { profile, loading: profileLoading } = useProfileContext();
+    const [updating, setUpdating] = useState(false);
 
-    useEffect(() => {
-        if (!user) {
-            setLoading(false);
-            return;
-        }
-
-        // Usar user_profiles (coleção principal do usuário) em vez de 'users'
-        const userRef = doc(db, 'user_profiles', user.uid);
-
-        const unsubscribe = onSnapshot(userRef, async (docSnapshot) => {
-            if (docSnapshot.exists()) {
-                const data = docSnapshot.data();
-                if (data?.preferences) {
-                    setPreferences(data.preferences);
-                } else {
-                    // Inicializar preferências se não existirem
-                    const defaultPrefs = { autoRemoveDifficulties: true };
-                    await setDoc(userRef, { preferences: defaultPrefs }, { merge: true });
-                    setPreferences(defaultPrefs);
-                }
-            } else {
-                // Documento não existe ainda - apenas usar defaults
-                // O ProfileContext criará o documento quando necessário
-                setPreferences({ autoRemoveDifficulties: true });
-            }
-            setLoading(false);
-        }, (error) => {
-            console.error('Error loading user preferences:', error);
-            setLoading(false);
-        });
-
-        return () => unsubscribe();
-    }, [user]);
+    // Extrair preferências do perfil ou usar defaults
+    const preferences: UserPreferences = {
+        autoRemoveDifficulties: profile?.preferences?.autoRemoveDifficulties ?? true,
+    };
 
     const updateAutoRemove = async (enabled: boolean) => {
         if (!user) return;
 
+        setUpdating(true);
         try {
             const userRef = doc(db, 'user_profiles', user.uid);
-            // Usar setDoc com merge para criar o documento se não existir
+            // Usar setDoc com merge para atualizar apenas as preferências
             await setDoc(userRef, {
                 preferences: {
                     autoRemoveDifficulties: enabled
                 }
             }, { merge: true });
-
-            // Atualizar estado local imediatamente para feedback instantâneo
-            setPreferences(prev => ({
-                ...prev,
-                autoRemoveDifficulties: enabled
-            }));
         } catch (error) {
             console.error('Error updating auto-remove preference:', error);
             throw error; // Re-throw para que o ContentPanel possa mostrar erro
+        } finally {
+            setUpdating(false);
         }
     };
 
     return {
         preferences,
-        loading,
+        loading: profileLoading || updating,
         updateAutoRemove,
     };
 }

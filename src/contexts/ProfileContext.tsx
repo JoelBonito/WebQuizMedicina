@@ -15,6 +15,12 @@ export interface Profile {
     role: string;
     created_at: any;
     updated_at: any;
+    // Preferências do usuário (gerenciadas por useUserPreferences)
+    preferences?: {
+        autoRemoveDifficulties?: boolean;
+    };
+    // Tutoriais visualizados (gerenciados por GlobalTutorial)
+    viewedTutorials?: string[];
 }
 
 // Profile context interface
@@ -58,65 +64,91 @@ export function ProfileProvider({ children }: ProfileProviderProps) {
             hasLoggedRef.current = true;
         }
 
-
         setLoading(true);
 
         const docRef = doc(db, 'user_profiles', user.uid);
 
         // Track if we've already updated last access in this session
         let hasUpdatedAccess = false;
+        let unsubscribe: (() => void) | null = null;
 
-        const unsubscribe = onSnapshot(docRef, async (docSnap) => {
-            if (docSnap.exists()) {
-                const data = docSnap.data();
-                setProfile({ id: docSnap.id, ...data } as Profile);
-
-                // Update last access ONLY ONCE per session, not on every profile change
-                if (!hasUpdatedAccess) {
-                    hasUpdatedAccess = true;
-                    // Use setTimeout to avoid triggering during the listener
-                    setTimeout(() => {
-                        updateLastAccess(user.uid).catch(err =>
-                            console.error('[ProfileContext] Error updating access:', err)
-                        );
-                    }, 1000);
+        // Função para inicializar o perfil e configurar o listener
+        const initializeProfile = async () => {
+            try {
+                // DEBUG: Verificar se temos um token válido
+                if (user) {
+                    try {
+                        const token = await user.getIdToken();
+                        console.log('[ProfileContext] Token disponível:', token ? 'Sim' : 'Não');
+                        console.log('[ProfileContext] User UID:', user.uid);
+                    } catch (e) {
+                        console.error('[ProfileContext] Erro ao obter token:', e);
+                    }
                 }
-            } else {
-                // Create profile if it doesn't exist
-                const displayName = user.email?.split('@')[0] || 'Usuário';
 
-                // Detect the user's language preference
-                const detectedLanguage = getInitialLanguage();
-                console.log('[ProfileContext] Creating new profile with detected language:', detectedLanguage);
+                // Primeiro, tentar obter o documento
+                const { getDoc } = await import('firebase/firestore');
+                console.log('[ProfileContext] Buscando documento em user_profiles/', user.uid);
 
-                const newProfile = {
-                    display_name: displayName,
-                    response_language: detectedLanguage,
-                    role: 'user', // Default role
-                    avatar_url: user.photoURL || null,
-                    created_at: serverTimestamp(),
-                    updated_at: serverTimestamp(),
-                };
+                const docSnap = await getDoc(docRef);
 
-                try {
+                if (!docSnap.exists()) {
+                    // Documento não existe - criar primeiro
+                    const displayName = user.email?.split('@')[0] || 'Usuário';
+                    const detectedLanguage = getInitialLanguage();
+                    console.log('[ProfileContext] Creating new profile with detected language:', detectedLanguage);
+
+                    const newProfile = {
+                        display_name: displayName,
+                        response_language: detectedLanguage,
+                        role: 'user',
+                        avatar_url: user.photoURL || null,
+                        created_at: serverTimestamp(),
+                        updated_at: serverTimestamp(),
+                    };
+
                     await setDoc(docRef, newProfile);
-                    // onSnapshot will fire again with the new data
-                } catch (err) {
-                    console.error('[ProfileContext] Error creating profile:', err);
+                    console.log('[ProfileContext] Profile created successfully');
                 }
-            }
 
-            setLoading(false);
-        }, (error) => {
-            console.error('[ProfileContext] Error listening to profile:', error);
-            setLoading(false);
-        });
+                // Agora que sabemos que o documento existe, configurar o listener
+                unsubscribe = onSnapshot(docRef, (docSnap) => {
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        setProfile({ id: docSnap.id, ...data } as Profile);
+
+                        // Update last access ONLY ONCE per session
+                        if (!hasUpdatedAccess) {
+                            hasUpdatedAccess = true;
+                            setTimeout(() => {
+                                updateLastAccess(user.uid).catch(err =>
+                                    console.error('[ProfileContext] Error updating access:', err)
+                                );
+                            }, 1000);
+                        }
+                    }
+                    setLoading(false);
+                }, (error) => {
+                    console.error('[ProfileContext] Error listening to profile:', error);
+                    setLoading(false);
+                });
+
+            } catch (error) {
+                console.error('[ProfileContext] Error initializing profile:', error);
+                setLoading(false);
+            }
+        };
+
+        initializeProfile();
 
         return () => {
             console.log('[ProfileContext] Cleaning up profile listener');
-            unsubscribe();
+            if (unsubscribe) {
+                unsubscribe();
+            }
         };
     }, [user?.uid]); // Only re-run when user.uid changes
+
 
     // Update profile
     const updateProfile = async (updates: Partial<Pick<Profile, 'display_name' | 'avatar_url' | 'response_language'>>) => {

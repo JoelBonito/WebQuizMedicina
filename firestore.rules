@@ -20,9 +20,14 @@ service cloud.firestore {
     }
 
 
+    // Helper function para verificar se é admin
+    function isAdmin() {
+      return request.auth != null && request.auth.token.email == 'jbento1@gmail.com';
+    }
+
     // Projects
     match /projects/{projectId} {
-      allow read: if isOwner(resource.data.user_id);
+      allow read: if isOwner(resource.data.user_id) || isAdmin();
       allow create: if isOwner(request.resource.data.user_id);
       allow update, delete: if isOwner(resource.data.user_id);
     }
@@ -88,11 +93,11 @@ service cloud.firestore {
 
     // User Profiles
     match /user_profiles/{userId} {
-      // Usuário pode ler/escrever próprio perfil
+      // Usuário pode ler/escrever seu próprio perfil
       allow read, write: if isOwner(userId);
-      
+
       // Admin pode LER todos os perfis (para Dashboard de Usuários)
-      allow read: if isAuthenticated() && 
+      allow read: if request.auth != null &&
         request.auth.token.email == 'jbento1@gmail.com';
     }
 
