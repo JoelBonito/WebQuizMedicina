@@ -137,5 +137,19 @@ service cloud.firestore {
         isProjectOwner(resource.data.project_id)
       );
     }
+
+    // Feedback (Bug Reports) - Qualquer usuário pode criar, apenas admin pode ler/atualizar
+    match /feedback/{feedbackId} {
+      // Qualquer usuário autenticado pode CRIAR feedback
+      allow create: if isAuthenticated();
+      
+      // Apenas admin pode LER feedbacks
+      allow read: if isAuthenticated() && 
+        request.auth.token.email == 'jbento1@gmail.com';
+      
+      // Apenas admin pode ATUALIZAR status
+      allow update: if isAuthenticated() && 
+        request.auth.token.email == 'jbento1@gmail.com';
+    }
   }
 }

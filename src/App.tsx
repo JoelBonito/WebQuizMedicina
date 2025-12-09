@@ -22,6 +22,7 @@ const Dashboard = lazy(() => import("./components/Dashboard").then(module => ({ 
 const Auth = lazy(() => import("./components/Auth").then(module => ({ default: module.Auth })));
 const ProjectStats = lazy(() => import("./components/ProjectStats").then(module => ({ default: module.ProjectStats })));
 const AdminDashboard = lazy(() => import("./components/AdminDashboard").then(module => ({ default: module.AdminDashboard })));
+const BugReports = lazy(() => import("./components/BugReports").then(module => ({ default: module.BugReports })));
 import { GlobalTutorial, useGlobalTutorial } from "./components/GlobalTutorial";
 
 // Loading fallback component
@@ -52,7 +53,6 @@ function DashboardRoute() {
           <Dashboard onSelectSubject={handleSelectProject} />
         </Suspense>
       </div>
-      <GlobalTutorial />
       <Toaster />
     </>
   );
@@ -79,7 +79,30 @@ function AdminRoute() {
           <AdminDashboard />
         </Suspense>
       </div>
-      <GlobalTutorial />
+      <Toaster />
+    </>
+  );
+}
+
+// Bug Reports Route Component (Admin only)
+function BugReportsRoute() {
+  const navigate = useNavigate();
+  const { showCurrentTutorial } = useGlobalTutorial();
+
+  const handleBackToDashboard = () => {
+    navigate('/');
+  };
+
+  const handleAdminClick = () => {
+    navigate('/admin');
+  };
+
+  return (
+    <>
+      <Navbar onBackClick={handleBackToDashboard} onAdminClick={handleAdminClick} onTutorialClick={showCurrentTutorial} />
+      <Suspense fallback={<LoadingFallback />}>
+        <BugReports />
+      </Suspense>
       <Toaster />
     </>
   );
@@ -142,6 +165,7 @@ function ProjectRoute() {
               onBackClick={handleBackToDashboard}
               projectName={projectName}
               onAdminClick={handleAdminClick}
+              onTutorialClick={showCurrentTutorial}
             />
 
             {/* Main Content */}
@@ -180,7 +204,6 @@ function ProjectRoute() {
           />
         )}
       </Suspense>
-      <GlobalTutorial />
       <Toaster />
     </>
   );
@@ -206,11 +229,15 @@ function AppContent() {
   }
 
   return (
-    <Routes>
-      <Route path="/" element={<DashboardRoute />} />
-      <Route path="/project/:projectId" element={<ProjectRoute />} />
-      <Route path="/admin" element={<AdminRoute />} />
-    </Routes>
+    <>
+      <Routes>
+        <Route path="/" element={<DashboardRoute />} />
+        <Route path="/project/:projectId" element={<ProjectRoute />} />
+        <Route path="/admin" element={<AdminRoute />} />
+        <Route path="/admin/bugs" element={<BugReportsRoute />} />
+      </Routes>
+      <GlobalTutorial />
+    </>
   );
 }
 

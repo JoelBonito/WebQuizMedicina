@@ -35,8 +35,12 @@ export function HelpModal({ open, onOpenChange }: HelpModalProps) {
 
         setIsSubmitting(true);
         try {
+            // Captura project_id se estiver na URL
+            const projectIdMatch = window.location.pathname.match(/\/project\/([^/]+)/);
+            const projectId = projectIdMatch ? projectIdMatch[1] : null;
+
             // Captura informações adicionais
-            const feedbackData = {
+            const feedbackData: Record<string, unknown> = {
                 user_id: user.uid,
                 user_email: user.email || 'unknown',
                 description: description.trim(),
@@ -46,11 +50,12 @@ export function HelpModal({ open, onOpenChange }: HelpModalProps) {
                 created_at: serverTimestamp(),
                 user_agent: navigator.userAgent,
                 url: window.location.href,
-                // Captura project_id se estiver na URL
-                project_id: window.location.pathname.includes('/project/')
-                    ? window.location.pathname.split('/project/')[1]?.split('/')[0]
-                    : undefined,
             };
+
+            // Só adiciona project_id se existir (evita undefined)
+            if (projectId) {
+                feedbackData.project_id = projectId;
+            }
 
             await addDoc(collection(db, 'feedback'), feedbackData);
 
@@ -112,12 +117,12 @@ export function HelpModal({ open, onOpenChange }: HelpModalProps) {
                                     type="button"
                                     onClick={() => setSeverity(level)}
                                     className={`px-3 py-2 rounded-lg text-xs font-medium uppercase tracking-wider border transition-all ${severity === level
-                                            ? level === 'high'
-                                                ? 'bg-red-500/20 border-red-500/50 text-red-600 dark:text-red-400'
-                                                : level === 'medium'
-                                                    ? 'bg-orange-500/20 border-orange-500/50 text-orange-600 dark:text-orange-400'
-                                                    : 'bg-blue-500/20 border-blue-500/50 text-blue-600 dark:text-blue-400'
-                                            : 'bg-muted border-border text-muted-foreground hover:border-primary/30'
+                                        ? level === 'high'
+                                            ? 'bg-red-500/20 border-red-500/50 text-red-600 dark:text-red-400'
+                                            : level === 'medium'
+                                                ? 'bg-orange-500/20 border-orange-500/50 text-orange-600 dark:text-orange-400'
+                                                : 'bg-blue-500/20 border-blue-500/50 text-blue-600 dark:text-blue-400'
+                                        : 'bg-muted border-border text-muted-foreground hover:border-primary/30'
                                         }`}
                                 >
                                     {t(`help.form.severity${level.charAt(0).toUpperCase() + level.slice(1)}`)}
@@ -157,8 +162,8 @@ export function HelpModal({ open, onOpenChange }: HelpModalProps) {
                             type="submit"
                             disabled={isSubmitting || !description.trim() || success}
                             className={`flex-1 rounded-xl transition-all ${success
-                                    ? 'bg-green-500 hover:bg-green-500 text-white'
-                                    : 'bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white'
+                                ? 'bg-green-500 hover:bg-green-500 text-white'
+                                : 'bg-gradient-to-r from-[#0891B2] to-[#7CB342] hover:from-[#0891B2] hover:to-[#7CB342] text-white'
                                 }`}
                         >
                             {success ? (

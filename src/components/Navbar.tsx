@@ -189,6 +189,10 @@ export function Navbar({ projectName, onBackClick, onAdminClick, onTutorialClick
                       <Shield className="w-4 h-4 mr-2 text-[#0891B2]" />
                       <span className="text-[#0891B2] font-semibold">{t('navbar.adminDashboard')}</span>
                     </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => window.location.href = '/admin/bugs'} className="cursor-pointer rounded-lg">
+                      <AlertTriangle className="w-4 h-4 mr-2 text-orange-500" />
+                      <span className="text-foreground">{t('navbar.bugReports')}</span>
+                    </DropdownMenuItem>
                   </>
                 )}
               </div>
