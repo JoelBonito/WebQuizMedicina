@@ -75,20 +75,8 @@ export function ProfileProvider({ children }: ProfileProviderProps) {
         // Função para inicializar o perfil e configurar o listener
         const initializeProfile = async () => {
             try {
-                // DEBUG: Verificar se temos um token válido
-                if (user) {
-                    try {
-                        const token = await user.getIdToken();
-                        console.log('[ProfileContext] Token disponível:', token ? 'Sim' : 'Não');
-                        console.log('[ProfileContext] User UID:', user.uid);
-                    } catch (e) {
-                        console.error('[ProfileContext] Erro ao obter token:', e);
-                    }
-                }
-
                 // Primeiro, tentar obter o documento
                 const { getDoc } = await import('firebase/firestore');
-                console.log('[ProfileContext] Buscando documento em user_profiles/', user.uid);
 
                 const docSnap = await getDoc(docRef);
 
