@@ -245,10 +245,10 @@ export const process_embeddings_queue = onCall({
 
                 // 3. Save Chunks to Firestore
                 // We can't use the same batch for all chunks if there are many.
-                // Firestore batch limit is 500.
-                // We'll use a separate batch for chunks or just add them individually/in small batches.
-
-                const CHUNK_BATCH_SIZE = 400;
+                // Firestore batch limit is 500 operations, but transaction size limit is 10MB.
+                // Each chunk has ~768 float values (embedding) + text content.
+                // With 50 chunks, we need smaller batches to stay under 10MB limit.
+                const CHUNK_BATCH_SIZE = 10; // Reduzido de 400 para 10 para evitar "Transaction too big"
                 for (let i = 0; i < chunksWithEmbeddings.length; i += CHUNK_BATCH_SIZE) {
                     const chunkBatch = db.batch();
                     const batchChunks = chunksWithEmbeddings.slice(i, i + CHUNK_BATCH_SIZE);
