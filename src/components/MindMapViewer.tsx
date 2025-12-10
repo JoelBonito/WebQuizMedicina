@@ -22,6 +22,7 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
   const maxRetries = 20; // ~2 seconds with requestAnimationFrame
   const animationFrameRef = useRef<number | null>(null);
   const isUnmountedRef = useRef(false);
+  const isRenderingRef = useRef(false); // Track if a render is already in progress
 
   // Convert Mermaid-like indented text to Markdown list (Legacy Support)
   const convertMermaidToMarkdown = (text: string) => {
@@ -122,6 +123,12 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
     const renderMindMap = async () => {
       if (isCancelled || isUnmountedRef.current) return; // Add unmounted guard
 
+      // Prevent concurrent renders
+      if (isRenderingRef.current) {
+        console.debug('[MindMapViewer] Render already in progress, skipping');
+        return;
+      }
+
       // Double check dimensions before proceeding
       if (!wrapperRef.current) return;
       const { width, height } = wrapperRef.current.getBoundingClientRect();
@@ -141,6 +148,7 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
         setRetryCount(0);
       }
 
+      isRenderingRef.current = true; // Mark render as in progress
       setIsRendering(true);
 
       try {
@@ -214,6 +222,7 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
               animationFrameRef.current = requestAnimationFrame(() => renderMindMap());
             } else {
               console.error('[MindMapViewer] Max retries reached, cannot render mindmap');
+              isRenderingRef.current = false;
               setIsRendering(false);
             }
             return;
@@ -222,6 +231,7 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
           // Validate SVG element exists and can receive attributes
           if (!svgRef.current || !svgRef.current.setAttribute) {
             console.error('[MindMapViewer] SVG element is invalid');
+            isRenderingRef.current = false;
             setIsRendering(false);
             return;
           }
@@ -234,6 +244,41 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
           svgRef.current.setAttribute('height', `${validHeight}px`);
           svgRef.current.setAttribute('viewBox', `0 0 ${validWidth} ${validHeight}`);
 
+          // Validate root data structure to prevent NaN issues
+          const validateNode = (node: any): boolean => {
+            if (!node) return false;
+            // Ensure node has valid numeric properties (if any exist)
+            if (node.x !== undefined && (!isFinite(node.x) || isNaN(node.x))) return false;
+            if (node.y !== undefined && (!isFinite(node.y) || isNaN(node.y))) return false;
+            // Recursively validate children
+            if (node.children) {
+              return node.children.every((child: any) => validateNode(child));
+            }
+            return true;
+          };
+
+          if (!validateNode(root)) {
+            console.error('[MindMapViewer] Invalid root data structure detected (contains NaN)');
+            isRenderingRef.current = false;
+            setIsRendering(false);
+            return;
+          }
+
+          // Wrap color function to ensure it never returns invalid values
+          const safeColorFn = (node: any) => {
+            try {
+              const color = colorFn(node);
+              // Validate that color is a valid string
+              if (typeof color === 'string' && color.length > 0) {
+                return color;
+              }
+              return '#A78BFA'; // Fallback color
+            } catch (e) {
+              console.error('[MindMapViewer] Color function error:', e);
+              return '#A78BFA'; // Fallback color
+            }
+          };
+
           try {
             const mm = Markmap.create(svgRef.current, {
               autoFit: true,
@@ -245,7 +290,7 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
               zoom: true,
               pan: true,
               scrollForPan: true,
-              color: colorFn, // Apply custom coloring
+              color: safeColorFn, // Apply safe custom coloring
             }, root);
 
             setMarkmapInstance(mm);
@@ -264,17 +309,20 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
             el.classList.add('markmap-toolbar');
             wrapperRef.current!.append(el);
 
+            isRenderingRef.current = false;
             setIsRendering(false);
             // Reset retry count on successful render
             setRetryCount(0);
           } catch (error) {
             console.error('[MindMapViewer] Error creating Markmap instance:', error);
+            isRenderingRef.current = false;
             setIsRendering(false);
           }
         });
 
       } catch (error) {
         console.error('Markmap rendering error:', error);
+        isRenderingRef.current = false;
         setIsRendering(false);
       }
     };
@@ -289,6 +337,7 @@ export function MindMapViewer({ content, title }: MindMapViewerProps) {
       clearTimeout(timer);
       // Mark component as unmounted to avoid further renders
       isUnmountedRef.current = true;
+      isRenderingRef.current = false; // Reset rendering flag
       // Cancel any pending animation frames
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
