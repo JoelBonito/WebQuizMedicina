@@ -33,6 +33,7 @@ const token_usage_1 = require("./shared/token_usage");
 const modelSelector_1 = require("./shared/modelSelector");
 const fileExtractors_1 = require("./shared/fileExtractors");
 const geminiFileManager_1 = require("./shared/geminiFileManager");
+const topic_extractor_1 = require("./shared/topic_extractor");
 const processEmbeddingsSchema = zod_1.z.object({
     source_id: zod_1.z.string().optional(),
     project_id: zod_1.z.string(),
@@ -217,7 +218,21 @@ exports.process_embeddings_queue = (0, https_1.onCall)({
             }
             try {
                 console.log(`Processing source ${sourceId}...`);
-                // 1. Chunk Text
+                // 🆕 FASE 1: Extração de Tópicos (antes do chunking)
+                let extractedTopics = [];
+                try {
+                    console.log(`📋 Extracting topics from source ${sourceId}...`);
+                    // Usar modelo Flash para extração de tópicos (mais barato)
+                    const topicModel = await selector.selectBestModel('general');
+                    extractedTopics = await (0, topic_extractor_1.extractTopicsFromContent)(sourceData.extracted_content, topicModel);
+                    console.log(`✅ Found ${extractedTopics.length} topics: ${extractedTopics.map(t => t.name).join(', ')}`);
+                }
+                catch (topicError) {
+                    console.warn(`⚠️ Topic extraction failed for source ${sourceId}:`, topicError.message);
+                    // Não bloqueia o processamento - continua sem tópicos
+                    extractedTopics = [];
+                }
+                // 2. Chunk Text
                 const chunks = (0, embeddings_1.chunkText)(sourceData.extracted_content);
                 // 2. Generate Embeddings
                 let chunksWithEmbeddings;
@@ -261,12 +276,16 @@ exports.process_embeddings_queue = (0, https_1.onCall)({
                     await chunkBatch.commit();
                     console.log(`Saved ${batchChunks.length} chunks for source ${sourceId}`);
                 }
-                // 4. Update Source Status
+                // 4. Update Source Status (incluindo tópicos)
                 batch.update(item.ref, {
                     status: "ready",
                     processed_at: admin.firestore.FieldValue.serverTimestamp(),
                     embeddings_status: "completed",
-                    chunks_count: chunks.length
+                    chunks_count: chunks.length,
+                    // 🆕 Campos de Tópicos
+                    topics: extractedTopics,
+                    topics_status: extractedTopics.length > 0 ? "completed" : "empty",
+                    topics_extracted_at: admin.firestore.FieldValue.serverTimestamp()
                 });
                 // 5. Log Token Usage
                 const totalTokens = chunksWithEmbeddings.reduce((sum, chunk) => sum + chunk.tokenCount, 0);

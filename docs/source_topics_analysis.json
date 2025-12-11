@@ -1,0 +1,70 @@
+{
+  "project_id": "sCYWohQxbvpEed8Aw0hw",
+  "analysis_date": "2025-12-10T03:42:37.801Z",
+  "sources": [
+    {
+      "id": "eRSlfeUvJQkdhxTsIz4U",
+      "name": "Final Fisiopato -compactado.pdf",
+      "chars": 119892
+    }
+  ],
+  "total_content_chars": 119892,
+  "topic_distribution": [
+    {
+      "topic": "Hepatite B (VHB)",
+      "count": 41,
+      "percentage": 30.1
+    },
+    {
+      "topic": "Insuficiência Renal Aguda",
+      "count": 32,
+      "percentage": 23.5
+    },
+    {
+      "topic": "Insuficiência Renal Crônica",
+      "count": 12,
+      "percentage": 8.8
+    },
+    {
+      "topic": "Síndrome Nefrítica",
+      "count": 11,
+      "percentage": 8.1
+    },
+    {
+      "topic": "Hepatite C (VHC)",
+      "count": 10,
+      "percentage": 7.4
+    },
+    {
+      "topic": "Hepatite D (VHD)",
+      "count": 10,
+      "percentage": 7.4
+    },
+    {
+      "topic": "Icterícia",
+      "count": 7,
+      "percentage": 5.1
+    },
+    {
+      "topic": "Carcinoma Hepatocelular",
+      "count": 5,
+      "percentage": 3.7
+    },
+    {
+      "topic": "Hepatite A (VHA)",
+      "count": 4,
+      "percentage": 2.9
+    },
+    {
+      "topic": "Hepatite E (VHE)",
+      "count": 3,
+      "percentage": 2.2
+    },
+    {
+      "topic": "Encefalopatia Hepática",
+      "count": 1,
+      "percentage": 0.7
+    }
+  ],
+  "total_mentions": 136
+}

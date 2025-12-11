@@ -80,18 +80,76 @@ function parseJsonFromResponse(text) {
         // This regex finds backslashes NOT followed by valid escape chars
         return str.replace(/\\(?!["\\/bfnrtu])/g, '\\\\');
     };
+    // Helper to fix unescaped newlines inside JSON strings (common with markdown content)
+    const fixUnescapedNewlines = (str) => {
+        // This is tricky - we need to escape newlines that are inside JSON string values
+        // Strategy: Replace literal newlines with escaped \n, but only inside string contexts
+        // We'll do a simple approach: escape all literal newlines and tabs
+        let result = '';
+        let inString = false;
+        let escaped = false;
+        for (let i = 0; i < str.length; i++) {
+            const char = str[i];
+            if (escaped) {
+                result += char;
+                escaped = false;
+                continue;
+            }
+            if (char === '\\') {
+                result += char;
+                escaped = true;
+                continue;
+            }
+            if (char === '"') {
+                inString = !inString;
+                result += char;
+                continue;
+            }
+            if (inString) {
+                // Replace actual newlines/tabs with escape sequences
+                if (char === '\n') {
+                    result += '\\n';
+                }
+                else if (char === '\r') {
+                    result += '\\r';
+                }
+                else if (char === '\t') {
+                    result += '\\t';
+                }
+                else {
+                    result += char;
+                }
+            }
+            else {
+                result += char;
+            }
+        }
+        return result;
+    };
     // Helper to attempt parsing
     const tryParse = (str) => {
         try {
             return JSON.parse(str);
         }
         catch (e) {
-            // Try with sanitized escapes
+            // Try with fixed newlines
             try {
-                return JSON.parse(sanitizeEscapes(str));
+                return JSON.parse(fixUnescapedNewlines(str));
             }
             catch (e2) {
-                return null;
+                // Try with sanitized escapes
+                try {
+                    return JSON.parse(sanitizeEscapes(str));
+                }
+                catch (e3) {
+                    // Try both
+                    try {
+                        return JSON.parse(sanitizeEscapes(fixUnescapedNewlines(str)));
+                    }
+                    catch (e4) {
+                        return null;
+                    }
+                }
             }
         }
     };

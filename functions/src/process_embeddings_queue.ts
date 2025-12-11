@@ -8,6 +8,7 @@ import { logTokenUsage } from "./shared/token_usage";
 import { getModelSelector } from "./shared/modelSelector";
 import { extractByMimeType } from "./shared/fileExtractors";
 import { transcribeAudioWithGemini, extractTextFromImageWithGemini } from "./shared/geminiFileManager";
+import { extractTopicsFromContent, Topic } from "./shared/topic_extractor";
 
 
 
@@ -223,7 +224,21 @@ export const process_embeddings_queue = onCall({
             try {
                 console.log(`Processing source ${sourceId}...`);
 
-                // 1. Chunk Text
+                // 🆕 FASE 1: Extração de Tópicos (antes do chunking)
+                let extractedTopics: Topic[] = [];
+                try {
+                    console.log(`📋 Extracting topics from source ${sourceId}...`);
+                    // Usar modelo Flash para extração de tópicos (mais barato)
+                    const topicModel = await selector.selectBestModel('general');
+                    extractedTopics = await extractTopicsFromContent(sourceData.extracted_content, topicModel);
+                    console.log(`✅ Found ${extractedTopics.length} topics: ${extractedTopics.map(t => t.name).join(', ')}`);
+                } catch (topicError: any) {
+                    console.warn(`⚠️ Topic extraction failed for source ${sourceId}:`, topicError.message);
+                    // Não bloqueia o processamento - continua sem tópicos
+                    extractedTopics = [];
+                }
+
+                // 2. Chunk Text
                 const chunks = chunkText(sourceData.extracted_content);
 
                 // 2. Generate Embeddings
@@ -270,12 +285,16 @@ export const process_embeddings_queue = onCall({
                     console.log(`Saved ${batchChunks.length} chunks for source ${sourceId}`);
                 }
 
-                // 4. Update Source Status
+                // 4. Update Source Status (incluindo tópicos)
                 batch.update(item.ref, {
                     status: "ready",
                     processed_at: admin.firestore.FieldValue.serverTimestamp(),
                     embeddings_status: "completed",
-                    chunks_count: chunks.length
+                    chunks_count: chunks.length,
+                    // 🆕 Campos de Tópicos
+                    topics: extractedTopics,
+                    topics_status: extractedTopics.length > 0 ? "completed" : "empty",
+                    topics_extracted_at: admin.firestore.FieldValue.serverTimestamp()
                 });
 
                 // 5. Log Token Usage

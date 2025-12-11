@@ -12,7 +12,8 @@ export const generateQuizSchema = z.object({
 });
 
 export const generateFlashcardsSchema = z.object({
-    source_id: idSchema.optional(),
+    source_ids: z.array(idSchema).optional(), // Support multiple selection
+    source_id: idSchema.optional(), // Legacy support
     project_id: idSchema.optional(),
     count: z.number().min(1).max(50).default(10),
     difficulty: z.string().nullish(), // Support difficulty selection

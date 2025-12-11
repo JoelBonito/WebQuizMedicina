@@ -1,0 +1,285 @@
+{
+  "meta": {
+    "projeto_id": "web-quiz-medicina",
+    "data_analise": "2025-12-10T02:28:01.626Z",
+    "total_questoes": 20
+  },
+  "cobertura": {
+    "total_topicos_fonte": 0,
+    "total_topicos_cobertos": 0,
+    "percentual": "0%",
+    "topicos_nao_cobertos": []
+  },
+  "questoes": [
+    {
+      "id": "zvxmI1RFPkNoYctXVm6E",
+      "numero": 1,
+      "pergunta": "Qual componente patognomônico, embora inespecífico, é encontrado dentro dos hepatócitos na Hepatite Alcoólica e consiste em filamentos intermediários de queratina (8 e 18) que formam complexos com outras proteínas?",
+      "topico": "Hepatopatia Alcoólica",
+      "resposta_correta": "C",
+      "justificativa": "A Hepatite Alcoólica é caracterizada pela presença de 'Cuerpos de Mallory-Denk: material amorfo e eosinófilo dentro dos hepatócitos constituídos por filamentos intermedios de queratina (8 e 18)'.",
+      "opcoes": [
+        "A) Nódulos de regeneração",
+        "B) Corpos de Councilman",
+        "C) Corpos de Mallory-Denk",
+        "D) Tecido cicatricial perisinusoidal"
+      ]
+    },
+    {
+      "id": "zuvKIY8khfRLZTUik1Zi",
+      "numero": 2,
+      "pergunta": "Qual dos contextos de infecção pelo Vírus da Hepatite D (VHD) é caracterizado pela exposição do VHD a um portador crônico do VHB, resultando frequentemente em hepatite aguda grave ou exacerbação da hepatite crônica pré-existente?",
+      "topico": "Hepatite D e E (VHD/VHE)",
+      "resposta_correta": "C",
+      "justificativa": "A 'Sobreinfecção' é definida como o cenário em que 'um portador crônico do VHB se expõe ao VHD', o que pode resultar em hepatite aguda grave ou exacerbação.",
+      "opcoes": [
+        "A) Coinfeção",
+        "B) Infecção simples por VHD",
+        "C) Sobreinfecção",
+        "D) Infecção assintomática por VHD"
+      ]
+    },
+    {
+      "id": "yhSffbp5aiAgONxVSxwh",
+      "numero": 3,
+      "pergunta": "O Vírus da Hepatite E (VHE) é transmitido por via enteral e é autolimitado em pacientes imunocompetentes. Em qual grupo populacional o VHE está associado a uma alta taxa de mortalidade?",
+      "topico": "Hepatite D e E (VHD/VHE)",
+      "resposta_correta": "C",
+      "justificativa": "O texto menciona que o VHE é uma infecção transmitida pela água, autolimitada em imunocompetentes, mas que apresenta 'Alta mortalidade em embarazadas'.",
+      "opcoes": [
+        "A) Idosos com comorbidades cardíacas.",
+        "B) Pacientes com hepatopatia crônica avançada.",
+        "C) Mulheres grávidas.",
+        "D) Usuários de drogas intravenosas."
+      ]
+    },
+    {
+      "id": "yaKr2LtWzgYkbJsvDPyU",
+      "numero": 4,
+      "pergunta": "Na patogenia da esteatose hepática alcoólica, a metabolização do álcool gera um excesso de equivalentes reduzidos. Qual substância inibe a oxidação de ácidos graxos e favorece o depósito de gordura?",
+      "topico": "Hepatopatia Alcoólica",
+      "resposta_correta": "C",
+      "justificativa": "O material explica que 'durante o metabolismo [do álcool] se gera um excesso de equivalentes reduzidos em forma de NADH. Os câmbios no potencial redox inibem a oxidação de AG (esteatosis)'.",
+      "opcoes": [
+        "A) Citocromo P450",
+        "B) NAD+",
+        "C) NADH",
+        "D) Acetaldeído"
+      ]
+    },
+    {
+      "id": "yF1lOd7GaWIAbo7avScC",
+      "numero": 5,
+      "pergunta": "Qual tipo celular perisinusoidal é considerado o principal responsável pelo depósito de tecido cicatricial (fibrose) no fígado, transformando-se em miofibroblastos altamente fibrogênicos durante a progressão da cirrose?",
+      "topico": "Cirrose Hepática",
+      "resposta_correta": "B",
+      "justificativa": "O texto descreve que 'O principal tipo celular implicado no depósito de cicatrizes é a célula estrelada hepática perisinusoidal', que, quando ativada, se converte em miofibroblastos fibrogênicos.",
+      "opcoes": [
+        "A) Células de Kupffer",
+        "B) Células Estreladas Hepáticas (Células de Ito)",
+        "C) Linfócitos T citotóxicos",
+        "D) Células Endoteliais Sinusoidais"
+      ]
+    },
+    {
+      "id": "vLN8KDjw8J1Jg2RgfnGP",
+      "numero": 6,
+      "pergunta": "Qual a principal via patogênica responsável pelas lesões nos hepatócitos durante a infecção pelo Vírus da Hepatite B (VHB)?",
+      "topico": "Hepatite B (VHB)",
+      "resposta_correta": "B",
+      "justificativa": "A informação sugere que, em geral, o VHB não causa lesões diretas nos hepatócitos. As lesões são ocasionadas por linfócitos T citotóxicos CD8+ que atacam as células infectadas, sendo a resposta imune do hospedeiro o principal determinante da evolução.",
+      "opcoes": [
+        "A) Lesão direta causada pelo vírus (efeito citopático).",
+        "B) Ataque de linfócitos T citotóxicos CD8+ às células infectadas.",
+        "C) Destruição mediada por anticorpos anti-HBc.",
+        "D) Isquemia centrolobular induzida pelo vírus."
+      ]
+    },
+    {
+      "id": "tQwIWnyaYXmj8RWL5fkv",
+      "numero": 7,
+      "pergunta": "Qual das seguintes afirmações é uma característica própria da infecção pelo Vírus da Hepatite C (VHC)?",
+      "topico": "Hepatite C (VHC)",
+      "resposta_correta": "C",
+      "justificativa": "O texto destaca que 'um rasgo próprio da infecção por VHC é sua associação com o síndrome metabólico'.",
+      "opcoes": [
+        "A) É endêmico em países com má higiene sanitária.",
+        "B) É um vírus de DNA altamente estável genomicamente.",
+        "C) Associa-se ao desenvolvimento da Síndrome Metabólica.",
+        "D) Títulos elevados de IgG conferem imunidade eficaz."
+      ]
+    },
+    {
+      "id": "q8mbuM0sOUjT6qQnXx5W",
+      "numero": 8,
+      "pergunta": "O risco de cronicidade na infecção pelo Vírus da Hepatite B (VHB) é mínimo quando a infecção ocorre na idade adulta e máximo quando ocorre na idade perinatal.",
+      "topico": "Hepatite B (VHB)",
+      "resposta_correta": "Verdadeiro",
+      "justificativa": "A frequência de portadores está condicionada pela idade da infecção, sendo máxima na idade perinatal (maior risco de cronicidade) e mínima quando o paciente se infecta na idade adulta.",
+      "opcoes": [
+        "Verdadeiro",
+        "Falso"
+      ]
+    },
+    {
+      "id": "ltj3oGEYR3GPyyyDjPsj",
+      "numero": 9,
+      "pergunta": "Não existe vacina disponível para o Vírus da Hepatite C (VHC) e os títulos elevados de IgG após a infecção ativa não são suficientes para conferir imunidade eficaz.",
+      "topico": "Hepatite C (VHC)",
+      "resposta_correta": "Verdadeiro",
+      "justificativa": "O texto especifica: 'Não há vacina' e 'Os títulos elevados de IgG frente ao VHC que se produzem tras uma infecção ativa não conferem uma imunidade eficaz'.",
+      "opcoes": [
+        "Verdadeiro",
+        "Falso"
+      ]
+    },
+    {
+      "id": "XQhef2BxGYTzWPwPNfN6",
+      "numero": 10,
+      "pergunta": "A Esteato-Hepatite Não Alcoólica (NASH) está fortemente associada à Síndrome Metabólica. Qual dos seguintes critérios é um componente da Síndrome Metabólica, conforme listado no texto?",
+      "topico": "Esteato-hepatite Não Alcoólica (NASH)",
+      "resposta_correta": "C",
+      "justificativa": "Um dos critérios listados para Síndrome Metabólica é 'Pressão arterial ≥ 130/85 mm Hg'.",
+      "opcoes": [
+        "A) Glucemia basal < 100 mg/dL",
+        "B) Níveis de HDL-C > 50 mg/dL em mulheres",
+        "C) Pressão arterial ≥ 130/85 mm Hg",
+        "D) Perímetro abdominal menor que 88 cm em mulheres caucasianas"
+      ]
+    },
+    {
+      "id": "XAeLCUk6YSm5VEYwqBLh",
+      "numero": 11,
+      "pergunta": "Um paciente em 'período de janela' para infecção aguda por VHB, onde o HBsAg desapareceu e os anticorpos anti-HBs ainda não se elevaram, pode ter seu diagnóstico serológico estabelecido pela detecção de qual marcador?",
+      "topico": "Hepatite B (VHB)",
+      "resposta_correta": "B",
+      "justificativa": "O texto descreve que, durante o 'período de janela' (quando os anticorpos anti-HBs não são detectáveis por semanas/meses após o desaparecimento do HBsAg), o diagnóstico serológico é estabelecido pela detecção de Ac IgM frente ao HBc (Anticorpo anti-Core IgM).",
+      "opcoes": [
+        "A) Anticorpos IgG frente ao HBc.",
+        "B) Anticorpos IgM frente ao HBc.",
+        "C) Presença de HBeAg.",
+        "D) Níveis indetectáveis de DNA-VHB."
+      ]
+    },
+    {
+      "id": "PwBZmTdKS73kuWXpIWAy",
+      "numero": 12,
+      "pergunta": "A esteatose hepática alcoólica (fígado gorduroso) é totalmente reversível se o consumo de álcool for interrompido.",
+      "topico": "Hepatopatia Alcoólica",
+      "resposta_correta": "Verdadeiro",
+      "justificativa": "O texto afirma explicitamente que a esteatose hepática alcoólica 'É totalmente REVERSÍVEL se se evita o consumo de álcool'.",
+      "opcoes": [
+        "Verdadeiro",
+        "Falso"
+      ]
+    },
+    {
+      "id": "LkIyJYwefl7dYSG5T82J",
+      "numero": 13,
+      "pergunta": "O Síndrome Nefrótico é a consequência clínica do aumento da permeabilidade glomerular. Qual é o valor limite da proteinúria de 'alcance nefrótico' em adultos?",
+      "topico": "Síndrome Nefrótico",
+      "resposta_correta": "B",
+      "justificativa": "O texto define a proteinúria de alcance nefrótico como 'Proteinúria de rango nefrótico > 3,5 g/dia/m² em adultos'.",
+      "opcoes": [
+        "A) Maior que 1,0 g/dia/m²",
+        "B) Maior que 3,5 g/dia/m²",
+        "C) Menor que 0,5 g/dia/m²",
+        "D) 1 a 2 g/dia"
+      ]
+    },
+    {
+      "id": "JIy7cftRUvt7WVjvR3VU",
+      "numero": 14,
+      "pergunta": "Qual das seguintes camadas determina a permeabilidade da membrana capilar glomerular e é composta por colágeno, glicoproteínas e mucopolissacarídeos?",
+      "topico": "Síndrome Nefrótico",
+      "resposta_correta": "C",
+      "justificativa": "O material define a Membrana Basal como a segunda camada, composta por 'colágeno, glucoproteínas e mucopolisacáridos' e que 'Determina a permeabilidade da membrana capilar glomerular'.",
+      "opcoes": [
+        "A) Camada capilar endotelial (fenestrada)",
+        "B) Camada epitelial (podócitos)",
+        "C) Membrana basal",
+        "D) Mesângio"
+      ]
+    },
+    {
+      "id": "Gg51Nu3W3cvZ52WE04m9",
+      "numero": 15,
+      "pergunta": "Qual percentual aproximado dos indivíduos infectados pelo Vírus da Hepatite C (VHC) desenvolve a doença crônica?",
+      "topico": "Hepatite C (VHC)",
+      "resposta_correta": "C",
+      "justificativa": "O material afirma que 'a doença crônica afeta a maioria dos infectados (80-90%)', sendo a infecção persistente uma característica do VHC.",
+      "opcoes": [
+        "A) Menos de 10%",
+        "B) Cerca de 30-40%",
+        "C) 80-90%",
+        "D) Praticamente 100%"
+      ]
+    },
+    {
+      "id": "Fp4KHZYDdTNH1haImvwD",
+      "numero": 16,
+      "pergunta": "Qual dos antígenos do Vírus da Hepatite B (VHB) está relacionado à replicação viral ativa e indica uma maior probabilidade de progressão para hepatite crônica, caso persista?",
+      "topico": "Hepatite B (VHB)",
+      "resposta_correta": "C",
+      "justificativa": "O texto explica que a persistência do HBeAg indica replicação mantida, sugerindo progressão para hepatite crônica e replicação vírica ativa, aparecendo logo após o HBsAg.",
+      "opcoes": [
+        "A) Antígeno do core da hepatite B (HBcAg)",
+        "B) Antígeno de superfície da hepatite B (HBsAg)",
+        "C) Antígeno E da hepatite B (HBeAg)",
+        "D) Anticorpos frente ao HBsAg"
+      ]
+    },
+    {
+      "id": "DZBgcwDULZjYJGvWiBZG",
+      "numero": 17,
+      "pergunta": "A cirrose hepática, uma vez estabelecida, não apresenta regressão e é essencialmente irreversível.",
+      "topico": "Cirrose Hepática",
+      "resposta_correta": "Verdadeiro",
+      "justificativa": "O texto indica que 'Uma vez estabelecida, a cirrose experimenta regressão com tanta lentidão que é essencialmente irreversível'.",
+      "opcoes": [
+        "Verdadeiro",
+        "Falso"
+      ]
+    },
+    {
+      "id": "AtVkEqvzwVyjMByHn2Re",
+      "numero": 18,
+      "pergunta": "Qual marcador sorológico é o indicador mais confiável de uma infecção aguda pelo Vírus da Hepatite A (VHA)?",
+      "topico": "Hepatite A (VHA)",
+      "resposta_correta": "C",
+      "justificativa": "O material indica que o marcador de infecção aguda pelo VHA é a presença de anticorpos IgM contra o VHA. A eliminação fecal do vírus cessa quando os títulos de IgM aumentam.",
+      "opcoes": [
+        "A) Anticorpos IgG frente ao VHA.",
+        "B) Detecção do VHA na saliva.",
+        "C) Anticorpos IgM frente ao VHA.",
+        "D) Anticorpos anti-VHA de longa duração."
+      ]
+    },
+    {
+      "id": "8dXEVxJYnH1y420nAsF6",
+      "numero": 19,
+      "pergunta": "Na hepatopatia alcoólica, qual é o padrão típico das enzimas hepáticas séricas que ajuda a diferenciá-la de outras hepatopatias?",
+      "topico": "Esteato-hepatite Não Alcoólica (NASH)",
+      "resposta_correta": "C",
+      "justificativa": "As características clínicas da hepatopatia alcoólica incluem que 'as concentrações de AST sérica suelen ser más elevadas que las de ALT (AST > ALT)'.",
+      "opcoes": [
+        "A) Aumento de ALT > AST",
+        "B) Aumento de Fosfatase Alcalina isolado",
+        "C) Aumento de AST > ALT",
+        "D) Níveis normais de transaminases, mas hiperbilirrubinemia grave"
+      ]
+    },
+    {
+      "id": "2qVue0dlaakJdXglqqzn",
+      "numero": 20,
+      "pergunta": "A infecção pelo Vírus da Hepatite A (VHA) raramente causa insuficiência hepática aguda e não provoca hepatite crônica nem estado de portador.",
+      "topico": "Hepatite A (VHA)",
+      "resposta_correta": "Verdadeiro",
+      "justificativa": "O texto afirma que a Hepatite A é uma 'doença benigna e autolimitada' que 'não provoca hepatite crônica nem estado de portador' e é 'raro que ocasione uma insuficiência hepática aguda'.",
+      "opcoes": [
+        "Verdadeiro",
+        "Falso"
+      ]
+    }
+  ]
+}

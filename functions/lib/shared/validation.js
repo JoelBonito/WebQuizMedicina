@@ -12,6 +12,7 @@ exports.generateQuizSchema = zod_1.z.object({
     difficulty: zod_1.z.string().nullish(),
 });
 exports.generateFlashcardsSchema = zod_1.z.object({
+    source_ids: zod_1.z.array(idSchema).optional(),
     source_id: idSchema.optional(),
     project_id: idSchema.optional(),
     count: zod_1.z.number().min(1).max(50).default(10),

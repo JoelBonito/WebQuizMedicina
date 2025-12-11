@@ -5,6 +5,12 @@ import { callGeminiWithUsage, parseJsonFromResponse } from "./shared/gemini";
 import { logTokenUsage } from "./shared/token_usage";
 import { getModelSelector } from "./shared/modelSelector";
 import { getLanguageFromRequest, getLanguageInstruction, getFlashcardExample } from "./shared/language_helper";
+import {
+    aggregateTopicsFromSources,
+    calculateDistribution,
+    formatDistributionForPrompt,
+    extractTopicsFromContent
+} from "./shared/topic_extractor";
 
 
 
@@ -24,11 +30,17 @@ export const generate_flashcards = onCall({
         const language = await getLanguageFromRequest(request.data, db, request.auth.uid);
 
         // 3. Validation
-        const { source_id, project_id, count, difficulty } = validateRequest(request.data, generateFlashcardsSchema);
+        const { source_ids, source_id, project_id, count: requestedCount, difficulty } = validateRequest(request.data, generateFlashcardsSchema);
+        const count = requestedCount ?? 10; // Default de 10 flashcards
 
         // 3. Fetch Content (Sources)
         let sources: any[] = [];
-        if (source_id) {
+        if (source_ids && source_ids.length > 0) {
+            const sourcesSnapshot = await db.collection("sources")
+                .where(admin.firestore.FieldPath.documentId(), "in", source_ids)
+                .get();
+            sources = sourcesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        } else if (source_id) {
             const sourceDoc = await db.collection("sources").doc(source_id).get();
             if (!sourceDoc.exists) {
                 throw new HttpsError("not-found", "Source not found");
@@ -38,7 +50,7 @@ export const generate_flashcards = onCall({
             const sourcesSnapshot = await db.collection("sources")
                 .where("project_id", "==", project_id)
                 .where("status", "==", "ready")
-                .orderBy("created_at", "desc")
+                // Removido orderBy e limit para pegar TODO o projeto
                 .get();
 
             sources = sourcesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -56,8 +68,9 @@ export const generate_flashcards = onCall({
 
         // 4. Prepare Content for AI
         let combinedContent = "";
-        const MAX_SOURCES = 5;
-        const usedSources = sourcesWithContent.slice(0, MAX_SOURCES);
+
+        // Removido limite arbitrário de fontes (MAX_SOURCES)
+        const usedSources = sourcesWithContent;
 
         for (const source of usedSources) {
             if (source.extracted_content) {
@@ -65,8 +78,10 @@ export const generate_flashcards = onCall({
             }
         }
 
-        const MAX_CONTENT_LENGTH = 300000;
+        // Increased limit to ~2MB to support full project context
+        const MAX_CONTENT_LENGTH = 2000000;
         if (combinedContent.length > MAX_CONTENT_LENGTH) {
+            console.warn(`⚠️ Content truncated. Total: ${combinedContent.length}, Limit: ${MAX_CONTENT_LENGTH}`);
             combinedContent = combinedContent.substring(0, MAX_CONTENT_LENGTH);
         }
 
@@ -74,15 +89,35 @@ export const generate_flashcards = onCall({
             throw new HttpsError("failed-precondition", "No content available for generation");
         }
 
-        // 5. Generate Flashcards
+        // 🆕 5. Agregar e Calcular Distribuição de Tópicos
+        let allTopics = aggregateTopicsFromSources(usedSources);
+
+        // Fallback: Se nenhum source tem tópicos, extrai sob demanda
+        if (allTopics.length === 0) {
+            console.warn('⚠️ No topics found in sources. Extracting on-demand...');
+            const selector = getModelSelector();
+            const topicModel = await selector.selectBestModel('general');
+            allTopics = await extractTopicsFromContent(combinedContent.substring(0, 100000), topicModel);
+            console.log(`✅ Extracted ${allTopics.length} topics on-demand`);
+        }
+
+        // Calcular distribuição (adaptar prompt para flashcards)
+        const distribution = calculateDistribution(allTopics, count);
+        let distributionPrompt = formatDistributionForPrompt(distribution);
+        distributionPrompt = distributionPrompt.replace(/questão/g, 'flashcard').replace(/questões/g, 'flashcards');
+        console.log(`📊 Topic distribution: ${distribution.map(d => `${d.topic}:${d.quota}`).join(', ')}`);
+
+        // 6. Generate Flashcards
         const prompt = `
 ${getLanguageInstruction(language)}
 
 You are a specialist in creating Medicine Flashcards for Anki.
-Create ${count} flashcards based on the CONTENT below.
+Create EXACTLY ${count} flashcards based on the CONTENT below.
 
 BASE CONTENT:
-${combinedContent.substring(0, 30000)}
+${combinedContent.substring(0, 50000)}
+
+${distributionPrompt}
 
 CREATION RULES:
 1. FOCUS ON KEY CONCEPTS: Definitions, treatments, diagnoses, reference values.
@@ -91,6 +126,7 @@ CREATION RULES:
 4. ATOMICITY: Each flashcard should test ONE single concept.
 5. ${getLanguageInstruction(language)}
 ${(difficulty && difficulty !== 'misto') ? `6. DIFFICULTY: ALL flashcards must be at "${difficulty}" level.` : '6. DIFFICULTY: Vary the difficulty level between easy, medium, and hard.'}
+7. 🆕 The "topico" field MUST match one of the topics from the distribution above.
 
 MANDATORY JSON FORMAT (NO MARKDOWN):
 Return ONLY raw JSON, without code blocks (\`\`\`).
