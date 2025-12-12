@@ -32,6 +32,7 @@ const token_usage_1 = require("./shared/token_usage");
 const modelSelector_1 = require("./shared/modelSelector");
 const language_helper_1 = require("./shared/language_helper");
 const topic_extractor_1 = require("./shared/topic_extractor");
+const topic_balancer_1 = require("./shared/topic_balancer");
 exports.generate_quiz = (0, https_1.onCall)({
     timeoutSeconds: 540,
     memory: "1GiB",
@@ -92,7 +93,7 @@ exports.generate_quiz = (0, https_1.onCall)({
         if (!combinedContent.trim()) {
             throw new https_1.HttpsError("failed-precondition", "No content available for generation");
         }
-        // 🆕 5. Agregar e Calcular Distribuição de Tópicos
+        // 🆕 5. Agregar e Calcular Distribuição de Tópicos com Balanceamento Adaptativo
         let allTopics = (0, topic_extractor_1.aggregateTopicsFromSources)(usedSources);
         // Fallback: Se nenhum source tem tópicos, extrai sob demanda
         if (allTopics.length === 0) {
@@ -102,10 +103,13 @@ exports.generate_quiz = (0, https_1.onCall)({
             allTopics = await (0, topic_extractor_1.extractTopicsFromContent)(combinedContent.substring(0, 100000), topicModel);
             console.log(`✅ Extracted ${allTopics.length} topics on-demand`);
         }
-        // Calcular distribuição
-        const distribution = (0, topic_extractor_1.calculateDistribution)(allTopics, count);
+        // 🆕 Buscar histórico de tópicos dos últimos 3 quizzes
+        const topicHistory = await (0, topic_balancer_1.getTopicHistory)(db, project_id || sources[0].project_id, 3);
+        // Ajustar distribuição considerando o histórico (prioriza tópicos menos explorados)
+        const topicNames = allTopics.map(t => t.name);
+        const distribution = (0, topic_balancer_1.adjustDistributionByHistory)(topicNames, topicHistory, count);
         const distributionPrompt = (0, topic_extractor_1.formatDistributionForPrompt)(distribution);
-        console.log(`📊 Topic distribution: ${distribution.map(d => `${d.topic}:${d.quota}`).join(', ')}`);
+        console.log(`📊 Adaptive topic distribution: ${distribution.map(d => `${d.topic}:${d.quota}`).join(', ')}`);
         // 6. Generate Quiz
         // Simplified batching for now (single batch)
         // In a real scenario, we might want to implement the batching logic from the Supabase function
@@ -116,7 +120,7 @@ You are a university-level MEDICINE professor creating an exam.
 Generate EXACTLY ${count} questions based on the CONTENT below.
 
 BASE CONTENT:
-${combinedContent.substring(0, 50000)}
+${combinedContent}
 
 ${distributionPrompt}
 
@@ -153,27 +157,12 @@ MANDATORY JSON FORMAT:
   ]
 }
     `;
-        // ✅ Seleção automática e inteligente
+        // ✅ Usar o modelo de produção mais robusto via IntelligentModelSelector
         const selector = (0, modelSelector_1.getModelSelector)();
         const modelName = await selector.selectBestModel('general');
         console.log(`🤖 Using model: ${modelName} for quiz generation`);
-        let result;
-        try {
-            // ✅ Aumentado para 32768 para acomodar "thinking tokens" do Gemini 2.5
-            result = await (0, gemini_1.callGeminiWithUsage)(prompt, modelName, 32768, true);
-        }
-        catch (error) {
-            // 🔄 FALLBACK AUTOMÁTICO se o modelo falhar
-            if (error.status === 404 || error.message.includes('not found')) {
-                console.warn('⚠️ Primary model failed, trying fallback...');
-                const fallbackModel = 'gemini-flash-latest'; // Safe fallback
-                console.log(`🤖 Using fallback model: ${fallbackModel}`);
-                result = await (0, gemini_1.callGeminiWithUsage)(prompt, fallbackModel, 32768, true);
-            }
-            else {
-                throw error;
-            }
-        }
+        // Aumentado para 32768 para acomodar respostas longas
+        const result = await (0, gemini_1.callGeminiWithUsage)(prompt, modelName, 32768, true);
         const parsed = (0, gemini_1.parseJsonFromResponse)(result.text);
         if (!parsed.perguntas || !Array.isArray(parsed.perguntas)) {
             throw new https_1.HttpsError("internal", "Failed to generate valid questions format");

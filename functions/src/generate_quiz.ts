@@ -7,10 +7,10 @@ import { getModelSelector } from "./shared/modelSelector";
 import { getLanguageFromRequest, getLanguageInstruction, getTrueFalseOptions, getQuizExample } from "./shared/language_helper";
 import {
     aggregateTopicsFromSources,
-    calculateDistribution,
     formatDistributionForPrompt,
     extractTopicsFromContent
 } from "./shared/topic_extractor";
+import { getTopicHistory, adjustDistributionByHistory } from "./shared/topic_balancer";
 
 
 
@@ -86,7 +86,7 @@ export const generate_quiz = onCall({
             throw new HttpsError("failed-precondition", "No content available for generation");
         }
 
-        // 🆕 5. Agregar e Calcular Distribuição de Tópicos
+        // 🆕 5. Agregar e Calcular Distribuição de Tópicos com Balanceamento Adaptativo
         let allTopics = aggregateTopicsFromSources(usedSources);
 
         // Fallback: Se nenhum source tem tópicos, extrai sob demanda
@@ -98,10 +98,14 @@ export const generate_quiz = onCall({
             console.log(`✅ Extracted ${allTopics.length} topics on-demand`);
         }
 
-        // Calcular distribuição
-        const distribution = calculateDistribution(allTopics, count);
+        // 🆕 Buscar histórico de tópicos dos últimos 3 quizzes
+        const topicHistory = await getTopicHistory(db, project_id || sources[0].project_id, 3);
+
+        // Ajustar distribuição considerando o histórico (prioriza tópicos menos explorados)
+        const topicNames = allTopics.map(t => t.name);
+        const distribution = adjustDistributionByHistory(topicNames, topicHistory, count);
         const distributionPrompt = formatDistributionForPrompt(distribution);
-        console.log(`📊 Topic distribution: ${distribution.map(d => `${d.topic}:${d.quota}`).join(', ')}`);
+        console.log(`📊 Adaptive topic distribution: ${distribution.map(d => `${d.topic}:${d.quota}`).join(', ')}`);
 
         // 6. Generate Quiz
         // Simplified batching for now (single batch)
@@ -113,7 +117,7 @@ You are a university-level MEDICINE professor creating an exam.
 Generate EXACTLY ${count} questions based on the CONTENT below.
 
 BASE CONTENT:
-${combinedContent.substring(0, 50000)}
+${combinedContent}
 
 ${distributionPrompt}
 
@@ -151,26 +155,13 @@ MANDATORY JSON FORMAT:
 }
     `;
 
-        // ✅ Seleção automática e inteligente
+        // ✅ Usar o modelo de produção mais robusto via IntelligentModelSelector
         const selector = getModelSelector();
         const modelName = await selector.selectBestModel('general');
         console.log(`🤖 Using model: ${modelName} for quiz generation`);
 
-        let result;
-        try {
-            // ✅ Aumentado para 32768 para acomodar "thinking tokens" do Gemini 2.5
-            result = await callGeminiWithUsage(prompt, modelName, 32768, true);
-        } catch (error: any) {
-            // 🔄 FALLBACK AUTOMÁTICO se o modelo falhar
-            if (error.status === 404 || error.message.includes('not found')) {
-                console.warn('⚠️ Primary model failed, trying fallback...');
-                const fallbackModel = 'gemini-flash-latest'; // Safe fallback
-                console.log(`🤖 Using fallback model: ${fallbackModel}`);
-                result = await callGeminiWithUsage(prompt, fallbackModel, 32768, true);
-            } else {
-                throw error;
-            }
-        }
+        // Aumentado para 32768 para acomodar respostas longas
+        const result = await callGeminiWithUsage(prompt, modelName, 32768, true);
 
         const parsed = parseJsonFromResponse(result.text);
 

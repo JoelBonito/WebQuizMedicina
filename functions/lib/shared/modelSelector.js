@@ -54,15 +54,16 @@ class IntelligentModelSelector {
         const priorities = {
             // Para geração de quiz/flashcards (rápido e econômico)
             general: [
-                'gemini-flash-latest',
                 'gemini-2.5-flash',
+                'gemini-flash-latest',
                 'gemini-2.0-flash-exp',
                 'gemini-pro-latest'
             ],
             // Para tarefas complexas (máxima capacidade)
             complex: [
-                'gemini-pro-latest',
+                'gemini-2.5-flash',
                 'gemini-2.5-pro',
+                'gemini-pro-latest',
                 'gemini-flash-latest'
             ],
             // Para embeddings
@@ -102,7 +103,7 @@ class IntelligentModelSelector {
             console.warn(`⚠️ Using fallback model from API list: ${fallback}`);
             return fallback;
         }
-        return 'gemini-flash-latest'; // Último recurso absoluto
+        return 'gemini-2.5-flash'; // Último recurso absoluto (modelo estável mais recente)
     }
     // 4️⃣ FALLBACK ESTÁTICO (caso API de discovery falhe)
     getFallbackModels() {
