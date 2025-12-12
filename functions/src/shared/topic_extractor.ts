@@ -40,8 +40,36 @@ export async function extractTopicsFromContent(
     content: string,
     modelName: string
 ): Promise<Topic[]> {
-    // Limitar conteúdo para não estourar contexto
-    const truncatedContent = content.substring(0, 80000); // ~20k tokens (reduzido para evitar truncamento de saída)
+    // 🆕 ESTRATÉGIA DE AMOSTRAGEM INTELIGENTE
+    // Para garantir cobertura completa do documento (incluindo tópicos do meio/fim)
+    // usamos amostragem estratificada ao invés de truncamento simples
+
+    let sampledContent: string;
+    const MAX_CHARS = 120000; // ~30k tokens (aumentado para cobrir mais conteúdo)
+
+    if (content.length <= MAX_CHARS) {
+        // Documento pequeno: usa completo
+        sampledContent = content;
+    } else {
+        // Documento grande: amostragem estratificada
+        // 40% início + 20% meio (3 amostras) + 40% fim
+        const startSize = Math.floor(MAX_CHARS * 0.4);
+        const midSize = Math.floor(MAX_CHARS * 0.2 / 3);
+        const endSize = Math.floor(MAX_CHARS * 0.4);
+
+        const start = content.substring(0, startSize);
+        const end = content.substring(content.length - endSize);
+
+        // Pegar 3 amostras do meio
+        const third = Math.floor(content.length / 3);
+        const mid1 = content.substring(third - midSize / 2, third + midSize / 2);
+        const mid2 = content.substring(third * 2 - midSize / 2, third * 2 + midSize / 2);
+        const mid3 = content.substring(third * 1.5 - midSize / 2, third * 1.5 + midSize / 2);
+
+        sampledContent = `${start}\n\n[...MEIO DO DOCUMENTO - AMOSTRA 1...]\n${mid1}\n\n[...MEIO DO DOCUMENTO - AMOSTRA 2...]\n${mid2}\n\n[...MEIO DO DOCUMENTO - AMOSTRA 3...]\n${mid3}\n\n[...FIM DO DOCUMENTO...]\n${end}`;
+
+        console.log(`📊 Document too large (${content.length} chars). Using stratified sampling: ${sampledContent.length} chars`);
+    }
 
     const prompt = `
 Você é um especialista em análise de conteúdo acadêmico/médico.
@@ -53,7 +81,7 @@ REGRAS:
 3. Máximo de 15 tópicos.
 
 CONTEÚDO:
-${truncatedContent}
+${sampledContent}
 
 FORMATO JSON (obrigatório):
 {"topics":[{"name":"Tópico","relevance":"high"}]}

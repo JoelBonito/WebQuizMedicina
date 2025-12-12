@@ -100,7 +100,7 @@ exports.generate_quiz = (0, https_1.onCall)({
             console.warn('⚠️ No topics found in sources. Extracting on-demand...');
             const selector = (0, modelSelector_1.getModelSelector)();
             const topicModel = await selector.selectBestModel('general');
-            allTopics = await (0, topic_extractor_1.extractTopicsFromContent)(combinedContent.substring(0, 100000), topicModel);
+            allTopics = await (0, topic_extractor_1.extractTopicsFromContent)(combinedContent, topicModel);
             console.log(`✅ Extracted ${allTopics.length} topics on-demand`);
         }
         // 🆕 Buscar histórico de tópicos dos últimos 3 quizzes

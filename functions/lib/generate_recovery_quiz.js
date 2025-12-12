@@ -172,7 +172,7 @@ ${strategy.systemInstruction}
 ${(0, language_helper_1.getLanguageInstruction)(language)}
 
 BASE CONTENT:
-${combinedContent.substring(0, 30000)}
+${combinedContent}
 
 Generate ${batchCount} multiple choice questions.
 

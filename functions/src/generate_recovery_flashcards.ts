@@ -179,7 +179,7 @@ Você é um professor universitário de MEDICINA criando FLASHCARDS DE RECUPERA�
 ${strategy.systemInstruction}
 
 CONTEÚDO BASE:
-${combinedContent.substring(0, 30000)}
+${combinedContent}
 
 Gere ${batchCount} flashcards.
 

@@ -68,7 +68,7 @@ exports.chat = (0, https_1.onCall)({
         sourcesSnapshot.forEach(doc => {
             const source = doc.data();
             if (source.extracted_content) {
-                contextText += `\n\n=== FONTE: ${source.name} ===\n${source.extracted_content.substring(0, 10000)}`;
+                contextText += `\n\n=== FONTE: ${source.name} ===\n${source.extracted_content.substring(0, 50000)}`;
                 sourcesCited.push({
                     id: doc.id,
                     file_name: source.name,

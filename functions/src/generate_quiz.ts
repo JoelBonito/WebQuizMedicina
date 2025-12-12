@@ -94,7 +94,7 @@ export const generate_quiz = onCall({
             console.warn('⚠️ No topics found in sources. Extracting on-demand...');
             const selector = getModelSelector();
             const topicModel = await selector.selectBestModel('general');
-            allTopics = await extractTopicsFromContent(combinedContent.substring(0, 100000), topicModel);
+            allTopics = await extractTopicsFromContent(combinedContent, topicModel);
             console.log(`✅ Extracted ${allTopics.length} topics on-demand`);
         }
 

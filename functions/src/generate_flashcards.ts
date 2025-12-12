@@ -97,7 +97,7 @@ export const generate_flashcards = onCall({
             console.warn('⚠️ No topics found in sources. Extracting on-demand...');
             const selector = getModelSelector();
             const topicModel = await selector.selectBestModel('general');
-            allTopics = await extractTopicsFromContent(combinedContent.substring(0, 100000), topicModel);
+            allTopics = await extractTopicsFromContent(combinedContent, topicModel);
             console.log(`✅ Extracted ${allTopics.length} topics on-demand`);
         }
 
@@ -115,7 +115,7 @@ You are a specialist in creating Medicine Flashcards for Anki.
 Create EXACTLY ${count} flashcards based on the CONTENT below.
 
 BASE CONTENT:
-${combinedContent.substring(0, 50000)}
+${combinedContent}
 
 ${distributionPrompt}
 
