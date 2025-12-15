@@ -1,10 +1,14 @@
 /**
- * Topic Extractor Module
+ * Topic Extractor Module v2 - HIERÁRQUICO
  * 
  * Responsável por:
- * 1. Extrair tópicos do conteúdo usando IA (durante processamento de upload)
+ * 1. Extrair tópicos MACRO (seções principais) + SUB-TÓPICOS (conceitos específicos)
  * 2. Calcular distribuição de questões/flashcards por tópico
  * 3. Deduplicar tópicos de múltiplos sources
+ * 
+ * NOVA ARQUITETURA:
+ * - Tópicos macro: "Patologias do Fígado" (como seções de um resumo)
+ * - Sub-tópicos: "Carcinoma Hepatocelular", "Hemangioma", etc.
  */
 
 import { callGeminiWithUsage, parseJsonFromResponse } from "./gemini";
@@ -16,6 +20,7 @@ import { callGeminiWithUsage, parseJsonFromResponse } from "./gemini";
 export interface Topic {
     name: string;
     relevance: 'high' | 'medium' | 'low';
+    subtopics?: string[];  // 🆕 Sub-tópicos específicos
     mention_count?: number;
 }
 
@@ -25,34 +30,28 @@ export interface TopicDistribution {
 }
 
 // =====================
-// EXTRAÇÃO DE TÓPICOS
+// EXTRAÇÃO DE TÓPICOS (HIERÁRQUICA)
 // =====================
 
 /**
- * Extrai tópicos do conteúdo usando IA
- * Chamado durante o processamento de upload (process_embeddings_queue)
+ * Extrai tópicos hierárquicos do conteúdo usando IA
  * 
  * @param content - Texto extraído do documento
  * @param modelName - Nome do modelo Gemini a usar
- * @returns Lista de tópicos identificados
+ * @returns Lista de tópicos com sub-tópicos
  */
 export async function extractTopicsFromContent(
     content: string,
     modelName: string
 ): Promise<Topic[]> {
-    // 🆕 ESTRATÉGIA DE AMOSTRAGEM INTELIGENTE
-    // Para garantir cobertura completa do documento (incluindo tópicos do meio/fim)
-    // usamos amostragem estratificada ao invés de truncamento simples
-
+    // ESTRATÉGIA DE AMOSTRAGEM INTELIGENTE
     let sampledContent: string;
-    const MAX_CHARS = 120000; // ~30k tokens (aumentado para cobrir mais conteúdo)
+    const MAX_CHARS = 120000; // ~30k tokens
 
     if (content.length <= MAX_CHARS) {
-        // Documento pequeno: usa completo
         sampledContent = content;
     } else {
         // Documento grande: amostragem estratificada
-        // 40% início + 20% meio (3 amostras) + 40% fim
         const startSize = Math.floor(MAX_CHARS * 0.4);
         const midSize = Math.floor(MAX_CHARS * 0.2 / 3);
         const endSize = Math.floor(MAX_CHARS * 0.4);
@@ -60,7 +59,6 @@ export async function extractTopicsFromContent(
         const start = content.substring(0, startSize);
         const end = content.substring(content.length - endSize);
 
-        // Pegar 3 amostras do meio
         const third = Math.floor(content.length / 3);
         const mid1 = content.substring(third - midSize / 2, third + midSize / 2);
         const mid2 = content.substring(third * 2 - midSize / 2, third * 2 + midSize / 2);
@@ -71,37 +69,34 @@ export async function extractTopicsFromContent(
         console.log(`📊 Document too large (${content.length} chars). Using stratified sampling: ${sampledContent.length} chars`);
     }
 
+    // 🆕 PROMPT HIERÁRQUICO - Mais conciso para evitar truncamento
     const prompt = `
-Você é um especialista em análise de conteúdo acadêmico/médico.
-Analise o texto abaixo e identifique os tópicos distintos presentes.
+Analise o texto acadêmico e extraia a ESTRUTURA de tópicos:
 
 REGRAS:
-1. Liste tópicos ESPECÍFICOS (ex: "Hepatite B", "Insuficiência Renal Aguda").
-2. Classifique a relevância: high (>20%), medium (5-20%), low (<5%).
-3. Máximo de 15 tópicos.
+1. Máximo 15 tópicos PRINCIPAIS (grandes seções do documento)
+2. Para cada tópico, liste até 10 sub-tópicos específicos
+3. Relevância: high (>15%), medium (5-15%), low (<5%)
+4. Cubra TODO o documento - início, meio e fim
 
 CONTEÚDO:
 ${sampledContent}
 
-FORMATO JSON (obrigatório):
-{"topics":[{"name":"Tópico","relevance":"high"}]}
+JSON:
+{"topics":[{"name":"Tópico","relevance":"high","subtopics":["sub1","sub2"]}]}
 `;
 
-    // Implementar retry para lidar com respostas vazias
     const MAX_RETRIES = 2;
 
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
         try {
-            console.log(`📋 Topic extraction attempt ${attempt}/${MAX_RETRIES}...`);
+            console.log(`📋 Hierarchical topic extraction attempt ${attempt}/${MAX_RETRIES}...`);
 
-            // Aumentado limite de tokens para 8192 e usando jsonMode
-            const result = await callGeminiWithUsage(prompt, modelName, 8192, true);
+            const result = await callGeminiWithUsage(prompt, modelName, 32768, true);
 
-            // Verificar se resposta está vazia
             if (!result.text || result.text.trim().length === 0) {
                 console.warn(`⚠️ Attempt ${attempt}: Empty response from AI`);
                 if (attempt < MAX_RETRIES) {
-                    // Esperar antes de retry (exponential backoff)
                     await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
                     continue;
                 }
@@ -110,27 +105,43 @@ FORMATO JSON (obrigatório):
 
             const parsed = parseJsonFromResponse(result.text);
 
-            if (!parsed.topics || !Array.isArray(parsed.topics)) {
+            // Aceitar tanto {topics: [...]} quanto array direto [...]
+            let rawTopics: any[];
+            if (Array.isArray(parsed)) {
+                rawTopics = parsed;
+            } else if (parsed.topics && Array.isArray(parsed.topics)) {
+                rawTopics = parsed.topics;
+            } else {
                 console.warn('⚠️ Topic extraction returned invalid format. Using empty array.');
                 return [];
             }
 
             // Validar e limpar tópicos
-            const validTopics: Topic[] = parsed.topics
+            const validTopics: Topic[] = rawTopics
                 .filter((t: any) => t.name && typeof t.name === 'string')
                 .map((t: any) => {
                     const topic: Topic = {
                         name: t.name.trim(),
                         relevance: ['high', 'medium', 'low'].includes(t.relevance) ? t.relevance : 'medium'
                     };
-                    // Só adiciona mention_count se for um número válido (evita undefined)
+
+                    // 🆕 Processar sub-tópicos
+                    if (t.subtopics && Array.isArray(t.subtopics)) {
+                        topic.subtopics = t.subtopics
+                            .filter((st: any) => typeof st === 'string' && st.trim())
+                            .map((st: string) => st.trim());
+                    }
+
                     if (typeof t.mention_count === 'number' && t.mention_count > 0) {
                         topic.mention_count = t.mention_count;
                     }
                     return topic;
                 });
 
-            console.log(`✅ Extracted ${validTopics.length} topics successfully`);
+            // Contar totais
+            const totalSubtopics = validTopics.reduce((sum, t) => sum + (t.subtopics?.length || 0), 0);
+            console.log(`✅ Extracted ${validTopics.length} main topics with ${totalSubtopics} subtopics`);
+
             return validTopics;
 
         } catch (error: any) {
@@ -139,7 +150,6 @@ FORMATO JSON (obrigatório):
                 await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
                 continue;
             }
-            // Em caso de erro final, retorna array vazio (não bloqueia o processamento)
             return [];
         }
     }
@@ -153,14 +163,7 @@ FORMATO JSON (obrigatório):
 
 /**
  * Calcula distribuição de questões/flashcards por tópico
- * 
- * REGRAS:
- * - Se topics <= count: Distribui igualmente com resto distribuído aos mais relevantes
- * - Se topics > count: Prioriza por relevância, 1 questão cada para os mais importantes
- * 
- * @param topics - Lista de tópicos (de um ou mais sources)
- * @param totalCount - Número total de questões/flashcards a gerar
- * @returns Distribuição com quota por tópico
+ * Agora considera sub-tópicos para distribuição mais granular
  */
 export function calculateDistribution(
     topics: Topic[],
@@ -201,25 +204,28 @@ export function calculateDistribution(
 
 /**
  * Remove tópicos duplicados de múltiplos sources
- * Mantém a maior relevância em caso de duplicata
- * 
- * @param topics - Array de tópicos (pode ter duplicatas de diferentes sources)
- * @returns Array de tópicos únicos
+ * Agora também mescla sub-tópicos de tópicos com mesmo nome
  */
 export function deduplicateTopics(topics: Topic[]): Topic[] {
     const map = new Map<string, Topic>();
 
     for (const topic of topics) {
-        // Normaliza nome para comparação (lowercase, trim, remove acentos básicos)
         const normalized = normalizeTopicName(topic.name);
         const existing = map.get(normalized);
 
         if (!existing) {
-            map.set(normalized, topic);
+            map.set(normalized, { ...topic });
         } else {
             // Mantém a maior relevância
             if (getRelevanceScore(topic.relevance) > getRelevanceScore(existing.relevance)) {
-                map.set(normalized, topic);
+                existing.relevance = topic.relevance;
+            }
+
+            // 🆕 Mescla sub-tópicos únicos
+            if (topic.subtopics && topic.subtopics.length > 0) {
+                const existingSubtopics = new Set(existing.subtopics || []);
+                topic.subtopics.forEach(st => existingSubtopics.add(st));
+                existing.subtopics = Array.from(existingSubtopics);
             }
         }
     }
@@ -227,21 +233,15 @@ export function deduplicateTopics(topics: Topic[]): Topic[] {
     return Array.from(map.values());
 }
 
-/**
- * Normaliza nome de tópico para comparação
- */
 function normalizeTopicName(name: string): string {
     return name
         .toLowerCase()
         .trim()
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '') // Remove acentos
-        .replace(/\s+/g, ' '); // Normaliza espaços
+        .replace(/\s+/g, ' ');
 }
 
-/**
- * Converte relevância para score numérico
- */
 function getRelevanceScore(relevance: string): number {
     const scores: Record<string, number> = { high: 3, medium: 2, low: 1 };
     return scores[relevance] || 0;
@@ -253,10 +253,6 @@ function getRelevanceScore(relevance: string): number {
 
 /**
  * Agrega tópicos de múltiplos sources
- * Útil quando gerando quiz/flashcard de várias fontes selecionadas
- * 
- * @param sources - Array de sources com campo topics
- * @returns Array de tópicos únicos agregados
  */
 export function aggregateTopicsFromSources(sources: any[]): Topic[] {
     const allTopics: Topic[] = [];
@@ -276,16 +272,20 @@ export function aggregateTopicsFromSources(sources: any[]): Topic[] {
 
 /**
  * Formata a distribuição de tópicos para incluir no prompt de geração
- * 
- * @param distribution - Distribuição calculada
- * @returns String formatada para o prompt
+ * Agora inclui dicas sobre sub-tópicos disponíveis
  */
-export function formatDistributionForPrompt(distribution: TopicDistribution[]): string {
+export function formatDistributionForPrompt(distribution: TopicDistribution[], topics?: Topic[]): string {
     if (distribution.length === 0) {
         return "Distribua as questões de forma equilibrada entre os tópicos identificados no conteúdo.";
     }
 
-    const lines = distribution.map(d => `• ${d.topic}: ${d.quota} questão(ões)`);
+    const lines = distribution.map(d => {
+        const topic = topics?.find(t => t.name === d.topic);
+        const subtopicsHint = topic?.subtopics?.length
+            ? ` (inclui: ${topic.subtopics.slice(0, 3).join(', ')}${topic.subtopics.length > 3 ? '...' : ''})`
+            : '';
+        return `• ${d.topic}${subtopicsHint}: ${d.quota} questão(ões)`;
+    });
 
     return `📋 DISTRIBUIÇÃO OBRIGATÓRIA (NÃO ALTERE):
 ${lines.join('\n')}
@@ -293,4 +293,34 @@ ${lines.join('\n')}
 🚨 REGRA CRÍTICA: Gere EXATAMENTE o número de questões especificado para cada tópico.
 Se um tópico tem quota de 2, você DEVE gerar exatamente 2 questões sobre ele.
 Marque cada questão com seu tópico correspondente no campo "topico".`;
+}
+
+// =====================
+// UTILITÁRIOS
+// =====================
+
+/**
+ * Flatten topics - Expande tópicos hierárquicos em lista plana
+ * Útil para busca e filtros
+ */
+export function flattenTopics(topics: Topic[]): string[] {
+    const flat: string[] = [];
+
+    for (const topic of topics) {
+        flat.push(topic.name);
+        if (topic.subtopics) {
+            flat.push(...topic.subtopics);
+        }
+    }
+
+    return [...new Set(flat)]; // Remove duplicatas
+}
+
+/**
+ * Conta total de tópicos incluindo sub-tópicos
+ */
+export function countAllTopics(topics: Topic[]): { main: number; sub: number; total: number } {
+    const main = topics.length;
+    const sub = topics.reduce((sum, t) => sum + (t.subtopics?.length || 0), 0);
+    return { main, sub, total: main + sub };
 }

@@ -123,7 +123,8 @@ export const useSummaries = (projectId: string | null) => {
       setGenerating(true);
       if (!user) throw new Error('Not authenticated');
 
-      const generateFocusedSummaryFn = httpsCallable(functions, 'generate_focused_summary');
+      // Timeout de 5 minutos para evitar erros de cold start
+      const generateFocusedSummaryFn = httpsCallable(functions, 'generate_focused_summary', { timeout: 300000 });
       const result = await generateFocusedSummaryFn({
         project_id: projectId,
         language: profile?.response_language || 'pt'

@@ -33,6 +33,7 @@ const modelSelector_1 = require("./shared/modelSelector");
 const language_helper_1 = require("./shared/language_helper");
 const topic_extractor_1 = require("./shared/topic_extractor");
 const topic_balancer_1 = require("./shared/topic_balancer");
+const topic_extractor_2 = require("./shared/topic_extractor");
 exports.generate_quiz = (0, https_1.onCall)({
     timeoutSeconds: 540,
     memory: "1GiB",
@@ -49,7 +50,6 @@ exports.generate_quiz = (0, https_1.onCall)({
     try {
         // 3. Validation
         const { source_ids, project_id, count: requestedCount, difficulty } = (0, validation_1.validateRequest)(request.data, validation_1.generateQuizSchema);
-        const count = requestedCount !== null && requestedCount !== void 0 ? requestedCount : 10; // Default de 10 questões
         // 3. Fetch Content (Sources)
         let sources = [];
         if (source_ids && source_ids.length > 0) {
@@ -103,12 +103,19 @@ exports.generate_quiz = (0, https_1.onCall)({
             allTopics = await (0, topic_extractor_1.extractTopicsFromContent)(combinedContent, topicModel);
             console.log(`✅ Extracted ${allTopics.length} topics on-demand`);
         }
+        // 🆕 Contar tópicos totais (principais + sub-tópicos)
+        const topicStats = (0, topic_extractor_2.countAllTopics)(allTopics);
+        console.log(`📊 Topics stats: ${topicStats.main} main + ${topicStats.sub} sub = ${topicStats.total} total`);
+        // 🆕 Calcular quantidade ADAPTATIVA de perguntas (20-40)
+        const adaptive = (0, topic_balancer_1.calculateAdaptiveQuestionCount)(topicStats.main, requestedCount);
+        const count = adaptive.count;
+        console.log(`📊 Adaptive question count: ${count} (${adaptive.reason})`);
         // 🆕 Buscar histórico de tópicos dos últimos 3 quizzes
         const topicHistory = await (0, topic_balancer_1.getTopicHistory)(db, project_id || sources[0].project_id, 3);
         // Ajustar distribuição considerando o histórico (prioriza tópicos menos explorados)
         const topicNames = allTopics.map(t => t.name);
         const distribution = (0, topic_balancer_1.adjustDistributionByHistory)(topicNames, topicHistory, count);
-        const distributionPrompt = (0, topic_extractor_1.formatDistributionForPrompt)(distribution);
+        const distributionPrompt = (0, topic_extractor_1.formatDistributionForPrompt)(distribution, allTopics);
         console.log(`📊 Adaptive topic distribution: ${distribution.map(d => `${d.topic}:${d.quota}`).join(', ')}`);
         // 6. Generate Quiz
         // Simplified batching for now (single batch)
@@ -132,6 +139,7 @@ QUESTION TYPES (Vary):
 
 FORMAT RULES (Strict):
 - ALL questions must have ONLY ONE correct alternative.
+- ⚠️ CRITICAL: When asking "Which is an example of..." or "Which is a contraindication for...", ensure ONLY ONE option matches. The other options (distractors) must be CLEARLY INCORRECT or from a different category. NEVER include multiple valid answers as options.
 - Options must always be arrays of strings: ["A) Text", "B) Text"...] or ${trueFalseOpts.display}.
 - ${(0, language_helper_1.getLanguageInstruction)(language)}
 

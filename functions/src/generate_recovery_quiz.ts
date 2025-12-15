@@ -201,6 +201,7 @@ ${texts.questionTypes} (Vary):
 
 ${texts.formatRules} (Strict):
 - ALL questions must have ONLY ONE correct alternative.
+- ⚠️ CRITICAL: When asking "Which is an example of..." or "Which is a contraindication for...", ensure ONLY ONE option matches. The other options (distractors) must be CLEARLY INCORRECT or from a different category. NEVER include multiple valid answers as options.
 - Options must always be arrays of strings: ["A) Text", "B) Text"...] or ${trueFalseOpts.display}.
 
 ${texts.justificationRules} (Extra Important for Recovery):

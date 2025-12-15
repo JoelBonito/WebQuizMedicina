@@ -88,7 +88,8 @@ export const useMindMaps = (projectId: string | null) => {
 
       requestBody.language = profile?.response_language || 'pt';
 
-      const generateMindMapFn = httpsCallable(functions, 'generate_mindmap');
+      // Timeout de 5 minutos para evitar erros de cold start
+      const generateMindMapFn = httpsCallable(functions, 'generate_mindmap', { timeout: 300000 });
       const result = await generateMindMapFn(requestBody);
 
       return result.data;

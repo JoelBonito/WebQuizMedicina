@@ -286,7 +286,8 @@ export function SourcesPanel({ projectId, onSelectedSourcesChange, isFullscreenM
       }
 
       // Chamar a Cloud Function para processar embeddings
-      const processEmbeddingsFn = httpsCallable(functions, 'process_embeddings_queue');
+      // Timeout de 5 minutos para evitar erros de cold start
+      const processEmbeddingsFn = httpsCallable(functions, 'process_embeddings_queue', { timeout: 300000 });
       const result = await processEmbeddingsFn({
         project_id: projectId,
         max_items: 10

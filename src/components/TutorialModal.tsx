@@ -57,17 +57,30 @@ export function TutorialModal({
         if (dontShowAgain && onComplete) {
             onComplete();
         }
-        handleClose();
+        closeModal();
     };
 
     const handleClose = () => {
-        setCurrentStep(0);
-        setDontShowAgain(false);
-        onOpenChange(false);
+        // 🆕 Salvar preferência mesmo ao fechar com X
+        if (dontShowAgain && onComplete) {
+            onComplete();
+        }
+        closeModal();
     };
 
     const handleSkip = () => {
-        handleClose();
+        // 🆕 Salvar preferência mesmo ao pular
+        if (dontShowAgain && onComplete) {
+            onComplete();
+        }
+        closeModal();
+    };
+
+    // Função interna para resetar e fechar
+    const closeModal = () => {
+        setCurrentStep(0);
+        setDontShowAgain(false);
+        onOpenChange(false);
     };
 
     return (

@@ -105,7 +105,8 @@ export const useQuestions = (projectId: string | null) => {
       };
       console.log('📤 [useQuestions] Dados enviados para generate_quiz:', payload);
 
-      const generateQuizFn = httpsCallable(functions, 'generate_quiz');
+      // Timeout de 5 minutos para evitar erros de cold start
+      const generateQuizFn = httpsCallable(functions, 'generate_quiz', { timeout: 300000 });
       const result = await generateQuizFn(payload);
 
       // No need to manually fetch if realtime listener is active, but keeping for consistency
@@ -130,7 +131,8 @@ export const useQuestions = (projectId: string | null) => {
       setGenerating(true);
       if (!user) throw new Error('Not authenticated');
 
-      const generateRecoveryQuizFn = httpsCallable(functions, 'generate_recovery_quiz');
+      // Timeout de 5 minutos para evitar erros de cold start
+      const generateRecoveryQuizFn = httpsCallable(functions, 'generate_recovery_quiz', { timeout: 300000 });
       const result = await generateRecoveryQuizFn({
         project_id: projectId,
         difficulties,

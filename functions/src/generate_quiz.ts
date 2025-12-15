@@ -10,7 +10,8 @@ import {
     formatDistributionForPrompt,
     extractTopicsFromContent
 } from "./shared/topic_extractor";
-import { getTopicHistory, adjustDistributionByHistory } from "./shared/topic_balancer";
+import { getTopicHistory, adjustDistributionByHistory, calculateAdaptiveQuestionCount } from "./shared/topic_balancer";
+import { countAllTopics } from "./shared/topic_extractor";
 
 
 
@@ -32,7 +33,6 @@ export const generate_quiz = onCall({
     try {
         // 3. Validation
         const { source_ids, project_id, count: requestedCount, difficulty } = validateRequest(request.data, generateQuizSchema);
-        const count = requestedCount ?? 10; // Default de 10 questões
 
         // 3. Fetch Content (Sources)
         let sources: any[] = [];
@@ -98,13 +98,22 @@ export const generate_quiz = onCall({
             console.log(`✅ Extracted ${allTopics.length} topics on-demand`);
         }
 
+        // 🆕 Contar tópicos totais (principais + sub-tópicos)
+        const topicStats = countAllTopics(allTopics);
+        console.log(`📊 Topics stats: ${topicStats.main} main + ${topicStats.sub} sub = ${topicStats.total} total`);
+
+        // 🆕 Calcular quantidade ADAPTATIVA de perguntas (20-40)
+        const adaptive = calculateAdaptiveQuestionCount(topicStats.main, requestedCount);
+        const count = adaptive.count;
+        console.log(`📊 Adaptive question count: ${count} (${adaptive.reason})`);
+
         // 🆕 Buscar histórico de tópicos dos últimos 3 quizzes
         const topicHistory = await getTopicHistory(db, project_id || sources[0].project_id, 3);
 
         // Ajustar distribuição considerando o histórico (prioriza tópicos menos explorados)
         const topicNames = allTopics.map(t => t.name);
         const distribution = adjustDistributionByHistory(topicNames, topicHistory, count);
-        const distributionPrompt = formatDistributionForPrompt(distribution);
+        const distributionPrompt = formatDistributionForPrompt(distribution, allTopics);
         console.log(`📊 Adaptive topic distribution: ${distribution.map(d => `${d.topic}:${d.quota}`).join(', ')}`);
 
         // 6. Generate Quiz
@@ -129,6 +138,7 @@ QUESTION TYPES (Vary):
 
 FORMAT RULES (Strict):
 - ALL questions must have ONLY ONE correct alternative.
+- ⚠️ CRITICAL: When asking "Which is an example of..." or "Which is a contraindication for...", ensure ONLY ONE option matches. The other options (distractors) must be CLEARLY INCORRECT or from a different category. NEVER include multiple valid answers as options.
 - Options must always be arrays of strings: ["A) Text", "B) Text"...] or ${trueFalseOpts.display}.
 - ${getLanguageInstruction(language)}
 

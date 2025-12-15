@@ -89,7 +89,8 @@ export const useFlashcards = (projectId: string | null) => {
 
       const source_ids = Array.isArray(sourceIds) ? sourceIds : (sourceIds ? [sourceIds] : undefined);
 
-      const generateFlashcardsFn = httpsCallable(functions, 'generate_flashcards');
+      // Timeout de 5 minutos para evitar erros de cold start
+      const generateFlashcardsFn = httpsCallable(functions, 'generate_flashcards', { timeout: 300000 });
       const result = await generateFlashcardsFn({
         project_id: projectId,
         source_ids,
@@ -117,7 +118,8 @@ export const useFlashcards = (projectId: string | null) => {
       setGenerating(true);
       if (!user) throw new Error('Not authenticated');
 
-      const generateRecoveryFlashcardsFn = httpsCallable(functions, 'generate_recovery_flashcards');
+      // Timeout de 5 minutos para evitar erros de cold start
+      const generateRecoveryFlashcardsFn = httpsCallable(functions, 'generate_recovery_flashcards', { timeout: 300000 });
       const result = await generateRecoveryFlashcardsFn({
         project_id: projectId,
         difficulties,

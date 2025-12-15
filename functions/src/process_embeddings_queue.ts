@@ -286,6 +286,13 @@ export const process_embeddings_queue = onCall({
                 }
 
                 // 4. Update Source Status (incluindo tópicos)
+                // Verificar se o documento ainda existe antes de atualizar
+                const sourceStillExists = await item.ref.get();
+                if (!sourceStillExists.exists) {
+                    console.warn(`⚠️ Source ${sourceId} was deleted during processing. Skipping update.`);
+                    continue;
+                }
+
                 batch.update(item.ref, {
                     status: "ready",
                     processed_at: admin.firestore.FieldValue.serverTimestamp(),
@@ -313,17 +320,37 @@ export const process_embeddings_queue = onCall({
 
             } catch (error: any) {
                 console.error(`❌ Error processing source ${sourceId}:`, error);
-                batch.update(item.ref, {
-                    status: "error",
-                    error_message: error.message || "Failed to generate embeddings",
-                    processed_at: admin.firestore.FieldValue.serverTimestamp()
-                });
+
+                // Verificar se o documento ainda existe antes de atualizar com erro
+                try {
+                    const sourceStillExists = await item.ref.get();
+                    if (sourceStillExists.exists) {
+                        batch.update(item.ref, {
+                            status: "error",
+                            error_message: error.message || "Failed to generate embeddings",
+                            processed_at: admin.firestore.FieldValue.serverTimestamp()
+                        });
+                    } else {
+                        console.warn(`⚠️ Source ${sourceId} was deleted. Cannot update error status.`);
+                    }
+                } catch (checkError) {
+                    console.warn(`⚠️ Could not check if source ${sourceId} exists:`, checkError);
+                }
                 processedCount++;
             }
         }
 
         if (processedCount > 0) {
-            await batch.commit();
+            try {
+                await batch.commit();
+            } catch (commitError: any) {
+                // Se o commit falhar por documento não encontrado, apenas logar
+                if (commitError.message?.includes('NOT_FOUND') || commitError.message?.includes('No document to update')) {
+                    console.warn('⚠️ Some documents were deleted during processing. Partial commit may have occurred.');
+                } else {
+                    throw commitError;
+                }
+            }
         }
 
         return { success: true, message: "Sources processed successfully", processed: processedCount };

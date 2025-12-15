@@ -150,3 +150,78 @@ export function adjustDistributionByHistory(
 
     return distribution.filter(d => d.quota > 0);
 }
+
+// =====================
+// QUANTIDADE ADAPTATIVA DE PERGUNTAS
+// =====================
+
+/**
+ * Calcula a quantidade ideal de perguntas baseada no número de tópicos
+ * 
+ * REGRAS:
+ * - Mínimo: 20 perguntas
+ * - Máximo: 40 perguntas
+ * - Se totalTopics <= 20: usa 20 perguntas
+ * - Se totalTopics > 20 e <= 40: usa totalTopics (1 pergunta por tópico)
+ * - Se totalTopics > 40: usa 40 perguntas
+ * 
+ * @param totalTopics - Número total de tópicos disponíveis
+ * @param userRequestedCount - Quantidade solicitada pelo usuário (opcional)
+ * @returns Quantidade ideal de perguntas
+ */
+export function calculateAdaptiveQuestionCount(
+    totalTopics: number,
+    userRequestedCount?: number
+): { count: number; reason: string } {
+    const MIN_QUESTIONS = 20;
+    const MAX_QUESTIONS = 40;
+
+    // Se o usuário especificou uma quantidade, respeitar (dentro dos limites)
+    if (userRequestedCount) {
+        const clamped = Math.max(MIN_QUESTIONS, Math.min(MAX_QUESTIONS, userRequestedCount));
+        return {
+            count: clamped,
+            reason: `Usuário solicitou ${userRequestedCount} (ajustado para ${clamped})`
+        };
+    }
+
+    // Cálculo adaptativo baseado em tópicos
+    if (totalTopics <= MIN_QUESTIONS) {
+        return {
+            count: MIN_QUESTIONS,
+            reason: `Poucos tópicos (${totalTopics}): usando mínimo de ${MIN_QUESTIONS} perguntas`
+        };
+    } else if (totalTopics <= MAX_QUESTIONS) {
+        return {
+            count: totalTopics,
+            reason: `Quantidade ideal: ${totalTopics} perguntas (1 por tópico)`
+        };
+    } else {
+        return {
+            count: MAX_QUESTIONS,
+            reason: `Muitos tópicos (${totalTopics}): usando máximo de ${MAX_QUESTIONS} perguntas`
+        };
+    }
+}
+
+/**
+ * Verifica quais tópicos estão descobertos (não foram cobertos nos últimos quizzes)
+ * Útil para feedback ao usuário
+ */
+export function getUncoveredTopics(
+    allTopics: string[],
+    topicHistory: Map<string, number>
+): string[] {
+    return allTopics.filter(topic => !topicHistory.has(topic) || topicHistory.get(topic) === 0);
+}
+
+/**
+ * Estima quantos quizzes são necessários para cobrir todos os tópicos
+ */
+export function estimateQuizzesForFullCoverage(
+    totalTopics: number,
+    questionsPerQuiz: number = 20
+): number {
+    return Math.ceil(totalTopics / questionsPerQuiz);
+}
+

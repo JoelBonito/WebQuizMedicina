@@ -44,7 +44,7 @@ exports.process_embeddings_queue = (0, https_1.onCall)({
     memory: '2GiB',
     region: 'us-central1'
 }, async (request) => {
-    var _a, _b, _c, _d, _e;
+    var _a, _b, _c, _d, _e, _f, _g;
     const db = admin.firestore();
     const storage = admin.storage();
     // 1. Auth Check
@@ -277,6 +277,12 @@ exports.process_embeddings_queue = (0, https_1.onCall)({
                     console.log(`Saved ${batchChunks.length} chunks for source ${sourceId}`);
                 }
                 // 4. Update Source Status (incluindo tópicos)
+                // Verificar se o documento ainda existe antes de atualizar
+                const sourceStillExists = await item.ref.get();
+                if (!sourceStillExists.exists) {
+                    console.warn(`⚠️ Source ${sourceId} was deleted during processing. Skipping update.`);
+                    continue;
+                }
                 batch.update(item.ref, {
                     status: "ready",
                     processed_at: admin.firestore.FieldValue.serverTimestamp(),
@@ -296,16 +302,39 @@ exports.process_embeddings_queue = (0, https_1.onCall)({
             }
             catch (error) {
                 console.error(`❌ Error processing source ${sourceId}:`, error);
-                batch.update(item.ref, {
-                    status: "error",
-                    error_message: error.message || "Failed to generate embeddings",
-                    processed_at: admin.firestore.FieldValue.serverTimestamp()
-                });
+                // Verificar se o documento ainda existe antes de atualizar com erro
+                try {
+                    const sourceStillExists = await item.ref.get();
+                    if (sourceStillExists.exists) {
+                        batch.update(item.ref, {
+                            status: "error",
+                            error_message: error.message || "Failed to generate embeddings",
+                            processed_at: admin.firestore.FieldValue.serverTimestamp()
+                        });
+                    }
+                    else {
+                        console.warn(`⚠️ Source ${sourceId} was deleted. Cannot update error status.`);
+                    }
+                }
+                catch (checkError) {
+                    console.warn(`⚠️ Could not check if source ${sourceId} exists:`, checkError);
+                }
                 processedCount++;
             }
         }
         if (processedCount > 0) {
-            await batch.commit();
+            try {
+                await batch.commit();
+            }
+            catch (commitError) {
+                // Se o commit falhar por documento não encontrado, apenas logar
+                if (((_f = commitError.message) === null || _f === void 0 ? void 0 : _f.includes('NOT_FOUND')) || ((_g = commitError.message) === null || _g === void 0 ? void 0 : _g.includes('No document to update'))) {
+                    console.warn('⚠️ Some documents were deleted during processing. Partial commit may have occurred.');
+                }
+                else {
+                    throw commitError;
+                }
+            }
         }
         return { success: true, message: "Sources processed successfully", processed: processedCount };
     }
