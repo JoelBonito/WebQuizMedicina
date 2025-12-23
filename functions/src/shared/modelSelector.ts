@@ -63,7 +63,8 @@ export class IntelligentModelSelector {
         const priorities = {
             // Para geração de quiz/flashcards (rápido e econômico)
             general: [
-                'gemini-2.5-flash',      // Modelo estável (Junho 2025)
+                'gemini-3-flash-preview', // Modelo mais recente (Dezembro 2025) - Pro-level performance com Flash speed
+                'gemini-2.5-flash',       // Modelo estável (Junho 2025)
                 'gemini-flash-latest',
                 'gemini-2.0-flash-exp',
                 'gemini-pro-latest'
@@ -71,7 +72,8 @@ export class IntelligentModelSelector {
 
             // Para tarefas complexas (máxima capacidade)
             complex: [
-                'gemini-2.5-flash',      // Modelo estável (Junho 2025)
+                'gemini-3-flash-preview', // Modelo mais recente com raciocínio avançado
+                'gemini-2.5-flash',       // Modelo estável (Junho 2025)
                 'gemini-2.5-pro',
                 'gemini-pro-latest',
                 'gemini-flash-latest'
@@ -122,12 +124,13 @@ export class IntelligentModelSelector {
             return fallback;
         }
 
-        return 'gemini-2.5-flash'; // Último recurso absoluto (modelo estável mais recente)
+        return 'gemini-3-flash-preview'; // Último recurso absoluto (modelo mais recente)
     }
 
     // 4️⃣ FALLBACK ESTÁTICO (caso API de discovery falhe)
     getFallbackModels() {
         return [
+            { name: 'gemini-3-flash-preview', displayName: 'Gemini 3 Flash Preview' },
             { name: 'gemini-flash-latest', displayName: 'Gemini Flash Latest' },
             { name: 'gemini-pro-latest', displayName: 'Gemini Pro Latest' }
         ];

@@ -3,7 +3,7 @@
 
 /**
  * Token estimation for each output type
- * Based on empirical testing with Gemini 2.5 Flash
+ * Based on empirical testing with Gemini 2.5/3.0 Flash
  * Includes JSON overhead (~15% extra)
  */
 export const OUTPUT_LIMITS = {
@@ -47,17 +47,17 @@ export const OUTPUT_LIMITS = {
 export const SAFE_OUTPUT_LIMIT = 30000;
 
 /**
- * Maximum output tokens Gemini 2.5 can generate
- * Updated per Gemini 2.5 Flash specs (65,535 tokens)
+ * Maximum output tokens Gemini 2.5/3.0 can generate
+ * Updated per Gemini 2.5/3.0 Flash specs (65,536 tokens)
  */
-export const GEMINI_MAX_OUTPUT = 65535;
+export const GEMINI_MAX_OUTPUT = 65536;
 
 /**
  * Gemini combined context limit (input + output)
- * Gemini 2.5 Flash supports ~1 Million tokens input.
+ * Gemini 2.5/3.0 Flash supports ~1 Million tokens input (1,048,576).
  * We set a safe operational limit of 1M.
  */
-export const GEMINI_CONTEXT_LIMIT = 1000000;
+export const GEMINI_CONTEXT_LIMIT = 1048576;
 
 /**
  * Safety margin for token calculations

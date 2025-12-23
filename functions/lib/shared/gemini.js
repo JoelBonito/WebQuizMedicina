@@ -1,6 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getEmbedding = exports.parseJsonFromResponse = exports.callGeminiWithUsage = exports.GEMINI_TIMEOUT = exports.SAFE_OUTPUT_LIMIT = exports.getGenAI = void 0;
+exports.GEMINI_TIMEOUT = exports.SAFE_OUTPUT_LIMIT = void 0;
+exports.getGenAI = getGenAI;
+exports.callGeminiWithUsage = callGeminiWithUsage;
+exports.parseJsonFromResponse = parseJsonFromResponse;
+exports.getEmbedding = getEmbedding;
 const generative_ai_1 = require("@google/generative-ai");
 let genAI = null;
 function getGenAI() {
@@ -10,10 +14,11 @@ function getGenAI() {
     }
     return genAI;
 }
-exports.getGenAI = getGenAI;
 exports.SAFE_OUTPUT_LIMIT = 32768; // Increased for Gemini 2.5 thinking tokens
 exports.GEMINI_TIMEOUT = 540000; // 9 minutes to match Cloud Function timeout
-async function callGeminiWithUsage(prompt, modelName = "gemini-2.5-flash", maxOutputTokens = exports.SAFE_OUTPUT_LIMIT, jsonMode = false, cacheName) {
+async function callGeminiWithUsage(prompt, modelName = "gemini-3-flash-preview", maxOutputTokens = exports.SAFE_OUTPUT_LIMIT, jsonMode = false, cacheName) {
+    // NOTE: Gemini 3 Flash supports a new 'thinking_level' parameter (minimal, low, medium, high)
+    // that controls internal reasoning. This can be added to generationConfig in the future if needed.
     try {
         const ai = getGenAI();
         const model = ai.getGenerativeModel({
@@ -70,7 +75,6 @@ async function callGeminiWithUsage(prompt, modelName = "gemini-2.5-flash", maxOu
         throw error;
     }
 }
-exports.callGeminiWithUsage = callGeminiWithUsage;
 function parseJsonFromResponse(text) {
     // Helper to sanitize invalid escape sequences in JSON strings
     // LaTeX commands like \downarrow, \rightarrow become \\d, \\r which are invalid JSON escapes
@@ -209,12 +213,10 @@ function parseJsonFromResponse(text) {
     }
     throw new Error("Invalid JSON response from AI");
 }
-exports.parseJsonFromResponse = parseJsonFromResponse;
 async function getEmbedding(text, modelName = "gemini-embedding-001") {
     const ai = getGenAI();
     const model = ai.getGenerativeModel({ model: modelName }, { timeout: exports.GEMINI_TIMEOUT });
     const result = await model.embedContent(text);
     return result.embedding.values;
 }
-exports.getEmbedding = getEmbedding;
 //# sourceMappingURL=gemini.js.map

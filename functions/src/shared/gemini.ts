@@ -15,11 +15,13 @@ export const GEMINI_TIMEOUT = 540000; // 9 minutes to match Cloud Function timeo
 
 export async function callGeminiWithUsage(
     prompt: string | Array<string | any>,
-    modelName: string = "gemini-2.5-flash",
+    modelName: string = "gemini-3-flash-preview",
     maxOutputTokens: number = SAFE_OUTPUT_LIMIT,
     jsonMode: boolean = false,
     cacheName?: string
 ) {
+    // NOTE: Gemini 3 Flash supports a new 'thinking_level' parameter (minimal, low, medium, high)
+    // that controls internal reasoning. This can be added to generationConfig in the future if needed.
     try {
         const ai = getGenAI();
         const model = ai.getGenerativeModel({

@@ -2,7 +2,11 @@
 // Security utilities for XSS prevention
 // Simple HTML sanitization without external dependencies
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.sanitizeObject = exports.sanitizeStringArray = exports.sanitizeHtml = exports.sanitizeString = exports.cleanString = void 0;
+exports.cleanString = cleanString;
+exports.sanitizeString = sanitizeString;
+exports.sanitizeHtml = sanitizeHtml;
+exports.sanitizeStringArray = sanitizeStringArray;
+exports.sanitizeObject = sanitizeObject;
 /**
  * Clean text strings by removing dangerous characters without HTML encoding
  * Use this for plain text content that will be stored in Firestore and rendered in React
@@ -19,7 +23,6 @@ function cleanString(input) {
         // Normalize line breaks
         .replace(/\r\n/g, '\n');
 }
-exports.cleanString = cleanString;
 /**
  * Sanitize plain text strings to prevent XSS
  * Escapes HTML special characters
@@ -37,7 +40,6 @@ function sanitizeString(input) {
         .replace(/'/g, '&#x27;')
         .replace(/\//g, '&#x2F;');
 }
-exports.sanitizeString = sanitizeString;
 /**
  * Sanitize HTML content for summaries
  * Allows only safe medical content tags and removes dangerous attributes
@@ -99,7 +101,6 @@ function sanitizeHtml(html) {
     });
     return html.trim();
 }
-exports.sanitizeHtml = sanitizeHtml;
 /**
  * Validate and sanitize array of strings (e.g., topicos)
  */
@@ -111,7 +112,6 @@ function sanitizeStringArray(arr) {
         .map(item => sanitizeString(item))
         .filter(item => item.length > 0);
 }
-exports.sanitizeStringArray = sanitizeStringArray;
 /**
  * Sanitize object keys and string values recursively
  * Useful for sanitizing entire JSON objects before saving to DB
@@ -130,5 +130,4 @@ function sanitizeObject(obj) {
     }
     return sanitized;
 }
-exports.sanitizeObject = sanitizeObject;
 //# sourceMappingURL=sanitization.js.map

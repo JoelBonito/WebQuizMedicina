@@ -1,6 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.estimateQuizzesForFullCoverage = exports.getUncoveredTopics = exports.calculateAdaptiveQuestionCount = exports.adjustDistributionByHistory = exports.getTopicHistory = void 0;
+exports.getTopicHistory = getTopicHistory;
+exports.adjustDistributionByHistory = adjustDistributionByHistory;
+exports.calculateAdaptiveQuestionCount = calculateAdaptiveQuestionCount;
+exports.getUncoveredTopics = getUncoveredTopics;
+exports.estimateQuizzesForFullCoverage = estimateQuizzesForFullCoverage;
 /**
  * Busca o histórico de tópicos abordados nos últimos N quizzes do projeto
  * @param db - Instância do Firestore
@@ -58,7 +62,6 @@ async function getTopicHistory(db, projectId, lastNQuizzes = 3) {
     }
     return topicCount;
 }
-exports.getTopicHistory = getTopicHistory;
 /**
  * Ajusta a distribuição de tópicos baseado no histórico
  * Prioriza tópicos que foram menos explorados nos quizzes anteriores
@@ -122,7 +125,6 @@ function adjustDistributionByHistory(allTopics, topicHistory, totalCount) {
     }
     return distribution.filter(d => d.quota > 0);
 }
-exports.adjustDistributionByHistory = adjustDistributionByHistory;
 // =====================
 // QUANTIDADE ADAPTATIVA DE PERGUNTAS
 // =====================
@@ -171,7 +173,6 @@ function calculateAdaptiveQuestionCount(totalTopics, userRequestedCount) {
         };
     }
 }
-exports.calculateAdaptiveQuestionCount = calculateAdaptiveQuestionCount;
 /**
  * Verifica quais tópicos estão descobertos (não foram cobertos nos últimos quizzes)
  * Útil para feedback ao usuário
@@ -179,12 +180,10 @@ exports.calculateAdaptiveQuestionCount = calculateAdaptiveQuestionCount;
 function getUncoveredTopics(allTopics, topicHistory) {
     return allTopics.filter(topic => !topicHistory.has(topic) || topicHistory.get(topic) === 0);
 }
-exports.getUncoveredTopics = getUncoveredTopics;
 /**
  * Estima quantos quizzes são necessários para cobrir todos os tópicos
  */
 function estimateQuizzesForFullCoverage(totalTopics, questionsPerQuiz = 20) {
     return Math.ceil(totalTopics / questionsPerQuiz);
 }
-exports.estimateQuizzesForFullCoverage = estimateQuizzesForFullCoverage;
 //# sourceMappingURL=topic_balancer.js.map
