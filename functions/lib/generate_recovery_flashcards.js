@@ -15,13 +15,23 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 }) : function(o, v) {
     o["default"] = v;
 });
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.generate_recovery_flashcards = void 0;
 const admin = __importStar(require("firebase-admin"));
@@ -37,7 +47,7 @@ const modelSelector_1 = require("./shared/modelSelector");
 // Recovery Flashcards Token Limit (10k tokens - more focused than quiz)
 const RECOVERY_FLASHCARDS_TOKEN_LIMIT = 10000;
 exports.generate_recovery_flashcards = (0, https_1.onCall)({
-    timeoutSeconds: 300,
+    timeoutSeconds: 300, // Increased timeout for semantic search and batch generation
     memory: "1GiB",
     region: "us-central1",
 }, async (request) => {
@@ -244,14 +254,14 @@ Retorne APENAS o JSON válido.
         // 7. Sanitization and Persistence
         const flashcardsToInsert = allFlashcards.map((f) => ({
             project_id,
-            user_id: userId,
-            source_id: null,
+            user_id: userId, // Added user_id
+            source_id: null, // Recovery flashcards span multiple sources
             session_id: sessionId,
             frente: (0, sanitization_1.cleanString)(f.frente || ''),
             verso: (0, sanitization_1.cleanString)(f.verso || ''),
             topico: f.topico ? (0, sanitization_1.cleanString)(f.topico) : null,
             dificuldade: ['fácil', 'médio', 'difícil'].includes(f.dificuldade) ? f.dificuldade : 'médio',
-            content_type: 'recovery',
+            content_type: 'recovery', // Mark as recovery content for UI differentiation
             created_at: admin.firestore.FieldValue.serverTimestamp(),
         }));
         const batch = db.batch();

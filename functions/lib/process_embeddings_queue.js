@@ -15,13 +15,23 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 }) : function(o, v) {
     o["default"] = v;
 });
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.process_embeddings_queue = void 0;
 const admin = __importStar(require("firebase-admin"));
@@ -35,8 +45,8 @@ const fileExtractors_1 = require("./shared/fileExtractors");
 const geminiFileManager_1 = require("./shared/geminiFileManager");
 const topic_extractor_1 = require("./shared/topic_extractor");
 const processEmbeddingsSchema = zod_1.z.object({
-    source_id: zod_1.z.string().optional(),
-    project_id: zod_1.z.string(),
+    source_id: zod_1.z.string().optional(), // Firestore IDs não são UUIDs estritos
+    project_id: zod_1.z.string(), // Firestore IDs
     max_items: zod_1.z.number().optional(),
 });
 exports.process_embeddings_queue = (0, https_1.onCall)({
@@ -265,7 +275,7 @@ exports.process_embeddings_queue = (0, https_1.onCall)({
                         const chunkRef = db.collection('source_chunks').doc();
                         chunkBatch.set(chunkRef, {
                             source_id: sourceId,
-                            project_id: project_id,
+                            project_id: project_id, // Add project_id for easier cleanup/filtering
                             content: chunk.content,
                             chunk_index: chunk.index,
                             token_count: chunk.tokenCount,
