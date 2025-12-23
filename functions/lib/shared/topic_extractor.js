@@ -12,7 +12,13 @@
  * - Sub-tópicos: "Carcinoma Hepatocelular", "Hemangioma", etc.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.countAllTopics = exports.flattenTopics = exports.formatDistributionForPrompt = exports.aggregateTopicsFromSources = exports.deduplicateTopics = exports.calculateDistribution = exports.extractTopicsFromContent = void 0;
+exports.extractTopicsFromContent = extractTopicsFromContent;
+exports.calculateDistribution = calculateDistribution;
+exports.deduplicateTopics = deduplicateTopics;
+exports.aggregateTopicsFromSources = aggregateTopicsFromSources;
+exports.formatDistributionForPrompt = formatDistributionForPrompt;
+exports.flattenTopics = flattenTopics;
+exports.countAllTopics = countAllTopics;
 const gemini_1 = require("./gemini");
 // =====================
 // EXTRAÇÃO DE TÓPICOS (HIERÁRQUICA)
@@ -122,7 +128,6 @@ JSON:
     }
     return [];
 }
-exports.extractTopicsFromContent = extractTopicsFromContent;
 // =====================
 // DISTRIBUIÇÃO DE QUESTÕES
 // =====================
@@ -155,7 +160,6 @@ function calculateDistribution(topics, totalCount) {
         quota: baseQuota + (i < remainder ? 1 : 0)
     }));
 }
-exports.calculateDistribution = calculateDistribution;
 // =====================
 // DEDUPLICAÇÃO
 // =====================
@@ -186,7 +190,6 @@ function deduplicateTopics(topics) {
     }
     return Array.from(map.values());
 }
-exports.deduplicateTopics = deduplicateTopics;
 function normalizeTopicName(name) {
     return name
         .toLowerCase()
@@ -214,7 +217,6 @@ function aggregateTopicsFromSources(sources) {
     }
     return deduplicateTopics(allTopics);
 }
-exports.aggregateTopicsFromSources = aggregateTopicsFromSources;
 // =====================
 // FORMATAÇÃO DE PROMPT
 // =====================
@@ -241,7 +243,6 @@ ${lines.join('\n')}
 Se um tópico tem quota de 2, você DEVE gerar exatamente 2 questões sobre ele.
 Marque cada questão com seu tópico correspondente no campo "topico".`;
 }
-exports.formatDistributionForPrompt = formatDistributionForPrompt;
 // =====================
 // UTILITÁRIOS
 // =====================
@@ -259,7 +260,6 @@ function flattenTopics(topics) {
     }
     return [...new Set(flat)]; // Remove duplicatas
 }
-exports.flattenTopics = flattenTopics;
 /**
  * Conta total de tópicos incluindo sub-tópicos
  */
@@ -268,5 +268,4 @@ function countAllTopics(topics) {
     const sub = topics.reduce((sum, t) => { var _a; return sum + (((_a = t.subtopics) === null || _a === void 0 ? void 0 : _a.length) || 0); }, 0);
     return { main, sub, total: main + sub };
 }
-exports.countAllTopics = countAllTopics;
 //# sourceMappingURL=topic_extractor.js.map

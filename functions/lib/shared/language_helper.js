@@ -4,7 +4,15 @@
  * Provides utilities for dynamic language support based on user profile
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getLanguageFromRequest = exports.getUserLanguage = exports.getMindmapExample = exports.getFlashcardExample = exports.getQuizExample = exports.getPromptTexts = exports.getTrueFalseOptions = exports.getLanguageInstruction = exports.LANGUAGE_NAMES = void 0;
+exports.LANGUAGE_NAMES = void 0;
+exports.getLanguageInstruction = getLanguageInstruction;
+exports.getTrueFalseOptions = getTrueFalseOptions;
+exports.getPromptTexts = getPromptTexts;
+exports.getQuizExample = getQuizExample;
+exports.getFlashcardExample = getFlashcardExample;
+exports.getMindmapExample = getMindmapExample;
+exports.getUserLanguage = getUserLanguage;
+exports.getLanguageFromRequest = getLanguageFromRequest;
 exports.LANGUAGE_NAMES = {
     pt: 'Português do Brasil',
     'pt-PT': 'Português de Portugal',
@@ -27,7 +35,6 @@ function getLanguageInstruction(language = 'pt') {
     const langName = exports.LANGUAGE_NAMES[language] || exports.LANGUAGE_NAMES['pt'];
     return `**IDIOMA:** Responda SEMPRE em ${langName}.`;
 }
-exports.getLanguageInstruction = getLanguageInstruction;
 /**
  * Get localized True/False options for quiz questions
  */
@@ -47,7 +54,6 @@ function getTrueFalseOptions(language = 'pt') {
     };
     return options[language] || options['pt'];
 }
-exports.getTrueFalseOptions = getTrueFalseOptions;
 /**
  * Get localized prompt texts for quiz/flashcard generation
  */
@@ -136,7 +142,6 @@ function getPromptTexts(language = 'pt') {
     };
     return texts[language] || texts['pt'];
 }
-exports.getPromptTexts = getPromptTexts;
 /**
  * Get localized example for quiz question
  */
@@ -185,7 +190,6 @@ function getQuizExample(language = 'pt') {
     };
     return examples[language] || examples['pt'];
 }
-exports.getQuizExample = getQuizExample;
 /**
  * Get localized example for flashcard
  */
@@ -218,7 +222,6 @@ function getFlashcardExample(language = 'pt') {
     };
     return examples[language] || examples['pt'];
 }
-exports.getFlashcardExample = getFlashcardExample;
 /**
  * Get localized example for mindmap structure
  */
@@ -263,7 +266,6 @@ function getMindmapExample(language = 'pt') {
     };
     return examples[language] || examples['pt'];
 }
-exports.getMindmapExample = getMindmapExample;
 /**
  * Fetch user's preferred language from their profile
  * @param db - Firestore instance
@@ -286,7 +288,6 @@ async function getUserLanguage(db, userId) {
         return 'pt';
     }
 }
-exports.getUserLanguage = getUserLanguage;
 /**
  * Get language from data parameter with fallback to user profile
  * @param data - Request data that may contain language parameter
@@ -301,5 +302,4 @@ async function getLanguageFromRequest(data, db, userId) {
     }
     return await getUserLanguage(db, userId);
 }
-exports.getLanguageFromRequest = getLanguageFromRequest;
 //# sourceMappingURL=language_helper.js.map

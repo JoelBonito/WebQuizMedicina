@@ -2,10 +2,18 @@
 // PHASE 1: Output token limits and batch processing utilities
 // This module prevents response truncation by validating and batching AI generation requests
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.estimateBatchTime = exports.formatBatchProgress = exports.calculateSummaryStrategy = exports.calculateSafeOutputTokens = exports.estimateTokens = exports.calculateBatchSizes = exports.calculateBatches = exports.validateOutputRequest = exports.SAFETY_MARGIN = exports.GEMINI_CONTEXT_LIMIT = exports.GEMINI_MAX_OUTPUT = exports.SAFE_OUTPUT_LIMIT = exports.OUTPUT_LIMITS = void 0;
+exports.SAFETY_MARGIN = exports.GEMINI_CONTEXT_LIMIT = exports.GEMINI_MAX_OUTPUT = exports.SAFE_OUTPUT_LIMIT = exports.OUTPUT_LIMITS = void 0;
+exports.validateOutputRequest = validateOutputRequest;
+exports.calculateBatches = calculateBatches;
+exports.calculateBatchSizes = calculateBatchSizes;
+exports.estimateTokens = estimateTokens;
+exports.calculateSafeOutputTokens = calculateSafeOutputTokens;
+exports.calculateSummaryStrategy = calculateSummaryStrategy;
+exports.formatBatchProgress = formatBatchProgress;
+exports.estimateBatchTime = estimateBatchTime;
 /**
  * Token estimation for each output type
- * Based on empirical testing with Gemini 2.5 Flash
+ * Based on empirical testing with Gemini 2.5/3.0 Flash
  * Includes JSON overhead (~15% extra)
  */
 exports.OUTPUT_LIMITS = {
@@ -31,7 +39,7 @@ exports.OUTPUT_LIMITS = {
     },
     // Summary: Variable based on input size
     SUMMARY: {
-        TOKENS_PER_1K_INPUT: 100,
+        TOKENS_PER_1K_INPUT: 100, // ~10% compression ratio
         MIN_TOKENS: 500,
         // Increased max output for single summaries since Gemini 2.5 allows 65k output
         MAX_TOKENS_SINGLE: 30000,
@@ -43,16 +51,16 @@ exports.OUTPUT_LIMITS = {
  */
 exports.SAFE_OUTPUT_LIMIT = 30000;
 /**
- * Maximum output tokens Gemini 2.5 can generate
- * Updated per Gemini 2.5 Flash specs (65,535 tokens)
+ * Maximum output tokens Gemini 2.5/3.0 can generate
+ * Updated per Gemini 2.5/3.0 Flash specs (65,536 tokens)
  */
-exports.GEMINI_MAX_OUTPUT = 65535;
+exports.GEMINI_MAX_OUTPUT = 65536;
 /**
  * Gemini combined context limit (input + output)
- * Gemini 2.5 Flash supports ~1 Million tokens input.
+ * Gemini 2.5/3.0 Flash supports ~1 Million tokens input (1,048,576).
  * We set a safe operational limit of 1M.
  */
-exports.GEMINI_CONTEXT_LIMIT = 1000000;
+exports.GEMINI_CONTEXT_LIMIT = 1048576;
 /**
  * Safety margin for token calculations
  * Large margin to account for estimation errors in very large contexts
@@ -87,14 +95,12 @@ function validateOutputRequest(itemType, count) {
         warning: `Solicitação de ${count} itens (${estimatedTokens} tokens) excede limite seguro. Recomendado: processar em lotes de ${itemsPerBatch} itens.`,
     };
 }
-exports.validateOutputRequest = validateOutputRequest;
 function calculateBatches(itemType, totalCount) {
     const validation = validateOutputRequest(itemType, totalCount);
     if (!validation.needsBatching)
         return 1;
     return Math.ceil(totalCount / validation.recommendedBatchSize);
 }
-exports.calculateBatches = calculateBatches;
 function calculateBatchSizes(itemType, totalCount) {
     const validation = validateOutputRequest(itemType, totalCount);
     if (!validation.needsBatching)
@@ -109,7 +115,6 @@ function calculateBatchSizes(itemType, totalCount) {
     }
     return batches;
 }
-exports.calculateBatchSizes = calculateBatchSizes;
 /**
  * Estimates token usage for a given text
  * Simple heuristic: ~4 characters per token for Portuguese
@@ -117,7 +122,6 @@ exports.calculateBatchSizes = calculateBatchSizes;
 function estimateTokens(text) {
     return Math.ceil(text.length / 4);
 }
-exports.estimateTokens = estimateTokens;
 /**
  * Calculates safe maxOutputTokens based on input size
  * Ensures that input + output doesn't exceed Gemini's combined context limit
@@ -137,7 +141,6 @@ function calculateSafeOutputTokens(inputText, desiredOutputTokens = 20000) {
     }
     return Math.max(safeOutput, 0);
 }
-exports.calculateSafeOutputTokens = calculateSafeOutputTokens;
 /**
  * Determines the best summary generation strategy based on input size
  */
@@ -169,14 +172,11 @@ function calculateSummaryStrategy(inputText) {
         explanation: `Conteúdo massivo (${chars} chars). Processando em seções paralelas.`,
     };
 }
-exports.calculateSummaryStrategy = calculateSummaryStrategy;
 function formatBatchProgress(currentBatch, totalBatches) {
     return `[Lote ${currentBatch}/${totalBatches}]`;
 }
-exports.formatBatchProgress = formatBatchProgress;
 function estimateBatchTime(batchCount) {
     const SECONDS_PER_BATCH = 5; // Slightly increased for larger contexts
     return batchCount * SECONDS_PER_BATCH;
 }
-exports.estimateBatchTime = estimateBatchTime;
 //# sourceMappingURL=output_limits.js.map

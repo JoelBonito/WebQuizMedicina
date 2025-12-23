@@ -19,15 +19,30 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 }) : function(o, v) {
     o["default"] = v;
 });
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.extractByMimeType = exports.extractPdfContent = exports.extractPptContent = exports.extractDocContent = exports.extractPptxContent = exports.extractDocxContent = void 0;
+exports.extractDocxContent = extractDocxContent;
+exports.extractPptxContent = extractPptxContent;
+exports.extractDocContent = extractDocContent;
+exports.extractPptContent = extractPptContent;
+exports.extractPdfContent = extractPdfContent;
+exports.extractByMimeType = extractByMimeType;
 const mammoth = __importStar(require("mammoth"));
 const office_text_extractor_1 = require("office-text-extractor");
 const pdf = require('pdf-parse');
@@ -51,7 +66,6 @@ async function extractDocxContent(buffer) {
         throw new Error(`Falha ao extrair texto do DOCX: ${error.message}`);
     }
 }
-exports.extractDocxContent = extractDocxContent;
 /**
  * Extrai texto de arquivo PPTX usando office-text-extractor
  * Custo: Zero (processamento local)
@@ -73,7 +87,6 @@ async function extractPptxContent(buffer) {
         throw new Error(`Falha ao extrair texto do PPTX: ${error.message}`);
     }
 }
-exports.extractPptxContent = extractPptxContent;
 /**
  * Extrai texto de arquivo DOC (formato legado) usando office-text-extractor
  * Custo: Zero (processamento local)
@@ -95,7 +108,6 @@ async function extractDocContent(buffer) {
         throw new Error(`Falha ao extrair texto do DOC: ${error.message}`);
     }
 }
-exports.extractDocContent = extractDocContent;
 /**
  * Extrai texto de arquivo PPT (formato legado) usando office-text-extractor
  * Custo: Zero (processamento local)
@@ -117,7 +129,6 @@ async function extractPptContent(buffer) {
         throw new Error(`Falha ao extrair texto do PPT: ${error.message}`);
     }
 }
-exports.extractPptContent = extractPptContent;
 /**
  * Extrai texto de arquivo PDF usando pdf-parse
  * Custo: Zero (processamento local)
@@ -135,7 +146,6 @@ async function extractPdfContent(buffer) {
         throw new Error(`Falha ao extrair texto do PDF: ${error.message}`);
     }
 }
-exports.extractPdfContent = extractPdfContent;
 /**
  * Router de extração baseado em MIME type e Extensão (Segurança)
  * Retorna null se o tipo não for suportado pela Pista Expressa
@@ -172,5 +182,4 @@ async function extractByMimeType(buffer, mimeType, fileExtension // Parâmetro o
     console.log(`ℹ️ [Router] Type ${mimeType} / Ext ${ext} não suportado pela Pista Expressa`);
     return null;
 }
-exports.extractByMimeType = extractByMimeType;
 //# sourceMappingURL=fileExtractors.js.map

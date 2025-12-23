@@ -6,7 +6,11 @@
  * and semantic search using Firestore (in-memory fallback for now).
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteEmbeddings = exports.hasAnyEmbeddings = exports.semanticSearchWithTokenLimit = exports.generateEmbeddings = exports.chunkText = void 0;
+exports.chunkText = chunkText;
+exports.generateEmbeddings = generateEmbeddings;
+exports.semanticSearchWithTokenLimit = semanticSearchWithTokenLimit;
+exports.hasAnyEmbeddings = hasAnyEmbeddings;
+exports.deleteEmbeddings = deleteEmbeddings;
 const gemini_1 = require("./gemini");
 /**
  * Chunking configuration
@@ -87,7 +91,6 @@ function chunkText(text, chunkSizeTokens = CHUNK_SIZE_TOKENS, overlapTokens = CH
     console.log(`📦 [Chunking] Split text into ${chunks.length} chunks`);
     return chunks;
 }
-exports.chunkText = chunkText;
 /**
  * Generate embeddings for multiple chunks (with batching)
  */
@@ -118,7 +121,6 @@ async function generateEmbeddings(chunks, modelName) {
     console.log(`✅ [Embeddings] All ${chunksWithEmbeddings.length} embeddings generated successfully`);
     return chunksWithEmbeddings;
 }
-exports.generateEmbeddings = generateEmbeddings;
 /**
  * Calculate Cosine Similarity between two vectors
  */
@@ -201,7 +203,6 @@ async function semanticSearchWithTokenLimit(db, query, sourceIds, maxTokens = 15
     }
     return results;
 }
-exports.semanticSearchWithTokenLimit = semanticSearchWithTokenLimit;
 /**
  * Check if any sources have embeddings
  */
@@ -216,7 +217,6 @@ async function hasAnyEmbeddings(db, sourceIds) {
         .get();
     return !snapshot.empty;
 }
-exports.hasAnyEmbeddings = hasAnyEmbeddings;
 /**
  * Delete embeddings for a source
  */
@@ -228,5 +228,4 @@ async function deleteEmbeddings(db, sourceId) {
     });
     await batch.commit();
 }
-exports.deleteEmbeddings = deleteEmbeddings;
 //# sourceMappingURL=embeddings.js.map

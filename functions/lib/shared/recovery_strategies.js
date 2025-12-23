@@ -6,7 +6,10 @@
  * based on the number and type of student difficulties.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.formatDifficultiesForLog = exports.estimateTokens = exports.calculateRecoveryStrategyForFlashcards = exports.calculateRecoveryStrategy = void 0;
+exports.calculateRecoveryStrategy = calculateRecoveryStrategy;
+exports.calculateRecoveryStrategyForFlashcards = calculateRecoveryStrategyForFlashcards;
+exports.estimateTokens = estimateTokens;
+exports.formatDifficultiesForLog = formatDifficultiesForLog;
 /**
  * Calculate the optimal recovery strategy based on student difficulties
  *
@@ -138,7 +141,6 @@ OBJETIVO: Fechar múltiplas lacunas de forma eficiente e interconectada.
         };
     }
 }
-exports.calculateRecoveryStrategy = calculateRecoveryStrategy;
 /**
  * Calculate recovery strategy specifically for FLASHCARDS
  *
@@ -242,7 +244,6 @@ OBJETIVO: Fechar lacunas através de memorização ativa e repetição espaçada
         };
     }
 }
-exports.calculateRecoveryStrategyForFlashcards = calculateRecoveryStrategyForFlashcards;
 /**
  * Estimate token count (rough approximation)
  * 1 token ≈ 4 characters for Portuguese/English
@@ -250,7 +251,6 @@ exports.calculateRecoveryStrategyForFlashcards = calculateRecoveryStrategyForFla
 function estimateTokens(text) {
     return Math.ceil(text.length / 4);
 }
-exports.estimateTokens = estimateTokens;
 /**
  * Format difficulty topics for logging
  */
@@ -262,5 +262,4 @@ function formatDifficultiesForLog(difficulties) {
         .map(d => `${d.topico} (nivel: ${d.nivel})`)
         .join(', ');
 }
-exports.formatDifficultiesForLog = formatDifficultiesForLog;
 //# sourceMappingURL=recovery_strategies.js.map

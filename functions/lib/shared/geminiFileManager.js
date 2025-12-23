@@ -19,15 +19,28 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 }) : function(o, v) {
     o["default"] = v;
 });
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.extractTextFromImageWithGemini = exports.transcribeAudioWithGemini = exports.deleteGeminiFile = exports.uploadToGeminiFiles = void 0;
+exports.uploadToGeminiFiles = uploadToGeminiFiles;
+exports.deleteGeminiFile = deleteGeminiFile;
+exports.transcribeAudioWithGemini = transcribeAudioWithGemini;
+exports.extractTextFromImageWithGemini = extractTextFromImageWithGemini;
 const server_1 = require("@google/generative-ai/server");
 const generative_ai_1 = require("@google/generative-ai");
 const modelSelector_1 = require("./modelSelector");
@@ -90,7 +103,6 @@ async function uploadToGeminiFiles(buffer, mimeType, displayName) {
         }
     }
 }
-exports.uploadToGeminiFiles = uploadToGeminiFiles;
 /**
  * Deletar arquivo do ambiente temporário do Gemini
  * SEMPRE chamar após processar o arquivo para evitar custos
@@ -106,7 +118,6 @@ async function deleteGeminiFile(fileName) {
         // Não lançar erro - arquivo será auto-deletado pelo Gemini após TTL
     }
 }
-exports.deleteGeminiFile = deleteGeminiFile;
 /**
  * Transcrever áudio usando Gemini File API
  * Ideal para arquivos > 10MB (aulas, palestras, podcasts)
@@ -155,7 +166,6 @@ Forneça APENAS a transcrição, sem comentários adicionais.`
         }
     }
 }
-exports.transcribeAudioWithGemini = transcribeAudioWithGemini;
 /**
  * OCR avançado para imagens/scans usando Gemini Vision
  * Suporta manuscritos e anotações médicas
@@ -194,5 +204,4 @@ Forneça APENAS o texto extraído, sem comentários adicionais.`
     console.log(`✅ [OCR] Extração completa: ${text.length} caracteres`);
     return text;
 }
-exports.extractTextFromImageWithGemini = extractTextFromImageWithGemini;
 //# sourceMappingURL=geminiFileManager.js.map

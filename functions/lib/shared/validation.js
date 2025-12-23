@@ -1,6 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.sanitizeString = exports.validateRequest = exports.generateRecoveryQuizSchema = exports.generateRecoveryFlashcardsSchema = exports.generateFocusedSummarySchema = exports.generateMindmapSchema = exports.chatSchema = exports.generateFlashcardsSchema = exports.generateQuizSchema = void 0;
+exports.generateRecoveryQuizSchema = exports.generateRecoveryFlashcardsSchema = exports.generateFocusedSummarySchema = exports.generateMindmapSchema = exports.chatSchema = exports.generateFlashcardsSchema = exports.generateQuizSchema = void 0;
+exports.validateRequest = validateRequest;
+exports.sanitizeString = sanitizeString;
 const zod_1 = require("zod");
 const https_1 = require("firebase-functions/v2/https");
 // Relaxed ID validation to support both UUIDs (Supabase) and Firestore IDs
@@ -12,8 +14,8 @@ exports.generateQuizSchema = zod_1.z.object({
     difficulty: zod_1.z.string().nullish(),
 });
 exports.generateFlashcardsSchema = zod_1.z.object({
-    source_ids: zod_1.z.array(idSchema).optional(),
-    source_id: idSchema.optional(),
+    source_ids: zod_1.z.array(idSchema).optional(), // Support multiple selection
+    source_id: idSchema.optional(), // Legacy support
     project_id: idSchema.optional(),
     count: zod_1.z.number().min(1).max(50).default(10),
     difficulty: zod_1.z.string().nullish(), // Support difficulty selection
@@ -50,12 +52,10 @@ function validateRequest(data, schema) {
     }
     return result.data;
 }
-exports.validateRequest = validateRequest;
 function sanitizeString(str) {
     if (!str)
         return "";
     // Basic sanitization to remove null bytes and control characters
     return str.replace(/[\x00-\x09\x0B-\x1F\x7F]/g, "").trim();
 }
-exports.sanitizeString = sanitizeString;
 //# sourceMappingURL=validation.js.map
